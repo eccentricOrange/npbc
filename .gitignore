@@ -1,3 +1,4 @@
 .python-version
 data
 npbc-env
+__pycache__

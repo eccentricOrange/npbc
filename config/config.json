@@ -1,5 +1,5 @@
 {
-    "root_folder": ".",
+    "root_folder": "~/.npbc",
     "records_folder": "data/record-files",
     "papers_data": "data/papers.json",
     "costs_file": "data/data-files/costs-of-papers.csv",
