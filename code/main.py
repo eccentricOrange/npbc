@@ -30,15 +30,13 @@ class Main:
             self.undelivered_strings[key] = []
             self.totals[key] = 0.0
 
-        print(self.totals)
-
     def check_arguments(self):
         self.argument_list = argv[1:]
 
         if len(self.argument_list) == 0:
             self.run_ui()
 
-        elif len(self.argument_list) == 1:
+        elif len(self.argument_list) >= 1:
             if self.argument_list[0] == 'calculate':
                 self.read_args_for_calculate()
                 self.calculate()
@@ -62,11 +60,12 @@ class Main:
 
     def read_args_for_calculate(self):
         argument_list = self.argument_list[1:]
-
         options = "m:y:p:"
         long_options = ["month", "year", "papers"]
         arguments, values = getopt(argument_list, options, long_options)
-        
+
+        undelivered_string = ''
+
         for argument, value in arguments:
             if argument in ['-m', '--month']:
                 self.month = int(value)
@@ -75,10 +74,7 @@ class Main:
                 self.year = int(value)
 
             elif argument in ['-p', '--papers']:
-                for paper in value.split(';'):
-                    paper_key, string = paper.split(':')
-
-                    self.assign_parsed_undelivered_to_paper(paper_key, self.parse_undelivered_string([], string), string)
+                undelivered_string = value
 
         
         if self.month == 0 and self.year == 0:
@@ -91,11 +87,17 @@ class Main:
         elif self.month != 0 and self.year == 0:
             self.year = datetime.datetime.today().year
 
+        if len(undelivered_string.split()) > 0:
+            for paper in undelivered_string.split(';'):
+                paper_key, string = paper.split(':')
+
+                self.assign_parsed_undelivered_to_paper(paper_key, self.parse_undelivered_string([], string), string)
 
     def get_list_of_dates(self) -> list:
         self.dates_in_active_month = []
 
-        for date in calendar.Calendar().itermonthdates(self.year, self.month):
+        for date_number in range(calendar.monthrange(self.year, self.month)[1]):
+            date = datetime.date(self.year, self.month, date_number + 1)
             self.dates_in_active_month.append(date)
 
         return self.dates_in_active_month
@@ -190,7 +192,7 @@ class Main:
                 undelivered_dates = self.dates_in_active_month
 
             elif '-' in duration:
-                start, end = re_split(r'- | ', duration)
+                start, end = duration.split('-')
 
                 if start.isdigit() and end.isdigit():
                     start = int(start)
@@ -206,6 +208,8 @@ class Main:
     def output_and_copy_results(self):
         output_string = ""
 
+        output_string += f"*TOTAL: {self.totals.pop('TOTAL')}*\n"
+
         for paper_key, value in self.totals.items():
             output_string += f"{self.papers[paper_key]['name']}: {value}\n"
 
@@ -216,7 +220,6 @@ class Main:
         pass
 
     def calculate(self):
-        self.acquire_undelivered_papers()
         self.get_list_of_dates()
         self.calculate_all_papers()
         self.output_and_copy_results()
@@ -242,6 +245,7 @@ class Main:
             else:
                 self.year = self.get_previous_month().year
 
+            self.acquire_undelivered_papers()
             self.calculate()
 
         # elif task in ['p', 'papers']:
