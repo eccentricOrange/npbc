@@ -1,11 +1,10 @@
-from json import loads
-from sys import argv
-from getopt import getopt
-from re import split as re_split
-from pyperclip import copy
-
-import datetime
 import calendar
+import datetime
+from getopt import getopt
+from json import loads, dumps
+from re import split as re_split
+from sys import argv
+from pyperclip import copy
 
 
 class Main:
@@ -44,11 +43,8 @@ class Main:
             elif (self.argument_list[0] == '--help') or (self.argument_list[0] == '-h'):
                 self.display_help()
 
-            # elif self.argument_list[0] == 'editpapers':
-            #     self.edit_papers()
-
-            # elif self.argument_list[0] == 'editconfig':
-            #     self.edit_config()
+            elif self.argument_list[0] == 'editpapers':
+                self.edit_papers()
 
             else:
                 self.display_help()
@@ -56,7 +52,117 @@ class Main:
     def display_help(self):
         print(self.help['main'])
 
-    
+    def edit_papers(self):
+        mode = input("\n Do you want to create a [n]ew newspaper, [e]dit an existing one, [d]elete an existing one, or e[x]it? ")
+
+        if mode.lower() == 'n':
+            self.create_new_paper()
+
+        elif mode.lower() == 'e':
+            self.edit_existing_paper()
+
+        elif mode.lower() == 'd':
+            self.delete_existing_paper()
+
+        elif mode.lower() == 'x':
+            pass
+
+        else:
+            print("Invalid option. Please try again.")
+
+    def create_new_paper(self):
+        paper_name = input("What is the name of the newspaper? ")
+        paper_key = input(f"Enter a short name for {paper_name}: ")
+
+        if paper_key in self.papers:
+            print(f"{paper_key} already exists. Please try editing it.")
+            exit(0)
+
+        paper_days = {}
+
+        for day in calendar.day_name:
+            sold = input(f"\nIs the newspaper sold on {day}? ([y]es/[N]o) ")
+
+            if sold.lower() in ['y', 'ye', 'yes']:
+                sold = int(True)
+                cost = float(input(f"What is the cost on {day}? "))
+
+            else:
+                sold = int(False)
+                cost = 0.0
+
+            paper_days[day] = {'sold': sold, 'cost': cost}
+
+        print(f"\n{paper_name} has been added.")
+
+        self.papers[paper_key] = {'name': paper_name, 'key': paper_key, 'days': paper_days}
+
+        with open(f"{self.config['papers_data']}", 'w') as papers_file:
+            papers_file.write(dumps(self.papers))
+
+    def edit_existing_paper(self):
+        paper_key = input("Enter the key of the paper to edit: ")
+
+        if paper_key not in self.papers:
+            print(f"{paper_key} does not exist. Please try again.")
+            exit(0)
+
+        print(f"Editing {self.papers[paper_key]['name']}.")
+
+        new_paper_key = input("Enter a new key for the paper, or leave blank to retain: ")
+        
+        if new_paper_key != '':
+            self.papers[new_paper_key] = self.papers[paper_key]
+            del self.papers[paper_key]
+
+        else :
+            new_paper_key = paper_key
+
+        new_paper_name = input("Enter a new name for the paper, or leave blank to retain: ")
+
+        if new_paper_name != '':
+            self.papers[new_paper_key]['name'] = new_paper_name
+
+        else:
+            new_paper_name = self.papers[paper_key]['name']
+
+        for day in [i for i in calendar.day_name]:
+            sold = input(f"\nIs the newspaper sold on {day}? ([y]es/[N]o) ")
+
+            if sold.lower() in ['y', 'ye', 'yes']:
+                sold = int(True)
+                cost = float(input(f"What is the cost on {day}? "))
+
+            else:
+                sold = int(False)
+                cost = 0.0
+
+            self.papers[new_paper_key]['days'][day] = {'sold': sold, 'cost': cost}
+
+        print(f"\n{self.papers[new_paper_key]['name']} has been edited.")
+
+        with open(f"{self.config['papers_data']}", 'w') as papers_file:
+            papers_file.write(dumps(self.papers))
+
+    def delete_existing_paper(self):
+        paper_key = input("Enter the key of the paper to delete: ")
+
+        if paper_key not in self.papers:
+            print(f"{paper_key} does not exist. Please try again.")
+            exit(0)
+
+        sure = input(f"Are you sure you want to delete {self.papers[paper_key]['name']}? ([y]es/[N]o) ")
+
+        if sure.lower() in ['y', 'ye', 'yes']:
+            del self.papers[paper_key]
+
+            print(f"\n{self.papers[paper_key]['name']} has been deleted.")
+
+            with open(f"{self.config['papers_data']}", 'w') as papers_file:
+                papers_file.write(dumps(self.papers))
+
+        else:
+            print("\nDeletion cancelled.")
 
     def read_args_for_calculate(self):
         argument_list = self.argument_list[1:]
@@ -86,6 +192,8 @@ class Main:
 
         elif self.month != 0 and self.year == 0:
             self.year = datetime.datetime.today().year
+
+        self.get_list_of_dates()
 
         if len(undelivered_string.split()) > 0:
             for paper in undelivered_string.split(';'):
@@ -123,7 +231,7 @@ class Main:
 
     def acquire_undelivered_papers(self):
         confirmation = input(
-            "Do you want to report any undelivered data? ([Y]es/[n]o) ")
+            "\nDo you want to report any undelivered data? ([Y]es/[n]o) ")
 
         while confirmation.lower() in ['y', 'ye,' 'yes']:
             print("These are the available newspapers:\n")
@@ -178,7 +286,7 @@ class Main:
             self.undelivered_strings[paper_key].append(string)
 
     def parse_undelivered_string(self, undelivered_dates: list, string: str) -> list:
-        durations = re_split(r', | ', string)
+        durations = string.split(',')
 
         for duration in durations:
             if duration.isdigit():
@@ -202,6 +310,14 @@ class Main:
                         for date in range(start, end + 1):
                             undelivered_dates.append(
                                         datetime.date(self.year, self.month, date))
+
+            elif duration[:-1] in calendar.day_name:
+                day_number = [i for i in calendar.day_name].index(duration[:-1])
+
+                for date in self.dates_in_active_month:
+                    if date.weekday() == day_number:
+                        undelivered_dates.append(date)
+            
                                 
         return undelivered_dates
 
@@ -217,10 +333,43 @@ class Main:
         copy(output_string)
 
     def save_results(self):
-        pass
+        timestamp = datetime.datetime.now().strftime("%d/%m/%Y %I:%M:%S %p")
+        current_month = datetime.date(self.year, self.month, 1).strftime("%m/%Y")
+
+        total = 0.0
+
+        for paper_key, value in self.totals.items():
+            if len(self.undelivered_dates[paper_key]) > 0:
+            
+                delivery_record = ""
+
+                for date in self.undelivered_dates[paper_key]:
+                    delivery_record += f",{date.day}"
+
+                delivery_record = f"{timestamp},{current_month},{self.papers[paper_key]['name']}{delivery_record}"
+                with open(self.config['delivery_record_file'], 'a') as delivery_record_file:
+                    delivery_record_file.write(delivery_record + "\n")
+
+            cost_record = f"{timestamp},{current_month},{self.papers[paper_key]['name']},{self.totals[paper_key]}"
+
+
+            with open(self.config['cost_record_file'], 'a') as cost_record_file:
+                cost_record_file.write(cost_record + "\n")
+
+            total += self.totals[paper_key]
+
+        with open(self.config['cost_record_file'], 'a') as cost_record_file:
+            cost_record_file.write(f"{timestamp},{current_month},TOTAL,{total}\n")
+ 
+
+    def remove_duplicate_dates(self):
+        for paper_key, value in self.undelivered_dates.items():
+            self.undelivered_dates[paper_key] = list(set(self.undelivered_dates[paper_key]))
+            self.undelivered_dates[paper_key].sort()           
+
 
     def calculate(self):
-        self.get_list_of_dates()
+        self.remove_duplicate_dates()
         self.calculate_all_papers()
         self.output_and_copy_results()
         self.save_results()
@@ -245,14 +394,12 @@ class Main:
             else:
                 self.year = self.get_previous_month().year
 
+            self.get_list_of_dates()
             self.acquire_undelivered_papers()
             self.calculate()
 
-        # elif task in ['p', 'papers']:
-        #     self.edit_papers()
-
-        # elif task in ['f', 'files']:
-        #     self.edit_config()
+        elif task in ['p', 'papers']:
+            self.edit_papers()
 
         elif task in ['h', 'help']:
             self.display_help()
