@@ -15,13 +15,13 @@ class Main:
     undelivered_strings = {}
 
     def __init__(self):
-        with open(f"data/config.json", 'r') as config_file:
+        with open(f"config/config.json", 'r') as config_file:
             self.config = loads(config_file.read())
 
-        with open(f"{self.config['papers_data']}", 'r') as papers_file:
+        with open(f"{self.config['root_folder']}/{self.config['papers_data']}", 'r') as papers_file:
             self.papers = loads(papers_file.read())
 
-        with open(f"code/help.json", 'r') as help_file:
+        with open(f"config/help.json", 'r') as help_file:
             self.help = loads(help_file.read())
 
         for key, value in self.papers.items():
@@ -97,7 +97,7 @@ class Main:
 
         self.papers[paper_key] = {'name': paper_name, 'key': paper_key, 'days': paper_days}
 
-        with open(f"{self.config['papers_data']}", 'w') as papers_file:
+        with open(f"{self.config['root_folder']}/{self.config['papers_data']}", 'w') as papers_file:
             papers_file.write(dumps(self.papers))
 
     def edit_existing_paper(self):
@@ -141,7 +141,7 @@ class Main:
 
         print(f"\n{self.papers[new_paper_key]['name']} has been edited.")
 
-        with open(f"{self.config['papers_data']}", 'w') as papers_file:
+        with open(f"{self.config['root_folder']}/{self.config['papers_data']}", 'w') as papers_file:
             papers_file.write(dumps(self.papers))
 
     def delete_existing_paper(self):
@@ -158,7 +158,7 @@ class Main:
 
             print(f"\n{self.papers[paper_key]['name']} has been deleted.")
 
-            with open(f"{self.config['papers_data']}", 'w') as papers_file:
+            with open(f"{self.config['root_folder']}/{self.config['papers_data']}", 'w') as papers_file:
                 papers_file.write(dumps(self.papers))
 
         else:
@@ -347,18 +347,18 @@ class Main:
                     delivery_record += f",{date.day}"
 
                 delivery_record = f"{timestamp},{current_month},{self.papers[paper_key]['name']}{delivery_record}"
-                with open(self.config['delivery_record_file'], 'a') as delivery_record_file:
+                with open(f"{self.config['root_folder']}/{self.config['delivery_record_file']}", 'a') as delivery_record_file:
                     delivery_record_file.write(delivery_record + "\n")
 
             cost_record = f"{timestamp},{current_month},{self.papers[paper_key]['name']},{self.totals[paper_key]}"
 
 
-            with open(self.config['cost_record_file'], 'a') as cost_record_file:
+            with open(f"{self.config['root_folder']}/{self.config['cost_record_file']}", 'a') as cost_record_file:
                 cost_record_file.write(cost_record + "\n")
 
             total += self.totals[paper_key]
 
-        with open(self.config['cost_record_file'], 'a') as cost_record_file:
+        with open(f"{self.config['root_folder']}/{self.config['cost_record_file']}", 'a') as cost_record_file:
             cost_record_file.write(f"{timestamp},{current_month},TOTAL,{total}\n")
  
 
