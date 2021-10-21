@@ -1,5 +1,5 @@
 #!/bin/bash
 
-mkdir -p ~/.npbc/data/record-files
-touch ~/.npbc/data/record-files/cost-record.csv
-touch ~/.npbc/data/record-files/days-undelivered.csv
+git clone https://github.com/eccentricOrange/npbc.git /usr/local/npbc
+cp -r /usr/local/npbc/data ~/.npbc/
+echo 'alias npbc="cd /usr/local/npbc && code/main.py"' >> ~/.bashrc
