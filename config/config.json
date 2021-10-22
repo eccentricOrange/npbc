@@ -1,9 +1,0 @@
-{
-    "root_folder": "~/.npbc",
-    "records_folder": "data/record-files",
-    "papers_data": "data/papers.json",
-    "costs_file": "data/data-files/costs-of-papers.csv",
-    "names_file": "data/data-files/names-of-papers.csv",
-    "delivery_record_file": "data/record-files/days-undelivered.csv",
-    "cost_record_file": "data/record-files/cost-record.csv"
-}
