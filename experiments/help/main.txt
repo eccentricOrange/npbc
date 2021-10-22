@@ -1,7 +1,16 @@
 usage: npbc <command> [args]
 
-    calculate [-m <month>] [-y <year>] [-p "<missing papers>"]
+    calculate [-m <month>] [-y <year>] [-p "<missing papers>"] [-l] [-c]
     calculate, save, and copy the bill for a given month
+        -m, --month:    specify the month to calculate for
+        -y, --year:     specify the year to calculate for
+        -p, --papers:   specify papers to calculate for, in the format:
+                        paper_1:day_range11,...,day_range1n;...;paper_m:day_rangem1,..,day_rangemn
+        -l, --nolog:    do not log calculations
+        -c, --nocopy:   do not copy to clipboard
+
+    addudl [-m <month>] [-y <year>] [-p "<missing papers>"]
+    save undelivered instances to file
         -m, --month:    specify the month to calculate for
         -y, --year:     specify the year to calculate for
         -p, --papers:   specify papers to calculate for, in the format:

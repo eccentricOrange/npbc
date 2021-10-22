@@ -14,10 +14,12 @@ class Main:
     totals = {'TOTAL': 0.0}
     undelivered_dates = {}
     undelivered_strings = {}
+    nolog = False
+    nocopy = False
 
     def __init__(self):
-        print(os.getcwd())
         os.chdir(sys._MEIPASS)
+
         with open(f"config.json", 'r') as config_file:
             self.config = loads(config_file.read())
 
@@ -29,6 +31,9 @@ class Main:
 
         with open(f"{self.config['root_folder']}/{self.config['papers_data']}", 'r') as papers_file:
             self.papers = loads(papers_file.read())
+
+        with open(f"{self.config['root_folder']}/{self.config['undelivered_strings']}", 'r') as undelivered_file:
+            self.undelivered_strings = loads(undelivered_file.read())
 
         with open(f"help.json", 'r') as help_file:
             self.help = loads(help_file.read())
@@ -55,6 +60,10 @@ class Main:
             elif self.argument_list[0] == 'editpapers':
                 self.edit_papers()
 
+            elif self.argument_list[0] == 'addudl':
+                self.read_args_for_undelivered_dates()
+                self.add_undelivered_dates()
+
             else:
                 self.display_help()
 
@@ -64,20 +73,20 @@ class Main:
     def edit_papers(self):
         mode = input("\n Do you want to create a [n]ew newspaper, [e]dit an existing one, [d]elete an existing one, or e[x]it? ")
 
-        if mode.lower() == 'n':
+        if mode.lower() in ['n', 'ne', 'new']:
             self.create_new_paper()
 
-        elif mode.lower() == 'e':
+        elif mode.lower() in ['e', 'ed', 'edi', 'edit']:
             self.edit_existing_paper()
 
-        elif mode.lower() == 'd':
+        elif mode.lower() in ['d', 'de', 'del', 'dele', 'delet', 'delete']:
             self.delete_existing_paper()
 
-        elif mode.lower() == 'x':
-            pass
+        elif mode.lower() in ['x', 'ex', 'exi', 'exit']:
+            exit(0)
 
         else:
-            print("Invalid option. Please try again.")
+            print("\nInvalid mode. Please try again.")
 
     def create_new_paper(self):
         paper_name = input("What is the name of the newspaper? ")
@@ -173,7 +182,16 @@ class Main:
         else:
             print("\nDeletion cancelled.")
 
-    def read_args_for_calculate(self):
+    def add_undelivered_dates(self):
+        if len(self.argument_list) == 1:
+            print("\nPlease enter the dates you want to add to the undelivered dates list.")
+            
+            self.acquire_undelivered_papers()
+
+        with open(f"{self.config['root_folder']}/{self.config['undelivered_strings']}", 'w') as undelivered_file:
+            undelivered_file.write(dumps(self.undelivered_strings))
+
+    def read_args_for_undelivered_dates(self):
         argument_list = self.argument_list[1:]
         options = "m:y:p:"
         long_options = ["month", "year", "papers"]
@@ -190,6 +208,48 @@ class Main:
 
             elif argument in ['-p', '--papers']:
                 undelivered_string = value
+
+        if self.month == 0 and self.year == 0:
+            self.month = self.get_previous_month().month
+            self.year = self.get_previous_month().year
+
+        elif self.month == 0 and self.year != 0:
+            self.month = datetime.datetime.today().month
+
+        elif self.month != 0 and self.year == 0:
+            self.year = datetime.datetime.today().year
+
+        self.get_list_of_dates()
+
+        if len(undelivered_string.split()) > 0:
+            for paper in undelivered_string.split(';'):
+                paper_key, string = paper.split(':')
+
+                self.undelivered_strings[paper_key] = string
+
+    def read_args_for_calculate(self):
+        argument_list = self.argument_list[1:]
+        options = "m:y:p:l:c:"
+        long_options = ["month", "year", "papers", "nolog", "nocopy"]
+        arguments, values = getopt(argument_list, options, long_options)
+
+        undelivered_string = ''
+
+        for argument, value in arguments:
+            if argument in ['-m', '--month']:
+                self.month = int(value)
+
+            elif argument in ['-y', '--year']:
+                self.year = int(value)
+
+            elif argument in ['-p', '--papers']:
+                undelivered_string = value
+
+            elif argument in ['-l', '--nolog']:
+                self.nolog = True
+
+            elif argument in ['-c', '--nocopy']:
+                self.nocopy = True
 
         
         if self.month == 0 and self.year == 0:
@@ -294,6 +354,9 @@ class Main:
             self.undelivered_dates[paper_key] = undelivered_dates
             self.undelivered_strings[paper_key].append(string)
 
+    def edit_config_files(self):
+        pass
+
     def parse_undelivered_string(self, undelivered_dates: list, string: str) -> list:
         durations = string.split(',')
 
@@ -339,7 +402,8 @@ class Main:
             output_string += f"{self.papers[paper_key]['name']}: {value}\n"
 
         print(f"\n{output_string}")
-        copy(output_string)
+        if not self.nocopy:
+            copy(output_string)
 
     def save_results(self):
         timestamp = datetime.datetime.now().strftime("%d/%m/%Y %I:%M:%S %p")
@@ -381,10 +445,12 @@ class Main:
         self.remove_duplicate_dates()
         self.calculate_all_papers()
         self.output_and_copy_results()
-        self.save_results()
+
+        if not self.nolog:
+            self.save_results()
 
     def run_ui(self):
-        task = input("What do you want to do right now? ([c]alculate, edit the [p]apers, edit the [f]iles configuration, display [h]elp, or e[x]it) ").strip().lower()
+        task = input("What do you want to do right now? ([c]alculate, edit the [p]apers, edit the [f]iles configuration, add [u]ndelivered data, display [h]elp, or e[x]it) ").strip().lower()
 
         if task in ['c', 'calculate']:
             month = input("\nPlease enter the month you want to calculate (either enter a number, or leave blank to use the previous month): ")
@@ -412,6 +478,12 @@ class Main:
 
         elif task in ['h', 'help']:
             self.display_help()
+
+        elif task in ['f', 'files']:
+            self.edit_config_files()
+
+        elif task in ['u', 'undelivered']:
+            self.add_undelivered_dates()
 
         elif task in ['x', 'exit']:
             pass
