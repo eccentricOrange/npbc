@@ -183,7 +183,7 @@ class Main:
             print("\nDeletion cancelled.")
 
     def add_undelivered_dates(self):
-        if len(self.argument_list) == 1:
+        if len(self.argument_list) <= 1:
             print("\nPlease enter the dates you want to add to the undelivered dates list.")
             
             self.acquire_undelivered_papers()
