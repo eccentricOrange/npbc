@@ -1,5 +1,5 @@
 {
-    "root_folder": "/home/anujv/.npbc",
+    "root_folder": "UNSET",
     "records_folder": "record-files",
     "papers_data": "papers.json",
     "costs_file": "data-files/costs-of-papers.csv",

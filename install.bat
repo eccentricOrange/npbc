@@ -1,9 +1,9 @@
-git clone https://github.com/eccentricOrange/npbc.git %PROGRAMFILES%\npbc
+git clone https://github.com/eccentricOrange/npbc.git "%userprofile%\npbc"
 
-if exist %userprofile%\.npbc (
+if exist "%userprofile%\.npbc" (
     echo "Not updating user directory."
 ) else (
-    xcopy /s %PROGRAMFILED%\npbc\data %userprofile%\.npbc
+    xcopy /s "%userprofile%\npbc\data %userprofile%\.npbc"
 )
 
-setx path "%PATH%;%PROGRAMFILES%\npbc\bin" /M
+setx path "%PATH%;%userprofile%\npbc\bin"
