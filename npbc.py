@@ -9,8 +9,8 @@ from subprocess import Popen
 
 from pyperclip import copy as copy_to_clipboard
 
-CONFIG_FILEPATH = f'includes/config.json'
-HELP_FILEPATH = f'includes/undelivered_help.pdf'
+CONFIG_FILEPATH = Path(f'includes/config.json')
+HELP_FILEPATH = Path(f'includes/undelivered_help.pdf')
 
 class Main():
     month = 0
@@ -33,13 +33,13 @@ class Main():
         if self.config['root_folder'] == 'UNSET':
             self.config['root_folder'] = f"{str(Path.home())}/.npbc"
 
-            with open(f"includes/config.json", 'w') as config_file:
+            with open(Path(f"includes/config.json"), 'w') as config_file:
                 config_file.write(dumps(self.config))
 
-        with open(f"{self.config['root_folder']}/{self.config['papers_data']}", 'r') as papers_file:
+        with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'r') as papers_file:
             self.papers = loads(papers_file.read())
 
-        with open(f"{self.config['root_folder']}/{self.config['undelivered_strings']}", 'r') as undelivered_file:
+        with open(Path(f"{self.config['root_folder']}/{self.config['undelivered_strings']}"), 'r') as undelivered_file:
             self.undelivered_strings = loads(undelivered_file.read())
 
         for paper_key in self.papers:
@@ -205,7 +205,7 @@ class Main():
 
         self.papers[paper_key] = {'name': paper_name, 'key': paper_key, 'days': paper_days}
 
-        with open(f"{self.config['root_folder']}/{self.config['papers_data']}", 'w') as papers_file:
+        with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'w') as papers_file:
             papers_file.write(dumps(self.papers))
 
     def edit_existing_paper(self):
@@ -249,7 +249,7 @@ class Main():
 
         print(f"\n{self.papers[new_paper_key]['name']} has been edited.")
 
-        with open(f"{self.config['root_folder']}/{self.config['papers_data']}", 'w') as papers_file:
+        with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'w') as papers_file:
             papers_file.write(dumps(self.papers))
 
     def delete_existing_paper(self):
@@ -266,7 +266,7 @@ class Main():
 
             print(f"\n{self.papers[paper_key]['name']} has been deleted.")
 
-            with open(f"{self.config['root_folder']}/{self.config['papers_data']}", 'w') as papers_file:
+            with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'w') as papers_file:
                 papers_file.write(dumps(self.papers))
 
         else:
@@ -424,18 +424,18 @@ class Main():
                         delivery_record += f",{date.day}"
 
                     delivery_record = f"{timestamp},{current_month},{self.papers[paper_key]['name']}{delivery_record}"
-                    with open(f"{self.config['root_folder']}/{self.config['delivery_record_file']}", 'a') as delivery_record_file:
+                    with open(Path(f"{self.config['root_folder']}/{self.config['delivery_record_file']}"), 'a') as delivery_record_file:
                         delivery_record_file.write(delivery_record + "\n")
 
                 cost_record = f"{timestamp},{current_month},{self.papers[paper_key]['name']},{self.totals[paper_key]}"
 
 
-                with open(f"{self.config['root_folder']}/{self.config['cost_record_file']}", 'a') as cost_record_file:
+                with open(Path(f"{self.config['root_folder']}/{self.config['cost_record_file']}"), 'a') as cost_record_file:
                     cost_record_file.write(cost_record + "\n")
 
                 total += self.totals[paper_key]
 
-            with open(f"{self.config['root_folder']}/{self.config['cost_record_file']}", 'a') as cost_record_file:
+            with open(Path(f"{self.config['root_folder']}/{self.config['cost_record_file']}"), 'a') as cost_record_file:
                 cost_record_file.write(f"{timestamp},{current_month},TOTAL,{total}\n")
 
     def calculate(self):
@@ -445,7 +445,7 @@ class Main():
         self.save_results()
 
     def addudl(self):
-        with open(f"{self.config['root_folder']}/{self.config['undelivered_strings']}", 'w') as undelivered_file:
+        with open(Path(f"{self.config['root_folder']}/{self.config['undelivered_strings']}"), 'w') as undelivered_file:
             undelivered_file.write(dumps(self.undelivered_strings))
 
     def edit_config_files(self):
@@ -487,7 +487,7 @@ class Main():
             config_file.write(dumps(self.config))
     
     def update(self):
-        git_pull = Popen(['git', 'pull'], cwd=f"{str(Path.home())}/bin/npbc")
+        git_pull = Popen(['git', 'pull'], cwd=Path(f"{str(Path.home())}/bin/npbc"))
         git_pull.wait()
 
 def main():
