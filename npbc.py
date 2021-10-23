@@ -19,7 +19,6 @@ class Main():
         os.chdir(sys._MEIPASS)
         self.load_files()
         self.args = self.define_and_read_args()
-        print(self.args)
 
     def run(self):
         self.check_args()
@@ -90,9 +89,6 @@ class Main():
                     paper_key, undelivered_string = paper.split(':')
 
                     self.undelivered_strings[f"{self.month}/{self.year}"][paper_key].append(undelivered_string)
-
-            else:
-                self.acquire_undelivered_papers()
 
             if self.args.command == 'calculate':
                 self.calculate()
