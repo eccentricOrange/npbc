@@ -6,6 +6,7 @@ from argparse import ArgumentParser
 from json import dumps, loads
 from pathlib import Path
 from subprocess import Popen
+from platform import system
 
 from pyperclip import copy as copy_to_clipboard
 
@@ -487,7 +488,13 @@ class Main():
             config_file.write(dumps(self.config))
     
     def update(self):
-        git_pull = Popen(['git', 'pull'], cwd=Path(f"{str(Path.home())}/bin/npbc"))
+        if system().lower().strip() == 'windows':
+            path = Path(str(Path.home())) / 'npbc'
+
+        else: 
+            path = Path(str(Path.home())) / 'bin' / 'npbc'
+            
+        git_pull = Popen(['git', 'pull'], cwd=path)
         git_pull.wait()
 
 def main():
