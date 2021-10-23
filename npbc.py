@@ -56,7 +56,7 @@ class Main():
         self.parser.add_argument(
             'command',
             nargs='?',
-            choices=['calculate', 'addudl', 'editpapers', 'update', 'ui'],
+            choices=['calculate', 'addudl', 'editpapers', 'editconfig', 'update', 'ui'],
             default='ui',
         )
 
@@ -110,6 +110,9 @@ class Main():
 
         elif self.args.command == 'editpapers':
             self.edit_papers()
+
+        elif self.args.command == 'editconfig':
+            self.edit_config_files()
 
         elif self.args.command == 'update':
             self.update()
