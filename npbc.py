@@ -487,7 +487,7 @@ class Main():
             config_file.write(dumps(self.config))
     
     def update(self):
-        git_pull = Popen(['git', 'pull'], cwd=f"{str(Path.home())}/npbc")
+        git_pull = Popen(['git', 'pull'], cwd=f"{str(Path.home())}/bin/npbc")
         git_pull.wait()
 
 def main():
