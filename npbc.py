@@ -5,9 +5,12 @@ import sys
 from argparse import ArgumentParser
 from json import dumps, loads
 from pathlib import Path
+from subprocess import Popen
 
 from pyperclip import copy as copy_to_clipboard
 
+CONFIG_FILEPATH = f'includes/config.json'
+HELP_FILEPATH = f'includes/undelivered_help.pdf'
 
 class Main():
     month = 0
@@ -24,7 +27,7 @@ class Main():
         self.check_args()
 
     def load_files(self):
-        with open(f'includes/config.json', 'r') as config_file:
+        with open(CONFIG_FILEPATH, 'r') as config_file:
             self.config = loads(config_file.read())
 
         if self.config['root_folder'] == 'UNSET':
@@ -48,13 +51,21 @@ class Main():
 
     def define_and_read_args(self):
         self.parser = ArgumentParser(description='calculate your newspaper bill')
-        self.parser.add_argument('command', choices=['calculate', 'addudl', 'editpapers', 'ui'])
+
+        self.parser.add_argument(
+            'command',
+            nargs='?',
+            choices=['calculate', 'addudl', 'editpapers', 'update', 'ui'],
+            default='ui',
+        )
 
         self.parser.add_argument('-m', '--month', type=int, help='the month for which you want to calculate a bill')
 
         self.parser.add_argument('-y', '--year', type=int, help='the year for which you want to calculate a bill')
 
         self.parser.add_argument('-p', '--papers', type=str, help="dates when you didn't receive any papers")
+
+        self.parser.add_argument('-f', '--files', type=str, help='data for filepaths to edited')
 
         self.parser.add_argument('-l', '--nolog', action='store_true', help='do not log the result')
 
@@ -99,13 +110,16 @@ class Main():
         elif self.args.command == 'editpapers':
             self.edit_papers()
 
+        elif self.args.command == 'update':
+            self.update()
+
         elif self.args.command == 'ui':
             self.run_ui()
 
     def run_ui(self):
-        task = input("What do you want to do right now? ([c]alculate, edit the [p]apers, edit the [f]iles configuration, add [u]ndelivered data, display [h]elp, or e[x]it) ").strip().lower()
+        task = input("What do you want to do right now? ([c]alculate, edit the [p]apers, edit the [f]iles configuration, add undelivered [d]ata, display [h]elp, [u]pdate, or e[x]it) ").strip().lower()
 
-        if task in ['c', 'calculate', 'u', 'undelivered']:
+        if task in ['c', 'calculate', 'd', 'undelivered']:
             month = input("\nPlease enter the month you want to calculate (either enter a number, or leave blank to use the previous month): ")
 
             if month.isdigit():
@@ -137,6 +151,9 @@ class Main():
         elif task in ['f', 'files']:
             self.edit_config_files()
 
+        elif task in ['u', 'update']:
+            self.update()
+
         elif task in ['x', 'exit']:
             pass
             
@@ -156,7 +173,7 @@ class Main():
             self.delete_existing_paper()
 
         elif mode.lower() in ['x', 'ex', 'exi', 'exit']:
-            exit(0)
+            pass
 
         else:
             print("\nInvalid mode. Please try again.")
@@ -310,7 +327,7 @@ class Main():
             string = input(f"Please tell us when {paper_key} was undelivered, or enter '?' for help: ").strip()
 
             if string == '?' or string == '':
-                os.system('includes/undelivered_help.pdf')
+                os.system(HELP_FILEPATH)
 
             else:
                 self.undelivered_strings[f"{self.month}/{self.year}"][paper_key].append(string)
@@ -432,7 +449,46 @@ class Main():
             undelivered_file.write(dumps(self.undelivered_strings))
 
     def edit_config_files(self):
-        pass
+        if self.args.files is not None:
+            
+            filepaths = self.args.files.split(';')
+
+            for filepath in filepaths:
+                path_key, path = filepath.split(':')
+
+                if path_key in self.config:
+                    self.config[path_key] = path
+
+        else:
+            print("The following paths can be edited:")
+
+            for key in self.config:
+                print(f"{key}: {self.config[key]}")
+
+            confirmation = input("Do you want to edit any of these paths? ([Y]es/[n]o) ").lower().strip()
+
+            while confirmation not in ['no', 'n']:
+
+                invalid = True
+
+                while invalid:
+                    path_key = input("\nPlease enter the path key to edit: ")
+
+                    if path_key in self.config:
+                        self.config[path_key] = input(f"Please enter the new path for {path_key}: ")
+                        invalid = False
+
+                    else:
+                        print("Invalid key. Please try again.")
+
+                confirmation = input("Do you want to edit any more of these paths? ([Y]es/[n]o) ").lower().strip()
+
+        with open(CONFIG_FILEPATH, 'w') as config_file:
+            config_file.write(dumps(self.config))
+    
+    def update(self):
+        git_pull = Popen(['git', 'pull'], cwd=f"{str(Path.home())}/npbc")
+        git_pull.wait()
 
 def main():
     main = Main()
