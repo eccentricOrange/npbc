@@ -504,10 +504,10 @@ class Main():
     
     def update(self):
         if system().lower().strip() == 'windows':
-            path = Path(str(Path.home())) / 'npbc'
+            path = Path(str(os.getenv('APPDATA'))) / 'npbc'
 
         else: 
-            path = Path(str(Path.home())) / 'bin' / 'npbc'
+            path = Path.home() / 'bin' / 'npbc'
             
         git_pull = Popen(['git', 'pull'], cwd=path)
         git_pull.wait()
