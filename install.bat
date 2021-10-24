@@ -3,8 +3,6 @@ git clone https://github.com/eccentricOrange/npbc.git "%APPDATA%\npbc"
 if exist "%USERPROFILE%\.npbc\" (
     echo "Not updating user directory."
 ) else (
-    echo "1"
-    echo "2"
     xcopy /s "%APPDATA%\npbc\data\." "%USERPROFILE%\.npbc\"
 )
 
