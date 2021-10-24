@@ -11,18 +11,18 @@ This app calculates your monthly newspaper bill.
 
 ## Key files
 
-The represents your home directory.
+The `~` represents your home directory.
 
 | Location | Name | Purpose |
 | -- | -- | -- |
-| `.npbc` | `papers.json` | holds all newspapers, their names and keys, and all delivery and cost information |
-| `.npbc` | `undelivered_strings.json` | holds dates when papers weren't delivered |
-| `.npbc/record-files` | `cost-record.csv` | holds records of each paper' cost from every calculation |
-| `.npbc/record-files` | `cost-record.csv` | holds records of when any paper wasn't delivered |
+| `~/.npbc` | `papers.json` | holds all newspapers, their names and keys, and all delivery and cost information |
+| `~/.npbc` | `undelivered_strings.json` | holds dates when papers weren't delivered |
+| `~/.npbc/record-files` | `cost-record.csv` | holds records of each paper' cost from every calculation |
+| `~/.npbc/record-files` | `cost-record.csv` | holds records of when any paper wasn't delivered |
 
 ## Installation
 
-### Unix-like shells
+### Bash shells (most Unix-like systems)
 
 Run the following shell command.
 
@@ -31,4 +31,4 @@ Run the following shell command.
 ```
 
 ### Windows
-Download and run `install.bat` from this repository.
+Download and run `install.bat` from this repository. You'll have to add the download location (`%APPDATA%/npbc`)to your Windows path.
