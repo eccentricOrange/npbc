@@ -10,7 +10,7 @@ from platform import system
 
 from pyperclip import copy as copy_to_clipboard
 
-CONFIG_FILEPATH = Path(f'includes/config.json')
+CONFIG_FILEPATH = Path(Path.home()) / '.npbc' / 'config.json'
 HELP_FILEPATH = Path(f'includes/undelivered_help.pdf')
 
 class Main():
@@ -34,7 +34,7 @@ class Main():
         if self.config['root_folder'] == 'UNSET':
             self.config['root_folder'] = f"{str(Path.home())}/.npbc"
 
-            with open(Path(f"includes/config.json"), 'w') as config_file:
+            with open(CONFIG_FILEPATH, 'w') as config_file:
                 config_file.write(dumps(self.config))
 
         with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'r') as papers_file:
