@@ -44,9 +44,6 @@ class Main():
             self.undelivered_strings = loads(undelivered_file.read())
 
         for paper_key in self.papers:
-            if paper_key not in self.undelivered_strings:
-                self.undelivered_strings[paper_key] = []
-
             self.totals[paper_key] = 0.0
             self.undelivered_dates[paper_key] = []
 
@@ -284,6 +281,9 @@ class Main():
             if paper_key not in self.undelivered_strings[f"{self.month}/{self.year}"]:
                 self.undelivered_strings[f"{self.month}/{self.year}"][paper_key] = []
 
+        if "all" not in self.undelivered_strings[f"{self.month}/{self.year}"]:
+            self.undelivered_strings[f"{self.month}/{self.year}"]["all"] = []
+
         return self.get_list_of_all_dates()
 
     def get_list_of_all_dates(self):
@@ -373,6 +373,17 @@ class Main():
         return undelivered_dates
 
     def undelivered_strings_to_dates(self):
+        all_papers_strings = self.undelivered_strings[f"{self.month}/{self.year}"].pop('all')
+        dates_of_no_paper = []
+
+        for all_papers_string in all_papers_strings:
+            dates_of_no_paper += self.parse_undelivered_string(all_papers_string)
+
+        for date in dates_of_no_paper:
+            for paper_key in self.papers:
+                if date not in self.undelivered_dates[paper_key]:
+                    self.undelivered_dates[paper_key].append(date)
+
         for paper_key in self.undelivered_strings[f"{self.month}/{self.year}"]:
             for string in self.undelivered_strings[f"{self.month}/{self.year}"][paper_key]:
                 undelivered_dates = self.parse_undelivered_string(string)
@@ -380,6 +391,7 @@ class Main():
                 for date in undelivered_dates:
                     if date not in self.undelivered_dates[paper_key]:
                         self.undelivered_dates[paper_key].append(date)
+
 
     def calculate_one_paper(self, paper_key: str) -> float:
         self.totals[paper_key] = 0.0
