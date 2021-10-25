@@ -5,7 +5,6 @@ import sys
 from argparse import ArgumentParser, RawTextHelpFormatter
 from json import dumps, loads
 from pathlib import Path
-from subprocess import Popen
 from platform import system
 from git.repo import Repo
 
