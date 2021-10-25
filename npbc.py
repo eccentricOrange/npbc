@@ -535,7 +535,7 @@ class Main():
                     self.config[path_key] = path
 
         else:
-            print("The following paths can be edited:")
+            print("The following filepaths can be edited:")
 
             for key in self.config:
                 print(f"{key}: {self.config[key]}")
