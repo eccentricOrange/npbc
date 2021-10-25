@@ -2,7 +2,7 @@ import calendar
 import datetime
 import os
 import sys
-from argparse import ArgumentParser
+from argparse import ArgumentParser, RawTextHelpFormatter
 from json import dumps, loads
 from pathlib import Path
 from subprocess import Popen
@@ -13,11 +13,39 @@ from pyperclip import copy as copy_to_clipboard
 CONFIG_FILEPATH = Path(Path.home()) / '.npbc' / 'config.json'
 HELP_FILEPATH = Path(f'includes/undelivered_help.pdf')
 
+
 class Main():
     month = 0
     year = 0
     totals = {'TOTAL': 0.0}
     undelivered_dates = {}
+
+    functions = {
+        'calculate': {
+            'choice': 'calculate',
+            'help': 'Calculate the bill. Previous month will be used if month or year flags are not set.'
+        },
+        'addudl': {
+            'choice': 'addudl',
+            'help': 'Store a date when paper(s) were not delivered.  Previous month will be used if month or year flags are not set.'
+        },
+        'editpapers': {
+            'choice': 'editpapers',
+            'help': 'Edit newspapers, their keys, and other delivery data.'
+        },
+        'editconfig': {
+            'choice': 'editconfig',
+            'help': 'Edit filepaths of record files and newspaper data.'
+        },
+        'update': {
+            'choice': 'update',
+            'help': 'Update the application.'
+        },
+        'ui': {
+            'choice': 'ui',
+            'help': 'Launch interactive CLI.'
+        }
+    }
 
     def __init__(self):
         os.chdir(sys._MEIPASS)
@@ -48,26 +76,37 @@ class Main():
             self.undelivered_dates[paper_key] = []
 
     def define_and_read_args(self):
-        self.parser = ArgumentParser(description='calculate your newspaper bill')
+        self.parser = ArgumentParser(
+            description='calculate your newspaper bill',
+            formatter_class=RawTextHelpFormatter
+        )
 
         self.parser.add_argument(
             'command',
             nargs='?',
-            choices=['calculate', 'addudl', 'editpapers', 'editconfig', 'update', 'ui'],
+            choices=[value['choice'] for key, value in self.functions.items()],
             default='ui',
+            metavar='',
+            help='\n'.join([f"{value['choice']}: {value['help']}" for key, value in self.functions.items()])
         )
 
-        self.parser.add_argument('-m', '--month', type=int, help='the month for which you want to calculate a bill')
+        self.parser.add_argument(
+            '-m', '--month', type=int, help='the month for which you want to calculate a bill')
 
-        self.parser.add_argument('-y', '--year', type=int, help='the year for which you want to calculate a bill')
+        self.parser.add_argument(
+            '-y', '--year', type=int, help='the year for which you want to calculate a bill')
 
-        self.parser.add_argument('-p', '--papers', type=str, help="dates when you didn't receive any papers")
+        self.parser.add_argument(
+            '-p', '--papers', type=str, help="dates when you didn't receive any papers")
 
-        self.parser.add_argument('-f', '--files', type=str, help='data for filepaths to edited')
+        self.parser.add_argument(
+            '-f', '--files', type=str, help='data for filepaths to edited')
 
-        self.parser.add_argument('-l', '--nolog', action='store_true', help='do not log the result')
+        self.parser.add_argument(
+            '-l', '--nolog', action='store_true', help='do not log the result')
 
-        self.parser.add_argument('-c', '--nocopy', action='store_true', help='do not copy the result to the clipboard')
+        self.parser.add_argument(
+            '-c', '--nocopy', action='store_true', help='do not copy the result to the clipboard')
 
         return self.parser.parse_args()
 
@@ -97,7 +136,8 @@ class Main():
                 for paper in undelivered_data:
                     paper_key, undelivered_string = paper.split(':')
 
-                    self.undelivered_strings[f"{self.month}/{self.year}"][paper_key].append(undelivered_string)
+                    self.undelivered_strings[f"{self.month}/{self.year}"][paper_key].append(
+                        undelivered_string)
 
             if self.args.command == 'calculate':
                 self.calculate()
@@ -118,10 +158,12 @@ class Main():
             self.run_ui()
 
     def run_ui(self):
-        task = input("What do you want to do right now? ([c]alculate, edit the [p]apers, edit the [f]iles configuration, add undelivered [d]ata, display [h]elp, [u]pdate, or e[x]it) ").strip().lower()
+        task = input(
+            "What do you want to do right now? ([c]alculate, edit the [p]apers, edit the [f]iles configuration, add undelivered [d]ata, display [h]elp, [u]pdate, or e[x]it) ").strip().lower()
 
         if task in ['c', 'calculate', 'd', 'undelivered']:
-            month = input("\nPlease enter the month you want to calculate (either enter a number, or leave blank to use the previous month): ")
+            month = input(
+                "\nPlease enter the month you want to calculate (either enter a number, or leave blank to use the previous month): ")
 
             if month.isdigit():
                 self.month = int(month)
@@ -129,7 +171,8 @@ class Main():
             else:
                 self.month = self.get_previous_month().month
 
-            year = input("\nPlease enter the year you want to calculate (either enter a number, or leave blank to use the year of the previous month): ")
+            year = input(
+                "\nPlease enter the year you want to calculate (either enter a number, or leave blank to use the year of the previous month): ")
 
             if year.isdigit():
                 self.year = int(year)
@@ -142,7 +185,7 @@ class Main():
 
             if task in ['c', 'calculate']:
                 self.calculate()
-            
+
             else:
                 self.addudl()
 
@@ -157,12 +200,13 @@ class Main():
 
         elif task in ['x', 'exit']:
             pass
-            
+
         else:
             self.parser.print_help()
 
     def edit_papers(self):
-        mode = input("\n Do you want to create a [n]ew newspaper, [e]dit an existing one, [d]elete an existing one, or e[x]it? ")
+        mode = input(
+            "\n Do you want to create a [n]ew newspaper, [e]dit an existing one, [d]elete an existing one, or e[x]it? ")
 
         if mode.lower() in ['n', 'ne', 'new']:
             self.create_new_paper()
@@ -204,7 +248,8 @@ class Main():
 
         print(f"\n{paper_name} has been added.")
 
-        self.papers[paper_key] = {'name': paper_name, 'key': paper_key, 'days': paper_days}
+        self.papers[paper_key] = {'name': paper_name,
+                                  'key': paper_key, 'days': paper_days}
 
         with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'w') as papers_file:
             papers_file.write(dumps(self.papers))
@@ -218,16 +263,18 @@ class Main():
 
         print(f"Editing {self.papers[paper_key]['name']}.")
 
-        new_paper_key = input("Enter a new key for the paper, or leave blank to retain: ")
-        
+        new_paper_key = input(
+            "Enter a new key for the paper, or leave blank to retain: ")
+
         if new_paper_key != '':
             self.papers[new_paper_key] = self.papers[paper_key]
             del self.papers[paper_key]
 
-        else :
+        else:
             new_paper_key = paper_key
 
-        new_paper_name = input("Enter a new name for the paper, or leave blank to retain: ")
+        new_paper_name = input(
+            "Enter a new name for the paper, or leave blank to retain: ")
 
         if new_paper_name != '':
             self.papers[new_paper_key]['name'] = new_paper_name
@@ -246,7 +293,8 @@ class Main():
                 sold = int(False)
                 cost = 0.0
 
-            self.papers[new_paper_key]['days'][day] = {'sold': sold, 'cost': cost}
+            self.papers[new_paper_key]['days'][day] = {
+                'sold': sold, 'cost': cost}
 
         print(f"\n{self.papers[new_paper_key]['name']} has been edited.")
 
@@ -260,7 +308,8 @@ class Main():
             print(f"{paper_key} does not exist. Please try again.")
             exit(0)
 
-        sure = input(f"Are you sure you want to delete {self.papers[paper_key]['name']}? ([y]es/[N]o) ")
+        sure = input(
+            f"Are you sure you want to delete {self.papers[paper_key]['name']}? ([y]es/[N]o) ")
 
         if sure.lower() in ['y', 'ye', 'yes']:
             del self.papers[paper_key]
@@ -299,7 +348,8 @@ class Main():
         return (datetime.datetime.today().replace(day=1) - datetime.timedelta(days=1)).replace(day=1)
 
     def acquire_undelivered_papers(self):
-        confirmation = input("\nDo you want to report any undelivered data? ([Y]es/[n]o) ")
+        confirmation = input(
+            "\nDo you want to report any undelivered data? ([Y]es/[n]o) ")
 
         while confirmation.lower() in ['y', 'ye,' 'yes']:
             print("These are the available newspapers:\n")
@@ -309,7 +359,8 @@ class Main():
 
             print("\tall: ALL NEWSPAPERS\n")
 
-            paper_key = input("Please enter the key of the newspaper you want to report, or press Return to cancel: ")
+            paper_key = input(
+                "Please enter the key of the newspaper you want to report, or press Return to cancel: ")
 
             if paper_key == '':
                 pass
@@ -328,13 +379,15 @@ class Main():
         string = ""
 
         while not finished:
-            string = input(f"Please tell us when {paper_key} was undelivered, or enter '?' for help: ").strip()
+            string = input(
+                f"Please tell us when {paper_key} was undelivered, or enter '?' for help: ").strip()
 
             if string == '?' or string == '':
                 os.system(HELP_FILEPATH)
 
             else:
-                self.undelivered_strings[f"{self.month}/{self.year}"][paper_key].append(string)
+                self.undelivered_strings[f"{self.month}/{self.year}"][paper_key].append(
+                    string)
 
                 finished = True
 
@@ -345,9 +398,10 @@ class Main():
         for duration in durations:
             if duration.isdigit():
                 day = int(duration)
-                
+
                 if day > 0:
-                    undelivered_dates.append(datetime.date(self.year, self.month, day))
+                    undelivered_dates.append(
+                        datetime.date(self.year, self.month, day))
 
             elif '-' in duration:
                 start, end = duration.split('-')
@@ -358,7 +412,8 @@ class Main():
 
                     if start > 0 and end > 0:
                         for day in range(start, end + 1):
-                            undelivered_dates.append(datetime.date(self.year, self.month, day))
+                            undelivered_dates.append(
+                                datetime.date(self.year, self.month, day))
 
             elif duration[:-1] in calendar.day_name:
                 day_number = calendar.day_name.index(duration[:-1]) + 1
@@ -373,11 +428,13 @@ class Main():
         return undelivered_dates
 
     def undelivered_strings_to_dates(self):
-        all_papers_strings = self.undelivered_strings[f"{self.month}/{self.year}"].pop('all')
+        all_papers_strings = self.undelivered_strings[f"{self.month}/{self.year}"].pop(
+            'all')
         dates_of_no_paper = []
 
         for all_papers_string in all_papers_strings:
-            dates_of_no_paper += self.parse_undelivered_string(all_papers_string)
+            dates_of_no_paper += self.parse_undelivered_string(
+                all_papers_string)
 
         for date in dates_of_no_paper:
             for paper_key in self.papers:
@@ -392,7 +449,6 @@ class Main():
                     if date not in self.undelivered_dates[paper_key]:
                         self.undelivered_dates[paper_key].append(date)
 
-
     def calculate_one_paper(self, paper_key: str) -> float:
         self.totals[paper_key] = 0.0
 
@@ -401,7 +457,8 @@ class Main():
 
             if (date not in self.undelivered_dates[paper_key]) and (int(self.papers[paper_key]['days'][week_day_name]['sold']) != 0):
 
-                self.totals[paper_key] += float(self.papers[paper_key]['days'][week_day_name]['cost'])
+                self.totals[paper_key] += float(self.papers[paper_key]
+                                                ['days'][week_day_name]['cost'])
 
         return self.totals[paper_key]
 
@@ -427,13 +484,14 @@ class Main():
     def save_results(self):
         if not self.args.nolog:
             timestamp = datetime.datetime.now().strftime("%d/%m/%Y %I:%M:%S %p")
-            current_month = datetime.date(self.year, self.month, 1).strftime("%m/%Y")
+            current_month = datetime.date(
+                self.year, self.month, 1).strftime("%m/%Y")
 
             total = 0.0
 
             for paper_key, value in self.totals.items():
                 if len(self.undelivered_dates[paper_key]) > 0:
-                
+
                     delivery_record = ""
 
                     for date in self.undelivered_dates[paper_key]:
@@ -445,14 +503,14 @@ class Main():
 
                 cost_record = f"{timestamp},{current_month},{self.papers[paper_key]['name']},{self.totals[paper_key]}"
 
-
                 with open(Path(f"{self.config['root_folder']}/{self.config['cost_record_file']}"), 'a') as cost_record_file:
                     cost_record_file.write(cost_record + "\n")
 
                 total += self.totals[paper_key]
 
             with open(Path(f"{self.config['root_folder']}/{self.config['cost_record_file']}"), 'a') as cost_record_file:
-                cost_record_file.write(f"{timestamp},{current_month},TOTAL,{total}\n")
+                cost_record_file.write(
+                    f"{timestamp},{current_month},TOTAL,{total}\n")
 
     def calculate(self):
         self.undelivered_strings_to_dates()
@@ -466,7 +524,7 @@ class Main():
 
     def edit_config_files(self):
         if self.args.files is not None:
-            
+
             filepaths = self.args.files.split(';')
 
             for filepath in filepaths:
@@ -481,7 +539,8 @@ class Main():
             for key in self.config:
                 print(f"{key}: {self.config[key]}")
 
-            confirmation = input("Do you want to edit any of these paths? ([Y]es/[n]o) ").lower().strip()
+            confirmation = input(
+                "Do you want to edit any of these paths? ([Y]es/[n]o) ").lower().strip()
 
             while confirmation not in ['no', 'n']:
 
@@ -491,30 +550,34 @@ class Main():
                     path_key = input("\nPlease enter the path key to edit: ")
 
                     if path_key in self.config:
-                        self.config[path_key] = input(f"Please enter the new path for {path_key}: ")
+                        self.config[path_key] = input(
+                            f"Please enter the new path for {path_key}: ")
                         invalid = False
 
                     else:
                         print("Invalid key. Please try again.")
 
-                confirmation = input("Do you want to edit any more of these paths? ([Y]es/[n]o) ").lower().strip()
+                confirmation = input(
+                    "Do you want to edit any more of these paths? ([Y]es/[n]o) ").lower().strip()
 
         with open(CONFIG_FILEPATH, 'w') as config_file:
             config_file.write(dumps(self.config))
-    
+
     def update(self):
         if system().lower().strip() == 'windows':
             path = Path(str(os.getenv('APPDATA'))) / 'npbc'
 
-        else: 
+        else:
             path = Path.home() / 'bin' / 'npbc'
-            
+
         git_pull = Popen(['git', 'pull'], cwd=path)
         git_pull.wait()
+
 
 def main():
     main = Main()
     main.run()
+
 
 if __name__ == '__main__':
     main()
