@@ -112,7 +112,8 @@ class Main():
 
     def check_args(self):
         if self.args.command == 'calculate' or self.args.command == 'addudl':
-            if self.args.month is None or self.args.year is None:
+            print (self.args)
+            if self.args.month is None and self.args.year is None:
                 self.month = self.get_previous_month().month
                 self.year = self.get_previous_month().year
 
