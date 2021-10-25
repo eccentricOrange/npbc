@@ -23,7 +23,7 @@ class Main():
     functions = {
         'calculate': {
             'choice': 'calculate',
-            'help': 'Calculate the bill. Previous month will be used if month or year flags are not set.'
+            'help': 'Calculate the bill for one month. Previous month will be used if month or year flags are not set.'
         },
         'addudl': {
             'choice': 'addudl',
