@@ -78,7 +78,7 @@ class Main():
 
     def define_and_read_args(self):
         self.parser = ArgumentParser(
-            description='calculate your newspaper bill',
+            description='Calculates your monthly newspaper bill.',
             formatter_class=RawTextHelpFormatter
         )
 
