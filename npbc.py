@@ -7,6 +7,7 @@ from json import dumps, loads
 from pathlib import Path
 from subprocess import Popen
 from platform import system
+from git.repo import Repo
 
 from pyperclip import copy as copy_to_clipboard
 
@@ -571,8 +572,9 @@ class Main():
         else:
             path = Path.home() / 'bin' / 'npbc'
 
-        git_pull = Popen(['git', 'pull'], cwd=path)
-        git_pull.wait()
+        self.repo = Repo(path)
+        self.repo.remotes.origin.pull()
+
 
 
 def main():
