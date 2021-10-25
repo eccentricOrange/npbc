@@ -97,7 +97,7 @@ class Main():
             '-y', '--year', type=int, help='the year for which you want to calculate a bill')
 
         self.parser.add_argument(
-            '-p', '--papers', type=str, help="dates when you didn't receive any papers")
+            '-p', '--papers', type=str, help="dates when you did not receive any papers")
 
         self.parser.add_argument(
             '-f', '--files', type=str, help='data for filepaths to edited')
