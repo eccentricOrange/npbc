@@ -1,6 +1,1 @@
-if %1=="update" (
-    git %APPDATA%/npbc pull
-)
-else (
-    executables/npbc.exe %*
-)
+if %1=="update" (git %APPDATA%/npbc pull) else (%APPDATA%/npbc/bin/executables/npbc.exe %*)
