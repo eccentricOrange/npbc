@@ -4,5 +4,5 @@ dir=~/.npbc
 if [ ! -d "$dir" ]; then
     cp -r ~/bin/npbc/data ~/.npbc/
 fi
-echo 'alias npbc=~/bin/npbc/bin/npbc' >> ~/.bashrc
-alias npbc=~/bin/npbc/bin/npbc
+echo 'alias npbc=sh ~/bin/npbc/bin/npbc.sh' >> ~/.bashrc
+alias npbc=sh ~/bin/npbc/bin/npbc.sh
