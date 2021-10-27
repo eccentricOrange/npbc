@@ -5,5 +5,5 @@ then
     cd ..
     git -C .. pull
 else
-    executables/npbc "$@"
+    ~/bin/npbc/bin/executables/npbc "$@"
 fi
