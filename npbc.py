@@ -541,7 +541,7 @@ class Main():
             confirmation = input(
                 "Do you want to edit any of these paths? ([Y]es/[n]o) ").lower().strip()
 
-            while confirmation not in ['no', 'n']:
+            while confirmation in ['y', 'ye', 'yes']:
 
                 invalid = True
 

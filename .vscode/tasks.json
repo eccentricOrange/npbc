@@ -6,8 +6,21 @@
         {
             "label": "build",
             "type": "shell",
-            "command": "sh compile.sh",
+            "linux": {
+                "command": "./compile.sh ${input:compile_commit}"
+            },
+            "windows": {
+                "command": "& npbc-env/scripts/activate.ps1; ./compile.bat ${input:compile_commit}"
+            },
             "problemMatcher": []
+        }
+    ],
+
+    "inputs": [
+        {
+            "id": "compile_commit",
+            "type": "promptString",
+            "description": "Commit message"
         }
     ]
 }
