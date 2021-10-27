@@ -1,9 +1,8 @@
-#!/bin/sh
+#!/bin/bash
 
-if [ $1 == 'update']
+if [[ $1 == 'update' ]]
 then
-    cd ..
-    git pull
+    git -C ~/bin/npbc pull
 else
-    executables/pinpbc "$@"
+    ~/bin/npbc/bin/executables/pinpbc "$@"
 fi

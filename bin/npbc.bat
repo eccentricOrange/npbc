@@ -1,5 +1,5 @@
 if %1=="update" (
-    git -C .. pull
+    git %APPDATA%/npbc pull
 )
 else (
     executables/npbc.exe %*
