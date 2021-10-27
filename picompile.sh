@@ -2,4 +2,3 @@ pyinstaller -F --add-data includes/undelivered_help.pdf:includes -n pinpbc --dis
 git add .
 git commit -m "$1"
 git push origin master
-npbc update

@@ -5,8 +5,6 @@ import sys
 from argparse import ArgumentParser, RawTextHelpFormatter
 from json import dumps, loads
 from pathlib import Path
-# from platform import system
-# from git.repo import Repo
 
 from pyperclip import copy as copy_to_clipboard
 
@@ -565,15 +563,6 @@ class Main():
             config_file.write(dumps(self.config))
 
     def update(self):
-        # if system().lower().strip() == 'windows':
-        #     path = Path(str(os.getenv('APPDATA'))) / 'npbc'
-
-        # else:
-        #     path = Path.home() / 'bin' / 'npbc'
-
-        # self.repo = Repo(path)
-        # self.repo.remotes.origin.pull()
-
         pass
 
 
