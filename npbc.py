@@ -533,13 +533,13 @@ class Main():
                     self.config[path_key] = path
 
         else:
-            print("The following filepaths can be edited:")
+            print("\nThe following filepaths can be edited:")
 
             for key in self.config:
                 print(f"{key}: {self.config[key]}")
 
             confirmation = input(
-                "Do you want to edit any of these paths? ([Y]es/[n]o) ").lower().strip()
+                "\nDo you want to edit any of these paths? ([Y]es/[n]o) ").lower().strip()
 
             while confirmation in ['y', 'ye', 'yes']:
 
@@ -557,7 +557,7 @@ class Main():
                         print("Invalid key. Please try again.")
 
                 confirmation = input(
-                    "Do you want to edit any more of these paths? ([Y]es/[n]o) ").lower().strip()
+                    "\nDo you want to edit any more of these paths? ([Y]es/[n]o) ").lower().strip()
 
         with open(CONFIG_FILEPATH, 'w') as config_file:
             config_file.write(dumps(self.config))

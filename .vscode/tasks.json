@@ -7,7 +7,7 @@
             "label": "build",
             "type": "shell",
             "linux": {
-                "command": "./compile.sh ${input:compile_commit}"
+                "command": "./compile.sh \"${input:compile_commit}\""
             },
             "windows": {
                 "command": "& npbc-env/scripts/activate.ps1; ./compile.bat ${input:compile_commit}"
