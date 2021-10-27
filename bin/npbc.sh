@@ -3,7 +3,7 @@
 if [[ $1 == 'update' ]]
 then
     cd ..
-    git -C .. pull
+    git -C ~/bin/npbc pull
 else
     ~/bin/npbc/bin/executables/npbc "$@"
 fi
