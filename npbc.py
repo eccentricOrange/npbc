@@ -25,7 +25,11 @@ class Main():
         },
         'addudl': {
             'choice': 'addudl',
-            'help': 'Store a date when paper(s) were not delivered.  Previous month will be used if month or year flags are not set.'
+            'help': 'Store a date when paper(s) were not delivered. Previous month will be used if month or year flags are not set.'
+        },
+        'deludl': {
+            'choice': 'deludl',
+            'help': 'Delete a stored date when paper(s) were not delivered. Previous month will be used if month or year flags are not set.'
         },
         'editpapers': {
             'choice': 'editpapers',
@@ -109,7 +113,7 @@ class Main():
         return self.parser.parse_args()
 
     def check_args(self):
-        if self.args.command == 'calculate' or self.args.command == 'addudl':
+        if self.args.command == 'calculate' or self.args.command == 'addudl' or self.args.command == 'deludl':
 
             if self.args.month is None and self.args.year is None:
                 self.month = self.get_previous_month().month
@@ -129,20 +133,25 @@ class Main():
 
             self.prepare_dated_data()
 
-            if self.args.papers is not None:
-                undelivered_data = self.args.papers.split(';')
+            if self.args.command != 'deludl':
 
-                for paper in undelivered_data:
-                    paper_key, undelivered_string = paper.split(':')
+                if self.args.papers is not None:
+                    undelivered_data = self.args.papers.split(';')
 
-                    self.undelivered_strings[f"{self.month}/{self.year}"][paper_key].append(
-                        undelivered_string)
+                    for paper in undelivered_data:
+                        paper_key, undelivered_string = paper.split(':')
 
-            if self.args.command == 'calculate':
-                self.calculate()
+                        self.undelivered_strings[f"{self.month}/{self.year}"][paper_key].append(
+                            undelivered_string)
+
+                if self.args.command == 'calculate':
+                    self.calculate()
+
+                else:
+                    self.addudl()
 
             else:
-                self.addudl()
+                self.deludl()
 
         elif self.args.command == 'editpapers':
             self.edit_papers()
@@ -158,9 +167,9 @@ class Main():
 
     def run_ui(self):
         task = input(
-            "What do you want to do right now? ([c]alculate, edit the [p]apers, edit the [f]iles configuration, add undelivered [d]ata, display [h]elp, [u]pdate, or e[x]it) ").strip().lower()
+            "What do you want to do right now? ([c]alculate, edit the [p]apers, edit the [f]iles configuration, [a]dd undelivered data, [r]emove undelivered data, display [h]elp, [u]pdate, or e[x]it) ").strip().lower()
 
-        if task in ['c', 'calculate', 'd', 'undelivered']:
+        if task in ['c', 'calculate', 'a', 'add', 'r', 'remove']:
             month = input(
                 "\nPlease enter the month you want to calculate (either enter a number, or leave blank to use the previous month): ")
 
@@ -180,13 +189,18 @@ class Main():
                 self.year = self.get_previous_month().year
 
             self.prepare_dated_data()
-            self.acquire_undelivered_papers()
 
-            if task in ['c', 'calculate']:
-                self.calculate()
+            if task not in ['r', 'remove']:
+                self.acquire_undelivered_papers()
+
+                if task in ['c', 'calculate']:
+                    self.calculate()
+
+                else:
+                    self.addudl()
 
             else:
-                self.addudl()
+                self.deludl()
 
         elif task in ['p', 'papers']:
             self.edit_papers()
@@ -518,6 +532,12 @@ class Main():
         self.save_results()
 
     def addudl(self):
+        with open(Path(f"{self.config['root_folder']}/{self.config['undelivered_strings']}"), 'w') as undelivered_file:
+            undelivered_file.write(dumps(self.undelivered_strings))
+
+    def deludl(self):
+        del self.undelivered_strings[f"{self.month}/{self.year}"]
+
         with open(Path(f"{self.config['root_folder']}/{self.config['undelivered_strings']}"), 'w') as undelivered_file:
             undelivered_file.write(dumps(self.undelivered_strings))
 
