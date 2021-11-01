@@ -24,11 +24,17 @@ The `~` represents your home directory.
 
 ### Bash shells (most Unix-like systems)
 
-Run the following shell command.
+Run the following shell command on x64 or x86 systems.
 
 ```sh
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/eccentricOrange/npbc/master/install.sh)"
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/eccentricOrange/npbc/master/install/install.sh)"
+```
+
+For an ARM-based systems (like the Raspberry Pi), run the following command.
+
+```sh
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/eccentricOrange/npbc/master/install/piinstall.sh)"
 ```
 
 ### Windows
-Download and run `install.bat` from this repository. You'll have to add the download location (`%APPDATA%/npbc`)to your Windows path.
+Download and run `install/install.bat` from this repository. You'll have to add the download location (`%APPDATA%/npbc`)to your Windows path.
