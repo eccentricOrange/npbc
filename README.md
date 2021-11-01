@@ -37,4 +37,4 @@ For an ARM-based systems (like the Raspberry Pi), run the following command.
 ```
 
 ### Windows
-Download and run `install/install.bat` from this repository. You'll have to add the download location (`%APPDATA%/npbc`)to your Windows path.
+Download and run `install/install.bat` from this repository. You'll have to add the download location (`%APPDATA%\npbc\bin`)to your Windows path. Or do whatever you like to run `npbc.bat` from that path—it's all that matters.
