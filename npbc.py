@@ -88,7 +88,6 @@ class Main():
             nargs='?',
             choices=[value['choice'] for key, value in self.functions.items()],
             default='ui',
-            metavar='',
             help='\n'.join([f"{value['choice']}: {value['help']}" for key, value in self.functions.items()])
         )
 

@@ -1,4 +1,4 @@
 pyinstaller -F --add-data includes/undelivered_help.pdf:includes -n pinpbc --distpath bin/executables npbc.py
 git add .
-git commit -m "$1"
+git commit -m "linux on arm compile"
 git push origin master
