@@ -12,7 +12,7 @@ CONFIG_FILEPATH = Path(Path.home()) / '.npbc' / 'config.json'
 HELP_FILEPATH = Path(f'includes/undelivered_help.pdf')
 
 
-class Main():
+class NPBC():
     month = 0
     year = 0
     totals = {'TOTAL': 0.0}
@@ -587,8 +587,8 @@ class Main():
 
 
 def main():
-    main = Main()
-    main.run()
+    calculator = NPBC()
+    calculator.run()
 
 
 if __name__ == '__main__':
