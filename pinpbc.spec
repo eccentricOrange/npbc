@@ -5,7 +5,7 @@ block_cipher = None
 
 
 a = Analysis(['npbc.py'],
-             pathex=['/home/anujv/bin/npbc'],
+             pathex=['/home/anujv/pts/npbc'],
              binaries=[],
              datas=[('includes/undelivered_help.pdf', 'includes')],
              hiddenimports=[],
