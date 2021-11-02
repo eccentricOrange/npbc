@@ -217,6 +217,12 @@ class NPBC():
             self.parser.print_help()
 
     def edit_papers(self):
+        print ("The following papers currently exist.\n")
+
+        for paper_key in self.papers:
+            print (f"{paper_key}: {self.papers[paper_key]}")
+        
+
         mode = input(
             "\n Do you want to create a [n]ew newspaper, [e]dit an existing one, [d]elete an existing one, or e[x]it? ")
 
@@ -236,7 +242,7 @@ class NPBC():
             print("\nInvalid mode. Please try again.")
 
     def create_new_paper(self):
-        paper_name = input("What is the name of the newspaper? ")
+        paper_name = input("\nWhat is the name of the newspaper? ")
         paper_key = input(f"Enter a short name for {paper_name}: ")
 
         if paper_key in self.papers:
@@ -267,7 +273,7 @@ class NPBC():
             papers_file.write(dumps(self.papers))
 
     def edit_existing_paper(self):
-        paper_key = input("Enter the key of the paper to edit: ")
+        paper_key = input("\nEnter the key of the paper to edit: ")
 
         if paper_key not in self.papers:
             print(f"{paper_key} does not exist. Please try again.")
@@ -314,7 +320,7 @@ class NPBC():
             papers_file.write(dumps(self.papers))
 
     def delete_existing_paper(self):
-        paper_key = input("Enter the key of the paper to delete: ")
+        paper_key = input("\nEnter the key of the paper to delete: ")
 
         if paper_key not in self.papers:
             print(f"{paper_key} does not exist. Please try again.")
@@ -481,8 +487,7 @@ class NPBC():
             self.totals['TOTAL'] += self.calculate_one_paper(paper_key)
 
     def format_and_copy(self):
-        string = ""
-
+        string = f"For {datetime.datetime(self.year, self.month, 1):%B %Y}\n\n"
         string += f"*TOTAL: {self.totals.pop('TOTAL')}*\n"
 
         for paper_key, value in self.totals.items():
