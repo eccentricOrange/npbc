@@ -220,7 +220,7 @@ class NPBC():
         print ("The following papers currently exist.\n")
 
         for paper_key in self.papers:
-            print (f"{paper_key}: {self.papers[paper_key]}")
+            print (f"{paper_key}: {self.papers[paper_key]['name']}")
         
 
         mode = input(
@@ -299,6 +299,12 @@ class NPBC():
 
         else:
             new_paper_name = self.papers[paper_key]['name']
+
+        print(f"\nHere is the current cost status for {new_paper_name}.")
+
+        for day_name, day in self.papers[new_paper_key]['days'].items():
+            sold = 'SOLD' if int(day['sold']) == 1 else 'NOT SOLD'
+            print(f"{day_name}: {sold} {day['cost'] if sold == 'SOLD' else ''}")
 
         for day in [i for i in calendar.day_name]:
             sold = input(f"\nIs the newspaper sold on {day}? ([y]es/[N]o) ")
