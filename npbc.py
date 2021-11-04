@@ -92,22 +92,22 @@ class NPBC():
         )
 
         self.parser.add_argument(
-            '-m', '--month', type=int, help='the month for which you want to calculate a bill')
+            '-m', '--month', type=int, help="the month for which you want to calculate a bill")
 
         self.parser.add_argument(
-            '-y', '--year', type=int, help='the year for which you want to calculate a bill')
+            '-y', '--year', type=int, help="the year for which you want to calculate a bill")
 
         self.parser.add_argument(
             '-p', '--papers', type=str, help="dates when you did not receive any papers")
 
         self.parser.add_argument(
-            '-f', '--files', type=str, help='data for filepaths to edited')
+            '-f', '--files', type=str, help="data for filepaths to edited")
 
         self.parser.add_argument(
-            '-l', '--nolog', action='store_true', help='do not log the result')
+            '-l', '--nolog', action='store_true', help="do not log the result")
 
         self.parser.add_argument(
-            '-c', '--nocopy', action='store_true', help='do not copy the result to the clipboard')
+            '-c', '--nocopy', action='store_true', help="do not copy the result to the clipboard")
 
         return self.parser.parse_args()
 
