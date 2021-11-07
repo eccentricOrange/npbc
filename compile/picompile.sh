@@ -4,4 +4,4 @@ pyinstaller -F --add-data includes/undelivered_help.pdf:includes -n pinpbc --dis
 git add .
 git commit -m "linux on arm compile"
 git pull
-git push origin master
+git push origin
