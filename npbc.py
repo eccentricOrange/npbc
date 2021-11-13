@@ -1,12 +1,16 @@
-from npbc_core import NPBC_core
-from pathlib import Path
-from argparse import ArgumentParser, RawTextHelpFormatter
-from sys import _MEIPASS as root_dir
-from os import chdir, system
-from datetime import datetime
 import calendar
+from argparse import ArgumentParser, RawTextHelpFormatter
+from datetime import datetime
 from json import dumps
+from os import chdir, system
+from pathlib import Path
+from sys import _MEIPASS as root_dir
+
 from pyperclip import copy as copy_to_clipboard
+
+from npbc_core import NPBC_core
+
+# from gooey import Gooey
 
 CONFIG_FILEPATH = Path(Path.home()) / '.npbc' / 'config.json'
 # CONFIG_FILEPATH = Path('data') / 'config.json'
@@ -126,6 +130,7 @@ class NPBC_cli_args(NPBC_core):
 
         self.parser.add_argument(
             'command',
+            # nargs='?',
             choices=[value['choice'] for key, value in self.functions.items()],
             help='\n'.join([f"{value['choice']}: {value['help']}" for key, value in self.functions.items()])
         )
@@ -515,22 +520,29 @@ class NPBC_cli(NPBC_cli_args):
         else:
             return 'cli'
 
+def ui():
+    calculator = NPBC_cli_interactive()
+    calculator.run()
+
+# @Gooey
+def cli():
+    calculator = NPBC_cli_args()
+    calculator.run()
+
 def main():
     runner = NPBC_cli()
     mode = runner.run()
     del runner
 
     if mode == 'ui':
-        calculator = NPBC_cli_interactive()
+        ui()
 
     elif mode == 'cli':
-        calculator = NPBC_cli_args()
+        cli()
 
     else:
         print("Invalid mode. Please try again.")
         exit(1)
-    
-    calculator.run()
 
 if __name__ == '__main__':
     main()
