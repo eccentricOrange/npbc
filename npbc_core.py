@@ -5,6 +5,7 @@ from pathlib import Path
 
 
 CONFIG_FILEPATH = Path(Path.home()) / '.npbc' / 'config.json'
+# CONFIG_FILEPATH = Path('data') / 'config.json'
 HELP_FILEPATH = Path(f'includes/undelivered_help.pdf')
 
 class NPBC_core():
@@ -58,23 +59,23 @@ class NPBC_core():
     def get_previous_month(self) -> datetime.date:
         return (datetime.datetime.today().replace(day=1) - datetime.timedelta(days=1)).replace(day=1)
 
-    def create_new_paper(self, paper_name: str, paper_key: str, paper_days: dict):
+    def create_new_paper(self, paper_key: str,paper_name: str,  paper_days: dict):
         self.papers[paper_key] = {'name': paper_name,
                                   'key': paper_key, 'days': paper_days}
 
         with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'w') as papers_file:
             papers_file.write(dumps(self.papers))
 
-    def edit_existing_paper(self, key: str, name: str, days: dict):
-        self.papers[key] = {'name': name,
-                            'key': key, 'days': days}
+    def edit_existing_paper(self, paper_key: str, name: str, days: dict):
+        self.papers[paper_key] = {'name': name,
+                            'key': paper_key, 'days': days}
 
         with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'w') as papers_file:
             papers_file.write(dumps(self.papers))
 
-    def delete_existing_paper(self, key: str):
-        del self.papers[key]
-
+    def delete_existing_paper(self, paper_key: str):
+        print(f"{self.config['root_folder']}/{self.config['papers_data']}")
+        del self.papers[paper_key]
         with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'w') as papers_file:
             papers_file.write(dumps(self.papers))
 
@@ -103,7 +104,7 @@ class NPBC_core():
                                 datetime.date(self.year, self.month, day))
 
             elif duration[:-1] in calendar.day_name:
-                day_number = calendar.day_name.index(duration[:-1]) + 1
+                day_number = list(calendar.day_name).index(duration[:-1]) + 1
 
                 for date in self.dates_in_active_month:
                     if date.weekday() == day_number:

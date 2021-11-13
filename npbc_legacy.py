@@ -6,19 +6,15 @@ from argparse import ArgumentParser, RawTextHelpFormatter
 from json import dumps
 from pathlib import Path
 from npbc_core import NPBC_core
-from gooey import Gooey
 
 from pyperclip import copy as copy_to_clipboard
 
 CONFIG_FILEPATH = Path(Path.home()) / '.npbc' / 'config.json'
+# CONFIG_FILEPATH = Path('data') / 'config.json'
 HELP_FILEPATH = Path(f'includes/undelivered_help.pdf')
 
 
 class NPBC(NPBC_core):
-    month = 0
-    year = 0
-    totals = {'TOTAL': 0.0}
-    undelivered_dates = {}
 
     functions = {
         'calculate': {
@@ -52,7 +48,7 @@ class NPBC(NPBC_core):
     }
 
     def __init__(self):
-        # os.chdir(sys._MEIPASS)
+        os.chdir(sys._MEIPASS)
         self.load_files()
         self.args = self.define_and_read_args()
 
@@ -69,7 +65,7 @@ class NPBC(NPBC_core):
             'command',
             nargs='?',
             choices=[value['choice'] for key, value in self.functions.items()],
-            # default='ui',
+            default='ui',
             help='\n'.join([f"{value['choice']}: {value['help']}" for key, value in self.functions.items()])
         )
 
@@ -328,19 +324,6 @@ class NPBC(NPBC_core):
         else:
             print("\nDeletion cancelled.")
 
-    def prepare_dated_data(self) -> list:
-        if f"{self.month}/{self.year}" not in self.undelivered_strings:
-            self.undelivered_strings[f"{self.month}/{self.year}"] = {}
-
-        for paper_key in self.papers:
-            if paper_key not in self.undelivered_strings[f"{self.month}/{self.year}"]:
-                self.undelivered_strings[f"{self.month}/{self.year}"][paper_key] = []
-
-        if "all" not in self.undelivered_strings[f"{self.month}/{self.year}"]:
-            self.undelivered_strings[f"{self.month}/{self.year}"]["all"] = []
-
-        return self.get_list_of_all_dates()
-
     def acquire_undelivered_papers(self):
         confirmation = input(
             "\nDo you want to report any undelivered data? ([Y]es/[n]o) ")
@@ -445,7 +428,7 @@ class NPBC(NPBC_core):
             config_file.write(dumps(self.config))
 
 
-@Gooey
+
 def main():
     calculator = NPBC()
     calculator.run()

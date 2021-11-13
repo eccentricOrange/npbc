@@ -1,97 +1,154 @@
-import calendar
-import datetime
-import sys
-import os
-from argparse import ArgumentParser, RawTextHelpFormatter
-from json import dumps
-from pathlib import Path
 from npbc_core import NPBC_core
-
+from pathlib import Path
+from argparse import ArgumentParser, RawTextHelpFormatter
+from sys import _MEIPASS as root_dir
+from os import chdir, system
+from datetime import datetime
+import calendar
+from json import dumps
 from pyperclip import copy as copy_to_clipboard
 
 CONFIG_FILEPATH = Path(Path.home()) / '.npbc' / 'config.json'
+# CONFIG_FILEPATH = Path('data') / 'config.json'
 HELP_FILEPATH = Path(f'includes/undelivered_help.pdf')
 
 
-class NPBC(NPBC_core):
-    month = 0
-    year = 0
-    totals = {'TOTAL': 0.0}
-    undelivered_dates = {}
+class NPBC_cli_args(NPBC_core):
 
     functions = {
         'calculate': {
             'choice': 'calculate',
-            'help': 'Calculate the bill for one month. Previous month will be used if month or year flags are not set.'
+            'help': "Calculate the bill for one month. Previous month will be used if month or year flags are not set."
         },
         'addudl': {
             'choice': 'addudl',
-            'help': 'Store a date when paper(s) were not delivered. Previous month will be used if month or year flags are not set.'
+            'help': "Store a date when paper(s) were not delivered. Previous month will be used if month or year flags are not set."
         },
         'deludl': {
             'choice': 'deludl',
-            'help': 'Delete a stored date when paper(s) were not delivered. Previous month will be used if month or year flags are not set.'
+            'help': "Delete a stored date when paper(s) were not delivered. Previous month will be used if month or year flags are not set."
         },
-        'editpapers': {
-            'choice': 'editpapers',
-            'help': 'Edit newspapers, their keys, and other delivery data.'
+        'editpaper': {
+            'choice': 'editpaper',
+            'help': "Edit a newspaper's name, key, and other delivery data."
+        },
+        'addpaper': {
+            'choice': 'addpaper',
+            'help': "Add a new newspaper to the list of newspapers."
+        },
+        'delpaper': {
+            'choice': 'delpaper',
+            'help': "Delete a newspaper from the list of newspapers."
         },
         'editconfig': {
             'choice': 'editconfig',
-            'help': 'Edit filepaths of record files and newspaper data.'
+            'help': "Edit filepaths of record files and newspaper data."
         },
         'update': {
             'choice': 'update',
-            'help': 'Update the application.'
+            'help': "Update the application."
+        }
+    }
+
+    arguments = {
+        'month': {
+            'short': '-m',
+            'long': '--month',
+            'type': int,
+            'help': "Month to calculate bill for. Must be between 1 and 12.",
         },
-        'ui': {
-            'choice': 'ui',
-            'help': 'Launch interactive CLI.'
+        'year': {
+            'short': '-y',
+            'long': '--year',
+            'type': int,
+            'help': "Year to calculate bill for. Must be between 1 and 9999.",
+        },
+        'undelivered': {
+            'short': '-u',
+            'long': '--undelivered',
+            'type': str,
+            'help': "Dates when you did not receive any papers.",
+        },
+        'files': {
+            'short': '-f',
+            'long': '--files',
+            'type': str,
+            'help': "Data for filepaths to be edited.",
+        },
+        'key': {
+            'short': '-k',
+            'long': '--key',
+            'type': str,
+            'help': "Key for paper to be edited, deleted, or added.",
+        },
+        'name': {
+            'short': '-n',
+            'long': '--name',
+            'type': str,
+            'help': "Name for paper to be edited, deleted, or added.",
+        },
+        'days': {
+            'short': '-d',
+            'long': '--days',
+            'type': str,
+            'help': "Number of days the paper to be edited, deleted, or added, is delivered. Monday is the first day. A 'Y' means it is delivered, and a 'N' means it isn't.",
+        },
+        'price': {
+            'short': '-p',
+            'long': '--price',
+            'type': str,
+            'help': "Daywise prices of paper to be edited, deleted, or added.",
+        },
+        'nolog': {
+            'short': '-l',
+            'long': '--nolog',
+            'help': "Don't log the result of the calculation.",
+            'action': 'store_true'
+        },
+        'nocopy': {
+            'short': '-c',
+            'long': '--nocopy',
+            'help': "Don't copy the result of the calculation to the clipboard.",
+            'action': 'store_true'
         }
     }
 
     def __init__(self):
-        os.chdir(sys._MEIPASS)
+        chdir(root_dir)
         self.load_files()
         self.args = self.define_and_read_args()
 
-    def run(self):
-        self.check_args()
-
     def define_and_read_args(self):
         self.parser = ArgumentParser(
-            description='Calculates your monthly newspaper bill.',
+            description="Calculates your monthly newspaper bill.",
             formatter_class=RawTextHelpFormatter
         )
 
         self.parser.add_argument(
             'command',
-            nargs='?',
             choices=[value['choice'] for key, value in self.functions.items()],
-            default='ui',
             help='\n'.join([f"{value['choice']}: {value['help']}" for key, value in self.functions.items()])
         )
 
-        self.parser.add_argument(
-            '-m', '--month', type=int, help="the month for which you want to calculate a bill")
+        for key, value in self.arguments.items():
+            if 'action' in value:
+                self.parser.add_argument(
+                    value['short'],
+                    value['long'],
+                    action=value['action'],
+                    help=value['help']
+                )
 
-        self.parser.add_argument(
-            '-y', '--year', type=int, help="the year for which you want to calculate a bill")
-
-        self.parser.add_argument(
-            '-p', '--papers', type=str, help="dates when you did not receive any papers")
-
-        self.parser.add_argument(
-            '-f', '--files', type=str, help="data for filepaths to edited")
-
-        self.parser.add_argument(
-            '-l', '--nolog', action='store_true', help="do not log the result")
-
-        self.parser.add_argument(
-            '-c', '--nocopy', action='store_true', help="do not copy the result to the clipboard")
+            else:
+                self.parser.add_argument(
+                    value['short'],
+                    value['long'],
+                    type=value['type'],
+                    help=value['help']
+                )
 
         return self.parser.parse_args()
-
+    
     def check_args(self):
         if self.args.command == 'calculate' or self.args.command == 'addudl' or self.args.command == 'deludl':
 
@@ -101,10 +158,10 @@ class NPBC(NPBC_core):
 
             elif self.args.month is not None and self.args.year is None:
                 self.month = self.args.month
-                self.year = datetime.datetime.today().year
+                self.year = datetime.today().year
 
             elif self.args.month is None and self.args.year is not None:
-                self.month = datetime.datetime.today().month
+                self.month = datetime.today().month
                 self.year = self.args.year
 
             else:
@@ -115,8 +172,8 @@ class NPBC(NPBC_core):
 
             if self.args.command != 'deludl':
 
-                if self.args.papers is not None:
-                    undelivered_data = self.args.papers.split(';')
+                if self.args.undelivered is not None:
+                    undelivered_data = self.args.undelivered.split(';')
 
                     for paper in undelivered_data:
                         paper_key, undelivered_string = paper.split(':')
@@ -133,8 +190,14 @@ class NPBC(NPBC_core):
             else:
                 self.deludl()
 
-        elif self.args.command == 'editpapers':
-            self.edit_papers()
+        elif self.args.command == 'addpaper':
+            self.add_paper()
+
+        elif self.args.command == 'delpaper':
+            self.del_paper()
+
+        elif self.args.command == 'editpaper':
+            self.edit_paper()
 
         elif self.args.command == 'editconfig':
             self.edit_config_files()
@@ -142,12 +205,78 @@ class NPBC(NPBC_core):
         elif self.args.command == 'update':
             self.update()
 
-        elif self.args.command == 'ui':
-            self.run_ui()
+    def add_paper(self):
+        sold = self.args.days.split(';')
+        prices = self.args.price.split(';')
 
+        days = {}
+
+        for day in range(7):
+            day_name = calendar.day_name[day]
+            days[day_name] = {}
+            days[day_name]['cost'] = float(prices[day])
+            days[day_name]['sold'] = int(sold[day] == 'Y')
+
+        self.create_new_paper(self.args.key, self.args.name, days)
+
+    def del_paper(self):
+        self.delete_existing_paper(self.args.key)
+
+    def edit_paper(self):
+        sold = self.args.days.split(';')
+        prices = self.args.price.split(';')
+
+        days = {}
+
+        for day in range(7):
+            day_name = calendar.day_name[day]
+            days[day_name] = {}
+            days[day_name]['cost'] = float(prices[day])
+            days[day_name]['sold'] = int(sold[day] == 'Y')
+
+        self.edit_existing_paper(self.args.key, self.args.name, days)
+
+    def edit_config_files(self):
+        filepaths = self.args.files.split(';')
+
+        for filepath in filepaths:
+            path_key, path = filepath.split(':')
+
+            if path_key in self.config:
+                self.config[path_key] = path
+
+        with open(CONFIG_FILEPATH, 'w') as config_file:
+            config_file.write(dumps(self.config))
+
+    def format_and_copy(self):
+        string = f"For {datetime(self.year, self.month, 1):%B %Y}\n\n"
+        string += f"*TOTAL: {self.totals.pop('TOTAL')}*\n"
+
+        for paper_key, value in self.totals.items():
+            string += f"{self.papers[paper_key]['name']}: {value}\n"
+
+        print(string)
+
+        if not self.args.nocopy:
+            copy_to_clipboard(string)
+
+    def calculate(self):
+        self.undelivered_strings_to_dates()
+        self.calculate_all_papers()
+        self.format_and_copy()
+        self.save_results()
+
+    def run(self):
+        self.check_args()
+
+class NPBC_cli_interactive(NPBC_core):
+    def __init__(self):
+        chdir(root_dir)
+        self.load_files()
+        
     def run_ui(self):
         task = input(
-            "What do you want to do right now? ([c]alculate, edit the [p]apers, edit the [f]iles configuration, [a]dd undelivered data, [r]emove undelivered data, display [h]elp, [u]pdate, or e[x]it) ").strip().lower()
+            "What do you want to do right now? ([c]alculate, edit the [p]apers, edit the [f]iles configuration, [a]dd undelivered data, [r]emove undelivered data, [u]pdate, or e[x]it) ").strip().lower()
 
         if task in ['c', 'calculate', 'a', 'add', 'r', 'remove']:
             month = input(
@@ -194,9 +323,6 @@ class NPBC(NPBC_core):
         elif task in ['x', 'exit']:
             pass
 
-        else:
-            self.parser.print_help()
-
     def edit_papers(self):
         print ("The following papers currently exist.\n")
 
@@ -205,140 +331,81 @@ class NPBC(NPBC_core):
         
 
         mode = input(
-            "\n Do you want to create a [n]ew newspaper, [e]dit an existing one, [d]elete an existing one, or e[x]it? ")
+            "\n Do you want to create a [n]ew newspaper, [e]dit an existing one, [d]elete an existing one, or e[x]it? ").lower().strip()
 
-        if mode.lower() in ['n', 'ne', 'new']:
-            self.create_new_paper()
+        if (mode in ['n', 'ne', 'new']) or (mode in ['e', 'ed', 'edi', 'edit']) or (mode in ['d', 'de', 'del', 'dele', 'delet', 'delete']):
+            paper_key = input("\nEnter the key of the paper to edit: ")
 
-        elif mode.lower() in ['e', 'ed', 'edi', 'edit']:
-            self.edit_existing_paper()
+            if mode in ['n', 'ne', 'new']:
+                if paper_key in self.papers:
+                    print(f"{paper_key} already exists. Please try editing it.")
+                    exit(1)
 
-        elif mode.lower() in ['d', 'de', 'del', 'dele', 'delet', 'delete']:
-            self.delete_existing_paper()
+                paper_name = input("\nWhat is the name of the newspaper? ")
+
+                paper_days = {}
+
+                for day in calendar.day_name:
+                    sold = input(f"\nIs the newspaper sold on {day}? ([y]es/[N]o) ")
+
+                    if sold.lower() in ['y', 'ye', 'yes']:
+                        sold = int(True)
+                        cost = float(input(f"What is the cost on {day}? "))
+
+                    else:
+                        sold = int(False)
+                        cost = 0.0
+
+                    paper_days[day] = {'sold': sold, 'cost': cost}
+
+                self.create_new_paper(paper_key, paper_name, paper_days)
+
+                print(f"\n{paper_name} has been added.")
+
+            elif mode in ['e', 'ed', 'edi', 'edit']:
+                if paper_key not in self.papers:
+                    print(f"{paper_key} does not exist. Please try again.")
+                    exit(1)
+
+                new_paper_name = input("Enter a new name for the paper, or leave blank to retain: ")
+
+                if not new_paper_name:
+                    new_paper_name = self.papers[paper_key]['name']
+
+                paper_days = {}
+
+                for day in calendar.day_name:
+                    sold = input(f"\nIs the newspaper sold on {day}? ([y]es/[N]o) ")
+
+                    if sold.lower() in ['y', 'ye', 'yes']:
+                        sold = int(True)
+                        cost = float(input(f"What is the cost on {day}? "))
+
+                    else:
+                        sold = int(False)
+                        cost = 0.0
+
+                    paper_days[day] = {'sold': sold, 'cost': cost}
+
+                self.edit_existing_paper(paper_key, new_paper_name, paper_days)
+
+                print(f"\n{new_paper_name} has been edited.")
+
+            elif mode in ['d', 'de', 'del', 'dele', 'delet', 'delete']:
+                if paper_key not in self.papers:
+                    print(f"{paper_key} does not exist. Please try again.")
+                    exit(1)
+
+                self.delete_existing_paper(paper_key)
+
+                print(f"\n{paper_key} has been deleted.")
+            
 
         elif mode.lower() in ['x', 'ex', 'exi', 'exit']:
             pass
 
         else:
             print("\nInvalid mode. Please try again.")
-
-    def create_new_paper(self):
-        paper_name = input("\nWhat is the name of the newspaper? ")
-        paper_key = input(f"Enter a short name for {paper_name}: ")
-
-        if paper_key in self.papers:
-            print(f"{paper_key} already exists. Please try editing it.")
-            exit(0)
-
-        paper_days = {}
-
-        for day in calendar.day_name:
-            sold = input(f"\nIs the newspaper sold on {day}? ([y]es/[N]o) ")
-
-            if sold.lower() in ['y', 'ye', 'yes']:
-                sold = int(True)
-                cost = float(input(f"What is the cost on {day}? "))
-
-            else:
-                sold = int(False)
-                cost = 0.0
-
-            paper_days[day] = {'sold': sold, 'cost': cost}
-
-        print(f"\n{paper_name} has been added.")
-
-        self.papers[paper_key] = {'name': paper_name,
-                                  'key': paper_key, 'days': paper_days}
-
-        with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'w') as papers_file:
-            papers_file.write(dumps(self.papers))
-
-    def edit_existing_paper(self):
-        paper_key = input("\nEnter the key of the paper to edit: ")
-
-        if paper_key not in self.papers:
-            print(f"{paper_key} does not exist. Please try again.")
-            exit(0)
-
-        print(f"Editing {self.papers[paper_key]['name']}.")
-
-        new_paper_key = input(
-            "Enter a new key for the paper, or leave blank to retain: ")
-
-        if new_paper_key != '':
-            self.papers[new_paper_key] = self.papers[paper_key]
-            del self.papers[paper_key]
-
-        else:
-            new_paper_key = paper_key
-
-        new_paper_name = input(
-            "Enter a new name for the paper, or leave blank to retain: ")
-
-        if new_paper_name != '':
-            self.papers[new_paper_key]['name'] = new_paper_name
-
-        else:
-            new_paper_name = self.papers[paper_key]['name']
-
-        print(f"\nHere is the current cost status for {new_paper_name}.")
-
-        for day_name, day in self.papers[new_paper_key]['days'].items():
-            sold = 'SOLD' if int(day['sold']) == 1 else 'NOT SOLD'
-            print(f"{day_name}: {sold} {day['cost'] if sold == 'SOLD' else ''}")
-
-        for day in [i for i in calendar.day_name]:
-            sold = input(f"\nIs the newspaper sold on {day}? ([y]es/[N]o) ")
-
-            if sold.lower() in ['y', 'ye', 'yes']:
-                sold = int(True)
-                cost = float(input(f"What is the cost on {day}? "))
-
-            else:
-                sold = int(False)
-                cost = 0.0
-
-            self.papers[new_paper_key]['days'][day] = {
-                'sold': sold, 'cost': cost}
-
-        print(f"\n{self.papers[new_paper_key]['name']} has been edited.")
-
-        with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'w') as papers_file:
-            papers_file.write(dumps(self.papers))
-
-    def delete_existing_paper(self):
-        paper_key = input("\nEnter the key of the paper to delete: ")
-
-        if paper_key not in self.papers:
-            print(f"{paper_key} does not exist. Please try again.")
-            exit(0)
-
-        sure = input(
-            f"Are you sure you want to delete {self.papers[paper_key]['name']}? ([y]es/[N]o) ")
-
-        if sure.lower() in ['y', 'ye', 'yes']:
-            del self.papers[paper_key]
-
-            print(f"\n{self.papers[paper_key]['name']} has been deleted.")
-
-            with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'w') as papers_file:
-                papers_file.write(dumps(self.papers))
-
-        else:
-            print("\nDeletion cancelled.")
-
-    def prepare_dated_data(self) -> list:
-        if f"{self.month}/{self.year}" not in self.undelivered_strings:
-            self.undelivered_strings[f"{self.month}/{self.year}"] = {}
-
-        for paper_key in self.papers:
-            if paper_key not in self.undelivered_strings[f"{self.month}/{self.year}"]:
-                self.undelivered_strings[f"{self.month}/{self.year}"][paper_key] = []
-
-        if "all" not in self.undelivered_strings[f"{self.month}/{self.year}"]:
-            self.undelivered_strings[f"{self.month}/{self.year}"]["all"] = []
-
-        return self.get_list_of_all_dates()
 
     def acquire_undelivered_papers(self):
         confirmation = input(
@@ -372,11 +439,10 @@ class NPBC(NPBC_core):
         string = ""
 
         while not finished:
-            string = input(
-                f"Please tell us when {paper_key} was undelivered, or enter '?' for help: ").strip()
+            string = input(f"Please tell us when {paper_key} was undelivered, or enter '?' for help: ").strip()
 
             if string == '?' or string == '':
-                os.system(HELP_FILEPATH)
+                system(HELP_FILEPATH)
 
             else:
                 self.undelivered_strings[f"{self.month}/{self.year}"][paper_key].append(
@@ -385,16 +451,13 @@ class NPBC(NPBC_core):
                 finished = True
 
     def format_and_copy(self):
-        string = f"For {datetime.datetime(self.year, self.month, 1):%B %Y}\n\n"
+        string = f"For {datetime(self.year, self.month, 1):%B %Y}\n\n"
         string += f"*TOTAL: {self.totals.pop('TOTAL')}*\n"
 
         for paper_key, value in self.totals.items():
             string += f"{self.papers[paper_key]['name']}: {value}\n"
 
         print(string)
-
-        if not self.args.nocopy:
-            copy_to_clipboard(string)
 
     def calculate(self):
         self.undelivered_strings_to_dates()
@@ -403,52 +466,71 @@ class NPBC(NPBC_core):
         self.save_results()
 
     def edit_config_files(self):
-        if self.args.files is not None:
+        print("\nThe following filepaths can be edited:")
 
-            filepaths = self.args.files.split(';')
+        for key in self.config:
+            print(f"{key}: {self.config[key]}")
 
-            for filepath in filepaths:
-                path_key, path = filepath.split(':')
+        confirmation = input(
+            "\nDo you want to edit any of these paths? ([Y]es/[n]o) ").lower().strip()
+
+        while confirmation in ['y', 'ye', 'yes']:
+
+            invalid = True
+
+            while invalid:
+                path_key = input("\nPlease enter the path key to edit: ")
 
                 if path_key in self.config:
-                    self.config[path_key] = path
+                    self.config[path_key] = input(
+                        f"Please enter the new path for {path_key}: ")
+                    invalid = False
 
-        else:
-            print("\nThe following filepaths can be edited:")
-
-            for key in self.config:
-                print(f"{key}: {self.config[key]}")
+                else:
+                    print("Invalid key. Please try again.")
 
             confirmation = input(
-                "\nDo you want to edit any of these paths? ([Y]es/[n]o) ").lower().strip()
-
-            while confirmation in ['y', 'ye', 'yes']:
-
-                invalid = True
-
-                while invalid:
-                    path_key = input("\nPlease enter the path key to edit: ")
-
-                    if path_key in self.config:
-                        self.config[path_key] = input(
-                            f"Please enter the new path for {path_key}: ")
-                        invalid = False
-
-                    else:
-                        print("Invalid key. Please try again.")
-
-                confirmation = input(
-                    "\nDo you want to edit any more of these paths? ([Y]es/[n]o) ").lower().strip()
+                "\nDo you want to edit any more of these paths? ([Y]es/[n]o) ").lower().strip()
 
         with open(CONFIG_FILEPATH, 'w') as config_file:
             config_file.write(dumps(self.config))
 
+    def run(self):
+        self.run_ui()
 
+
+class NPBC_cli(NPBC_cli_args):
+    def __init__(self):
+        self.functions['ui'] = {
+                'choice': 'ui',
+                'help': "Launch interactive CLI."
+        }
+
+    def run(self):
+        self.args = self.define_and_read_args()
+
+        if self.args.command == 'ui':
+            return 'ui'
+        
+        else:
+            return 'cli'
 
 def main():
-    calculator = NPBC()
-    calculator.run()
+    runner = NPBC_cli()
+    mode = runner.run()
+    del runner
 
+    if mode == 'ui':
+        calculator = NPBC_cli_interactive()
+
+    elif mode == 'cli':
+        calculator = NPBC_cli_args()
+
+    else:
+        print("Invalid mode. Please try again.")
+        exit(1)
+    
+    calculator.run()
 
 if __name__ == '__main__':
     main()
