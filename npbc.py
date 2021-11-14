@@ -178,7 +178,11 @@ class NPBC_cli(NPBC_core):
             self.save_results()
             print(" and log saved to file", end='')
         
-        print(".")
+        if self.args.nocopy and self.args.nolog:
+            print("")
+        
+        else:
+            print(".")
 
 class NPBC_cli_args(NPBC_cli):
     def __init__(self):
