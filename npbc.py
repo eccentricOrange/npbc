@@ -91,19 +91,19 @@ class NPBC_cli(NPBC_core):
             'short': '-n',
             'long': '--name',
             'type': str,
-            'help': "Name for paper to be edited, deleted, or added.",
+            'help': "Name for paper to be edited or added.",
         },
         'days': {
             'short': '-d',
             'long': '--days',
             'type': str,
-            'help': "Number of days the paper to be edited, deleted, or added, is delivered. Monday is the first day. A 'Y' means it is delivered, and a 'N' means it isn't.",
+            'help': "Number of days the paper to be edited or added, is delivered. Monday is the first day. A 'Y' means it is delivered, and an 'N' means it isn't. No separator required.",
         },
         'price': {
             'short': '-p',
             'long': '--price',
             'type': str,
-            'help': "Daywise prices of paper to be edited, deleted, or added.",
+            'help': "Daywise prices of paper to be edited or added. Monday is the first day. Values must be separated by semicolons.",
         },
         'nolog': {
             'short': '-l',
@@ -156,6 +156,26 @@ class NPBC_cli(NPBC_core):
 
         return self.parser.parse_args()
 
+    def format_and_copy(self):
+        string = f"For {datetime(self.year, self.month, 1):%B %Y}\n\n"
+        string += f"*TOTAL: {self.totals.pop('TOTAL')}*\n"
+
+        for paper_key, value in self.totals.items():
+            string += f"{self.papers[paper_key]['name']}: {value}\n"
+
+        print(string)
+
+        if not self.args.nocopy:
+            copy_to_clipboard(string)
+
+    def calculate(self):
+        self.undelivered_strings_to_dates()
+        self.calculate_all_papers()
+        self.format_and_copy()
+
+        if not self.args.nolog:
+            self.save_results()
+
 class NPBC_cli_args(NPBC_cli):
     def __init__(self):
         NPBC_cli.__init__(self)
@@ -202,13 +222,13 @@ class NPBC_cli_args(NPBC_cli):
                 self.deludl()
 
         elif self.args.command == 'addpaper':
-            self.add_paper()
+            self.create_new_paper(self.args.key, self.args.name, self.extract_days_and_cost())
 
         elif self.args.command == 'delpaper':
-            self.del_paper()
+            self.delete_existing_paper(self.args.key)
 
         elif self.args.command == 'editpaper':
-            self.edit_paper()
+            self.edit_existing_paper(self.args.key, self.args.name, self.extract_days_and_cost())
 
         elif self.args.command == 'editconfig':
             self.edit_config_files()
@@ -216,36 +236,26 @@ class NPBC_cli_args(NPBC_cli):
         elif self.args.command == 'update':
             self.update()
 
-    def add_paper(self):
-        sold = self.args.days.split(';')
+    def extract_days_and_cost(self):
+        sold = [int(i == 'Y') for i in self.args.days]
         prices = self.args.price.split(';')
 
         days = {}
+        prices = [price for price in prices if int(price) != 0]
+
+        delivered_count = 0
 
         for day in range(7):
+            delivered = sold[day]
+            
             day_name = calendar.day_name[day]
             days[day_name] = {}
-            days[day_name]['cost'] = float(prices[day])
-            days[day_name]['sold'] = int(sold[day] == 'Y')
 
-        self.create_new_paper(self.args.key, self.args.name, days)
+            days[day_name]['cost'] = float(prices[delivered_count])
+            days[day_name]['sold'] = delivered
 
-    def del_paper(self):
-        self.delete_existing_paper(self.args.key)
-
-    def edit_paper(self):
-        sold = self.args.days.split(';')
-        prices = self.args.price.split(';')
-
-        days = {}
-
-        for day in range(7):
-            day_name = calendar.day_name[day]
-            days[day_name] = {}
-            days[day_name]['cost'] = float(prices[day])
-            days[day_name]['sold'] = int(sold[day] == 'Y')
-
-        self.edit_existing_paper(self.args.key, self.args.name, days)
+            delivered_count += delivered
+        return days
 
     def edit_config_files(self):
         filepaths = self.args.files.split(';')
@@ -258,24 +268,6 @@ class NPBC_cli_args(NPBC_cli):
 
         with open(CONFIG_FILEPATH, 'w') as config_file:
             config_file.write(dumps(self.config))
-
-    def format_and_copy(self):
-        string = f"For {datetime(self.year, self.month, 1):%B %Y}\n\n"
-        string += f"*TOTAL: {self.totals.pop('TOTAL')}*\n"
-
-        for paper_key, value in self.totals.items():
-            string += f"{self.papers[paper_key]['name']}: {value}\n"
-
-        print(string)
-
-        if not self.args.nocopy:
-            copy_to_clipboard(string)
-
-    def calculate(self):
-        self.undelivered_strings_to_dates()
-        self.calculate_all_papers()
-        self.format_and_copy()
-        self.save_results()
 
     def run(self):
         if self.args.command != 'ui' and self.args.command in self.functions:
@@ -463,21 +455,6 @@ class NPBC_cli_interactive(NPBC_cli):
                     string)
 
                 finished = True
-
-    def format_and_copy(self):
-        string = f"For {datetime(self.year, self.month, 1):%B %Y}\n\n"
-        string += f"*TOTAL: {self.totals.pop('TOTAL')}*\n"
-
-        for paper_key, value in self.totals.items():
-            string += f"{self.papers[paper_key]['name']}: {value}\n"
-
-        print(string)
-
-    def calculate(self):
-        self.undelivered_strings_to_dates()
-        self.calculate_all_papers()
-        self.format_and_copy()
-        self.save_results()
 
     def edit_config_files(self):
         print("\nThe following filepaths can be edited:")
