@@ -4,7 +4,7 @@ from datetime import datetime
 from json import dumps
 from os import chdir, system
 from pathlib import Path
-from sys import _MEIPASS as root_dir
+from sys import _MEIPASS as root_dir, exit
 
 from pyperclip import copy as copy_to_clipboard
 
