@@ -16,9 +16,7 @@ CONFIG_FILEPATH = Path(Path.home()) / '.npbc' / 'config.json'
 # CONFIG_FILEPATH = Path('data') / 'config.json'
 HELP_FILEPATH = Path(f'includes/undelivered_help.pdf')
 
-
-class NPBC_cli_args(NPBC_core):
-
+class NPBC_cli(NPBC_core):
     functions = {
         'calculate': {
             'choice': 'calculate',
@@ -51,6 +49,10 @@ class NPBC_cli_args(NPBC_core):
         'update': {
             'choice': 'update',
             'help': "Update the application."
+        },
+        'ui': {
+                'choice': 'ui',
+                'help': "Launch interactive CLI."
         }
     }
 
@@ -153,7 +155,12 @@ class NPBC_cli_args(NPBC_core):
                 )
 
         return self.parser.parse_args()
-    
+
+class NPBC_cli_args(NPBC_cli):
+
+    def __init__(self):
+        chdir(root_dir)
+
     def check_args(self):
         if self.args.command == 'calculate' or self.args.command == 'addudl' or self.args.command == 'deludl':
 
@@ -272,12 +279,15 @@ class NPBC_cli_args(NPBC_core):
         self.save_results()
 
     def run(self):
-        self.check_args()
+        if self.args.command != 'ui' and self.args.command in self.functions:
+            self.check_args()
+        
+        else:
+            exit(1)
 
-class NPBC_cli_interactive(NPBC_core):
+class NPBC_cli_interactive(NPBC_cli):
     def __init__(self):
         chdir(root_dir)
-        self.load_files()
         
     def run_ui(self):
         task = input(
@@ -501,48 +511,24 @@ class NPBC_cli_interactive(NPBC_core):
             config_file.write(dumps(self.config))
 
     def run(self):
-        self.run_ui()
-
-
-class NPBC_cli(NPBC_cli_args):
-    def __init__(self):
-        self.functions['ui'] = {
-                'choice': 'ui',
-                'help': "Launch interactive CLI."
-        }
-
-    def run(self):
-        self.args = self.define_and_read_args()
-
         if self.args.command == 'ui':
-            return 'ui'
-        
-        else:
-            return 'cli'
+            self.run_ui()
 
 def ui():
     calculator = NPBC_cli_interactive()
     calculator.run()
+    del calculator
 
 # @Gooey
 def cli():
     calculator = NPBC_cli_args()
     calculator.run()
+    del calculator
 
 def main():
-    runner = NPBC_cli()
-    mode = runner.run()
-    del runner
-
-    if mode == 'ui':
-        ui()
-
-    elif mode == 'cli':
-        cli()
-
-    else:
-        print("Invalid mode. Please try again.")
-        exit(1)
+    ui()
+    cli()
+    exit(0)
 
 if __name__ == '__main__':
     main()
