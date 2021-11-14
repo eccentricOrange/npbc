@@ -157,9 +157,8 @@ class NPBC_cli(NPBC_core):
         return self.parser.parse_args()
 
 class NPBC_cli_args(NPBC_cli):
-
     def __init__(self):
-        chdir(root_dir)
+        NPBC_cli.__init__(self)
 
     def check_args(self):
         if self.args.command == 'calculate' or self.args.command == 'addudl' or self.args.command == 'deludl':
@@ -287,7 +286,7 @@ class NPBC_cli_args(NPBC_cli):
 
 class NPBC_cli_interactive(NPBC_cli):
     def __init__(self):
-        chdir(root_dir)
+        NPBC_cli.__init__(self)
         
     def run_ui(self):
         task = input(
