@@ -4,5 +4,5 @@ if [[ $1 == 'update' ]]
 then
     git -C ~/bin/npbc pull
 else
-    ~/bin/npbc/bin/executables/linnpbc "$@"
+    ~/bin/npbc/bin/executables/npbc "$@"
 fi
