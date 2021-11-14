@@ -97,13 +97,13 @@ class NPBC_cli(NPBC_core):
             'short': '-d',
             'long': '--days',
             'type': str,
-            'help': "Number of days the paper to be edited or added, is delivered. Monday is the first day. A 'Y' means it is delivered, and an 'N' means it isn't. No separator required.",
+            'help': "Number of days the paper to be edited or added, is delivered. Monday is the first day, and all seven weekdays are required. A 'Y' means it is delivered, and an 'N' means it isn't. No separator required.",
         },
         'price': {
             'short': '-p',
             'long': '--price',
             'type': str,
-            'help': "Daywise prices of paper to be edited or added. Monday is the first day. Values must be separated by semicolons.",
+            'help': "Daywise prices of paper to be edited or added. Monday is the first day. Values must be separated by semicolons, and 0s are ignored.",
         },
         'nolog': {
             'short': '-l',
