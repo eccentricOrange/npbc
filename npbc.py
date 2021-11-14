@@ -167,6 +167,7 @@ class NPBC_cli(NPBC_core):
 
         if not self.args.nocopy:
             copy_to_clipboard(string)
+            print("\nCopied to clipboard", end='')
 
     def calculate(self):
         self.undelivered_strings_to_dates()
@@ -175,6 +176,9 @@ class NPBC_cli(NPBC_core):
 
         if not self.args.nolog:
             self.save_results()
+            print(" and log saved to file", end='')
+        
+        print(".")
 
 class NPBC_cli_args(NPBC_cli):
     def __init__(self):
@@ -349,23 +353,8 @@ class NPBC_cli_interactive(NPBC_cli):
 
                 paper_name = input("\nWhat is the name of the newspaper? ")
 
-                paper_days = {}
-
-                for day in calendar.day_name:
-                    sold = input(f"\nIs the newspaper sold on {day}? ([y]es/[N]o) ")
-
-                    if sold.lower() in ['y', 'ye', 'yes']:
-                        sold = int(True)
-                        cost = float(input(f"What is the cost on {day}? "))
-
-                    else:
-                        sold = int(False)
-                        cost = 0.0
-
-                    paper_days[day] = {'sold': sold, 'cost': cost}
-
+                paper_days = self.get_days_and_cost()
                 self.create_new_paper(paper_key, paper_name, paper_days)
-
                 print(f"\n{paper_name} has been added.")
 
             elif mode in ['e', 'ed', 'edi', 'edit']:
@@ -378,23 +367,8 @@ class NPBC_cli_interactive(NPBC_cli):
                 if not new_paper_name:
                     new_paper_name = self.papers[paper_key]['name']
 
-                paper_days = {}
-
-                for day in calendar.day_name:
-                    sold = input(f"\nIs the newspaper sold on {day}? ([y]es/[N]o) ")
-
-                    if sold.lower() in ['y', 'ye', 'yes']:
-                        sold = int(True)
-                        cost = float(input(f"What is the cost on {day}? "))
-
-                    else:
-                        sold = int(False)
-                        cost = 0.0
-
-                    paper_days[day] = {'sold': sold, 'cost': cost}
-
+                paper_days = self.get_days_and_cost()
                 self.edit_existing_paper(paper_key, new_paper_name, paper_days)
-
                 print(f"\n{new_paper_name} has been edited.")
 
             elif mode in ['d', 'de', 'del', 'dele', 'delet', 'delete']:
@@ -412,6 +386,23 @@ class NPBC_cli_interactive(NPBC_cli):
 
         else:
             print("\nInvalid mode. Please try again.")
+
+    def get_days_and_cost(self):
+        paper_days = {}
+
+        for day in calendar.day_name:
+            sold = input(f"\nIs the newspaper sold on {day}? ([y]es/[N]o) ")
+
+            if sold.lower() in ['y', 'ye', 'yes']:
+                sold = int(True)
+                cost = float(input(f"What is the cost on {day}? "))
+
+            else:
+                sold = int(False)
+                cost = 0.0
+
+            paper_days[day] = {'sold': sold, 'cost': cost}
+        return paper_days
 
     def acquire_undelivered_papers(self):
         confirmation = input(
