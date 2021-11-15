@@ -167,7 +167,7 @@ class NPBC_cli(NPBC_core):
 
         if not self.args.nocopy:
             copy_to_clipboard(string)
-            print("\nCopied to clipboard", end='')
+            print("\nSummary copied to clipboard.")
 
     def calculate(self):
         self.undelivered_strings_to_dates()
@@ -176,13 +176,7 @@ class NPBC_cli(NPBC_core):
 
         if not self.args.nolog:
             self.save_results()
-            print(" and log saved to file", end='')
-        
-        if self.args.nocopy and self.args.nolog:
-            print("")
-        
-        else:
-            print(".")
+            print("Saved results to logs.")        
 
 class NPBC_cli_args(NPBC_cli):
     def __init__(self):
