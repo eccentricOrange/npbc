@@ -24,6 +24,8 @@ class NPBC_core():
             with open(CONFIG_FILEPATH, 'w') as config_file:
                 config_file.write(dumps(self.config))
 
+        self.define_file_structure()
+
         with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'r') as papers_file:
             self.papers = loads(papers_file.read())
 
@@ -33,6 +35,13 @@ class NPBC_core():
         for paper_key in self.papers:
             self.totals[paper_key] = 0.0
             self.undelivered_dates[paper_key] = []
+
+    def define_file_structure(self):
+        Path(f"{self.config['root_folder']}").mkdir(parents=True, exist_ok=True)
+        Path(f"{self.config['root_folder']}/{self.config['papers_data']}").touch(exist_ok=True)
+        Path(f"{self.config['root_folder']}/{self.config['undelivered_strings']}").touch(exist_ok=True)
+        Path(f"{self.config['root_folder']}/{self.config['cost_record_file']}").touch(exist_ok=True)
+        Path(f"{self.config['root_folder']}/{self.config['delivery_record_file']}").touch(exist_ok=True)
 
     def prepare_dated_data(self) -> list:
         if f"{self.month}/{self.year}" not in self.undelivered_strings:
