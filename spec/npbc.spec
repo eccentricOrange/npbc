@@ -4,10 +4,10 @@
 block_cipher = None
 
 
-a = Analysis(['../npbc.py'],
+a = Analysis(['..\\npbc.py'],
              pathex=['spec'],
              binaries=[],
-             datas=[('includes/undelivered_help.pdf', 'includes')],
+             datas=[('includes\\undelivered_help.pdf', 'includes')],
              hiddenimports=[],
              hookspath=[],
              hooksconfig={},
