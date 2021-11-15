@@ -245,11 +245,11 @@ class NPBC_cli_args(NPBC_cli):
             self.update()
 
     def extract_days_and_cost(self):
-        sold = [int(i == 'Y') for i in self.args.days]
+        sold = [int(i == 'Y') for i in str(self.args.days).upper()]
         prices = self.args.price.split(';')
 
         days = {}
-        prices = [price for price in prices if int(price) != 0]
+        prices = [float(price) for price in prices if float(price) != 0.0]
 
         delivered_count = 0
 
@@ -259,7 +259,7 @@ class NPBC_cli_args(NPBC_cli):
             day_name = calendar.day_name[day]
             days[day_name] = {}
 
-            days[day_name]['cost'] = float(prices[delivered_count])
+            days[day_name]['cost'] = prices[delivered_count]
             days[day_name]['sold'] = delivered
 
             delivered_count += delivered
