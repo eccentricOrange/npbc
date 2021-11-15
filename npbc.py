@@ -479,20 +479,20 @@ class NPBC_cli_interactive(NPBC_cli):
         if self.args.command == 'ui':
             self.run_ui()
 
-def ui():
+def interactive():
     calculator = NPBC_cli_interactive()
     calculator.run()
     del calculator
 
 # @Gooey
-def cli():
+def args():
     calculator = NPBC_cli_args()
     calculator.run()
     del calculator
 
 def main():
-    ui()
-    cli()
+    interactive()
+    args()
     exit(0)
 
 if __name__ == '__main__':
