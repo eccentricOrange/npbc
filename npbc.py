@@ -1,3 +1,4 @@
+## import modules
 from argparse import ArgumentParser, RawTextHelpFormatter
 import argparse
 from calendar import day_name as weekday_names
@@ -13,102 +14,153 @@ from sys import exit
 # from gooey import Gooey
 from pyperclip import copy as copy_to_clipboard
 
+## set up path constants for some files
 # CONFIG_FILEPATH = Path('data') / 'config.json'
-CONFIG_FILEPATH = Path.home() / '.npbc' / 'config.json'
-HELP_FILEPATH = Path(f'includes/undelivered_help.pdf')
+CONFIG_FILEPATH = Path.home() / '.npbc' / 'config.json'  # main config file with other paths
+HELP_FILEPATH = Path(f'includes/undelivered_help.pdf')  # help file for undelivered strings
 
+## core functionality—limited UI
 class NPBC_core():
-    month = 0
-    year = 0
-    totals = {'TOTAL': 0.0}
-    undelivered_dates = {}
 
+    ## set properties
+    month = 0  # month to calculate for
+    year = 0  # year to calculate for
+    totals = {'TOTAL': 0.0}  # total cost for each newspaper
+    undelivered_dates = {}  # dates when newspapers weren't delivered
+
+    ## load in source data files
     def load_files(self) -> None:
+
+        ## open main config file
         with open(CONFIG_FILEPATH, 'r') as config_file:
             self.config = loads(config_file.read())
 
+        ## if app has been run for the first time, set root path to .npbc inside users home directory
         if self.config['root_folder'] == 'UNSET':
+
+            ## save new path to config file
             self.config['root_folder'] = f"{str(Path.home())}/.npbc"
 
             with open(CONFIG_FILEPATH, 'w') as config_file:
                 config_file.write(dumps(self.config))
 
+        ## set up files and folders if they do not exist
         self.define_file_structure()
 
+        ## open papers data file, which has keys, names, days of delivery, and cost per day
         with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'r') as papers_file:
             self.papers = loads(papers_file.read())
 
+        ## open undelivered strings file, which has undelivered strings
         with open(Path(f"{self.config['root_folder']}/{self.config['undelivered_strings']}"), 'r') as undelivered_file:
             self.undelivered_strings = loads(undelivered_file.read())
 
+        ## populate undelivered dates and totals as zeros/empty values
         for paper_key in self.papers:
             self.totals[paper_key] = 0.0
             self.undelivered_dates[paper_key] = []
 
+    ## set up files and folders if they do not exist
     def define_file_structure(self) -> None:
-        Path(f"{self.config['root_folder']}").mkdir(parents=True, exist_ok=True)
-        Path(f"{self.config['root_folder']}/{self.config['papers_data']}").touch(exist_ok=True)
-        Path(f"{self.config['root_folder']}/{self.config['undelivered_strings']}").touch(exist_ok=True)
-        Path(f"{self.config['root_folder']}/{self.config['cost_record_file']}").touch(exist_ok=True)
-        Path(f"{self.config['root_folder']}/{self.config['delivery_record_file']}").touch(exist_ok=True)
+        Path(f"{self.config['records_folder']}").mkdir(parents=True, exist_ok=True)  # records folder (and root folder, because it is parent)
+        Path(f"{self.config['root_folder']}/{self.config['papers_data']}").touch(exist_ok=True)  # papers data file
+        Path(f"{self.config['root_folder']}/{self.config['undelivered_strings']}").touch(exist_ok=True)  # undelivered strings file
+        Path(f"{self.config['root_folder']}/{self.config['cost_record_file']}").touch(exist_ok=True)  # cost record file
+        Path(f"{self.config['root_folder']}/{self.config['delivery_record_file']}").touch(exist_ok=True)  # delivery record file
 
+    ## set up a list of all dates in month, and populate undelivered strings dictionary
     def prepare_dated_data(self) -> list:
+
+        ## set up undelivered strings dictionary for concerned month and year
         if f"{self.month}/{self.year}" not in self.undelivered_strings:
             self.undelivered_strings[f"{self.month}/{self.year}"] = {}
 
+        ## set up undelivered dates dictionary for each paper
         for paper_key in self.papers:
             if paper_key not in self.undelivered_strings[f"{self.month}/{self.year}"]:
                 self.undelivered_strings[f"{self.month}/{self.year}"][paper_key] = []
 
+        ## include an entry for all papers
         if "all" not in self.undelivered_strings[f"{self.month}/{self.year}"]:
             self.undelivered_strings[f"{self.month}/{self.year}"]["all"] = []
 
+        ## set up dates list for concerned month and year
         return self.get_list_of_all_dates()
 
+    ## create a list of all dates in concerned month and year
     def get_list_of_all_dates(self) -> list:
+        ## initialize empty list of dates
         self.dates_in_active_month = []
 
-        for date_number in range(monthrange(self.year, self.month)[1]):
-            date = date_type(self.year, self.month, date_number + 1)
-            self.dates_in_active_month.append(date)
+        for date_number in range(monthrange(self.year, self.month)[1]):  # for each date in month
+            date = date_type(self.year, self.month, date_number + 1)  # create date object
+            self.dates_in_active_month.append(date)  # add date to list
 
+        ## return list of dates
         return self.dates_in_active_month
 
+    ## get the previous month
     def get_previous_month(self) -> date_type:
+
+        ## select current day
+         # set the day to the first day of the month
+         # subtract one day
         return (datetime.today().replace(day=1) - timedelta(days=1)).replace(day=1)
 
+    ## create an entry for a new newspaper
     def create_new_paper(self, paper_key: str,paper_name: str,  paper_days: dict) -> None:
+        
+        ## add new paper to papers dictionary
         self.papers[paper_key] = {
-            'name': paper_name,
-            'key': paper_key,
-            'days': paper_days
+            'name': paper_name,  # name of newspaper
+            'key': paper_key,  # key of newspaper (used for indexing)
+            'days': paper_days  # days of delivery, and associated costs per day
         }
 
+        ## save papers dictionary to file
         with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'w') as papers_file:
             papers_file.write(dumps(self.papers))
 
+    ## edit an existing newspaper
     def edit_existing_paper(self, paper_key: str, paper_name: str, days: dict) -> None:
-        if paper_key in self.papers:
+        
+        ## check if paper exists
+        if paper_key in self.papers:  # if it does
+
+            ## update paper dictionary
             self.papers[paper_key] = {
-                'name': paper_name, 'key': paper_key,
-                'days': days
+                'name': paper_name,  # name of newspaper
+                'days': days  # days of delivery, and associated costs per day
             }
 
+            ## save papers dictionary to file
             with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'w') as papers_file:
                 papers_file.write(dumps(self.papers))
         
-        else:
+        else:  # if it doesn't
+
+            ## let the user know that the paper does not exist
             print(f"\n{paper_name} does not exist, please create it.")
 
+    ## delete an existing newspaper
     def delete_existing_paper(self, paper_key: str) -> None:
-        if paper_key in self.papers:
+
+        ## check if paper exists
+        if paper_key in self.papers:  # if it does
+
+            ## delete paper from papers dictionary
             del self.papers[paper_key]
+
+            ## save papers dictionary to file
             with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'w') as papers_file:
                 papers_file.write(dumps(self.papers))
         
-        else:
+        else: # if it doesn't
+
+            ## let the user know that the paper does not exist
             print(f"\nPaper with key {paper_key} does not exist, please create it.")
 
+    
     def parse_undelivered_string(self, string: str) -> list:
         undelivered_dates = []
         durations = string.split(',')
