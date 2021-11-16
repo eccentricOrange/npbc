@@ -83,18 +83,25 @@ class NPBC_core():
         with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'w') as papers_file:
             papers_file.write(dumps(self.papers))
 
-    def edit_existing_paper(self, paper_key: str, name: str, days: dict):
-        self.papers[paper_key] = {'name': name,
-                            'key': paper_key, 'days': days}
+    def edit_existing_paper(self, paper_key: str, paper_name: str, days: dict):
+        if paper_key in self.papers:
+            self.papers[paper_key] = {'name': paper_name,
+                                'key': paper_key, 'days': days}
 
-        with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'w') as papers_file:
-            papers_file.write(dumps(self.papers))
+            with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'w') as papers_file:
+                papers_file.write(dumps(self.papers))
+        
+        else:
+            print(f"\n{paper_name} does not exist, please create it.")
 
     def delete_existing_paper(self, paper_key: str):
-        print(f"{self.config['root_folder']}/{self.config['papers_data']}")
-        del self.papers[paper_key]
-        with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'w') as papers_file:
-            papers_file.write(dumps(self.papers))
+        if paper_key in self.papers:
+            del self.papers[paper_key]
+            with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'w') as papers_file:
+                papers_file.write(dumps(self.papers))
+        
+        else:
+            print(f"\nPaper with key {paper_key} does not exist, please create it.")
 
     def parse_undelivered_string(self, string: str) -> list:
         undelivered_dates = []
@@ -450,18 +457,18 @@ class NPBC_cli_args(NPBC_cli):
         days = {}
         prices = [float(price) for price in prices if float(price) != 0.0]
 
-        delivered_count = 0
+        delivered_count = -1
 
         for day in range(7):
             delivered = sold[day]
+            delivered_count += delivered
             
             day_name = weekday_names[day]
             days[day_name] = {}
 
-            days[day_name]['cost'] = prices[delivered_count]
+            days[day_name]['cost'] = prices[delivered_count] if delivered else 0
             days[day_name]['sold'] = delivered
 
-            delivered_count += delivered
         return days
 
     def edit_config_files(self):
