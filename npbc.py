@@ -1,4 +1,5 @@
 from argparse import ArgumentParser, RawTextHelpFormatter
+import argparse
 from calendar import day_name as weekday_names
 from calendar import monthrange
 from datetime import date as date_type
@@ -13,7 +14,7 @@ from sys import exit
 from pyperclip import copy as copy_to_clipboard
 
 # CONFIG_FILEPATH = Path('data') / 'config.json'
-CONFIG_FILEPATH = Path(Path.home()) / '.npbc' / 'config.json'
+CONFIG_FILEPATH = Path.home() / '.npbc' / 'config.json'
 HELP_FILEPATH = Path(f'includes/undelivered_help.pdf')
 
 class NPBC_core():
@@ -22,7 +23,7 @@ class NPBC_core():
     totals = {'TOTAL': 0.0}
     undelivered_dates = {}
 
-    def load_files(self):
+    def load_files(self) -> None:
         with open(CONFIG_FILEPATH, 'r') as config_file:
             self.config = loads(config_file.read())
 
@@ -44,7 +45,7 @@ class NPBC_core():
             self.totals[paper_key] = 0.0
             self.undelivered_dates[paper_key] = []
 
-    def define_file_structure(self):
+    def define_file_structure(self) -> None:
         Path(f"{self.config['root_folder']}").mkdir(parents=True, exist_ok=True)
         Path(f"{self.config['root_folder']}/{self.config['papers_data']}").touch(exist_ok=True)
         Path(f"{self.config['root_folder']}/{self.config['undelivered_strings']}").touch(exist_ok=True)
@@ -64,7 +65,7 @@ class NPBC_core():
 
         return self.get_list_of_all_dates()
 
-    def get_list_of_all_dates(self):
+    def get_list_of_all_dates(self) -> list:
         self.dates_in_active_month = []
 
         for date_number in range(monthrange(self.year, self.month)[1]):
@@ -76,17 +77,22 @@ class NPBC_core():
     def get_previous_month(self) -> date_type:
         return (datetime.today().replace(day=1) - timedelta(days=1)).replace(day=1)
 
-    def create_new_paper(self, paper_key: str,paper_name: str,  paper_days: dict):
-        self.papers[paper_key] = {'name': paper_name,
-                                  'key': paper_key, 'days': paper_days}
+    def create_new_paper(self, paper_key: str,paper_name: str,  paper_days: dict) -> None:
+        self.papers[paper_key] = {
+            'name': paper_name,
+            'key': paper_key,
+            'days': paper_days
+        }
 
         with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'w') as papers_file:
             papers_file.write(dumps(self.papers))
 
-    def edit_existing_paper(self, paper_key: str, paper_name: str, days: dict):
+    def edit_existing_paper(self, paper_key: str, paper_name: str, days: dict) -> None:
         if paper_key in self.papers:
-            self.papers[paper_key] = {'name': paper_name,
-                                'key': paper_key, 'days': days}
+            self.papers[paper_key] = {
+                'name': paper_name, 'key': paper_key,
+                'days': days
+            }
 
             with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'w') as papers_file:
                 papers_file.write(dumps(self.papers))
@@ -94,7 +100,7 @@ class NPBC_core():
         else:
             print(f"\n{paper_name} does not exist, please create it.")
 
-    def delete_existing_paper(self, paper_key: str):
+    def delete_existing_paper(self, paper_key: str) -> None:
         if paper_key in self.papers:
             del self.papers[paper_key]
             with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'w') as papers_file:
@@ -108,26 +114,32 @@ class NPBC_core():
         durations = string.split(',')
 
         for duration in durations:
+            duration = f"{duration[0].upper()}{duration[1:].lower()}"
+            
             if duration.isdigit():
                 day = int(duration)
 
                 if day > 0:
-                    undelivered_dates.append(
-                        date_type(self.year, self.month, day))
+                    undelivered_dates.append(date_type(self.year, self.month, day))
 
             elif '-' in duration:
                 start, end = duration.split('-')
+                start = f"{start[0].upper()}{start[1:].lower()}"
 
                 if start.isdigit() and end.isdigit():
-                    start = int(start)
-                    end = int(end)
+                    start_date = int(start)
+                    end_date = int(end)
 
-                    if start > 0 and end > 0:
-                        for day in range(start, end + 1):
-                            undelivered_dates.append(
-                                date_type(self.year, self.month, day))
+                    if start_date > 0 and end_date > 0:
+                        for day in range(start_date, end_date + 1):
+                            undelivered_dates.append(date_type(self.year, self.month, day))
 
-            elif duration[:-1] in weekday_names:
+                elif (start in weekday_names) and end.isdigit():
+                    print(start)
+                    all_dates_with_matching_name = [i for i in self.dates_in_active_month if list(weekday_names)[i.weekday()] == start]
+                    undelivered_dates.append(all_dates_with_matching_name[int(end) - 1])
+
+            elif duration[:-1] in list(weekday_names):
                 day_number = list(weekday_names).index(duration[:-1]) + 1
 
                 for date in self.dates_in_active_month:
@@ -139,14 +151,12 @@ class NPBC_core():
 
         return undelivered_dates
 
-    def undelivered_strings_to_dates(self):
-        all_papers_strings = self.undelivered_strings[f"{self.month}/{self.year}"].pop(
-            'all')
+    def undelivered_strings_to_dates(self) -> None:
+        all_papers_strings = self.undelivered_strings[f"{self.month}/{self.year}"].pop('all')
         dates_of_no_paper = []
 
         for all_papers_string in all_papers_strings:
-            dates_of_no_paper += self.parse_undelivered_string(
-                all_papers_string)
+            dates_of_no_paper += self.parse_undelivered_string(all_papers_string)
 
         for date in dates_of_no_paper:
             for paper_key in self.papers:
@@ -168,22 +178,19 @@ class NPBC_core():
             week_day_name = weekday_names[date.weekday()]
 
             if (date not in self.undelivered_dates[paper_key]) and (int(self.papers[paper_key]['days'][week_day_name]['sold']) != 0):
-
-                self.totals[paper_key] += float(self.papers[paper_key]
-                                                ['days'][week_day_name]['cost'])
+                self.totals[paper_key] += float(self.papers[paper_key]['days'][week_day_name]['cost'])
 
         return self.totals[paper_key]
 
-    def calculate_all_papers(self):
+    def calculate_all_papers(self) -> None:
         self.totals['TOTAL'] = 0.0
 
         for paper_key in self.papers:
             self.totals['TOTAL'] += self.calculate_one_paper(paper_key)
 
-    def save_results(self):
+    def save_results(self) -> None:
         timestamp = datetime.now().strftime("%d/%m/%Y %I:%M:%S %p")
-        current_month = date_type(
-            self.year, self.month, 1).strftime("%m/%Y")
+        current_month = date_type(self.year, self.month, 1).strftime("%m/%Y")
 
         total = 0.0
 
@@ -207,25 +214,24 @@ class NPBC_core():
             total += self.totals[paper_key]
 
         with open(Path(f"{self.config['root_folder']}/{self.config['cost_record_file']}"), 'a') as cost_record_file:
-            cost_record_file.write(
-                f"{timestamp},{current_month},TOTAL,{total}\n")
+            cost_record_file.write(f"{timestamp},{current_month},TOTAL,{total}\n")
 
-    def calculate(self):
+    def calculate(self) -> None:
         self.undelivered_strings_to_dates()
         self.calculate_all_papers()
         self.save_results()
 
-    def addudl(self):
+    def addudl(self) -> None:
         with open(Path(f"{self.config['root_folder']}/{self.config['undelivered_strings']}"), 'w') as undelivered_file:
             undelivered_file.write(dumps(self.undelivered_strings))
 
-    def deludl(self):
+    def deludl(self) -> None:
         del self.undelivered_strings[f"{self.month}/{self.year}"]
 
         with open(Path(f"{self.config['root_folder']}/{self.config['undelivered_strings']}"), 'w') as undelivered_file:
             undelivered_file.write(dumps(self.undelivered_strings))
 
-    def update(self):
+    def update(self) -> None:
         pass
 
 class NPBC_cli(NPBC_core):
@@ -336,7 +342,7 @@ class NPBC_cli(NPBC_core):
         self.load_files()
         self.args = self.define_and_read_args()
 
-    def define_and_read_args(self):
+    def define_and_read_args(self) -> argparse.Namespace:
         self.parser = ArgumentParser(
             description="Calculates your monthly newspaper bill.",
             formatter_class=RawTextHelpFormatter
@@ -368,7 +374,7 @@ class NPBC_cli(NPBC_core):
 
         return self.parser.parse_args()
 
-    def format_and_copy(self):
+    def format_and_copy(self) -> None:
         string = f"For {datetime(self.year, self.month, 1):%B %Y}\n\n"
         string += f"*TOTAL: {self.totals.pop('TOTAL')}*\n"
 
@@ -381,7 +387,7 @@ class NPBC_cli(NPBC_core):
             copy_to_clipboard(string)
             print("\nSummary copied to clipboard.")
 
-    def calculate(self):
+    def calculate(self) -> None:
         self.undelivered_strings_to_dates()
         self.calculate_all_papers()
         self.format_and_copy()
@@ -394,7 +400,7 @@ class NPBC_cli_args(NPBC_cli):
     def __init__(self):
         NPBC_cli.__init__(self)
 
-    def check_args(self):
+    def check_args(self) -> None:
         if self.args.command == 'calculate' or self.args.command == 'addudl' or self.args.command == 'deludl':
 
             if self.args.month is None and self.args.year is None:
@@ -423,8 +429,7 @@ class NPBC_cli_args(NPBC_cli):
                     for paper in undelivered_data:
                         paper_key, undelivered_string = paper.split(':')
 
-                        self.undelivered_strings[f"{self.month}/{self.year}"][paper_key].append(
-                            undelivered_string)
+                        self.undelivered_strings[f"{self.month}/{self.year}"][paper_key].append(undelivered_string)
 
                 if self.args.command == 'calculate':
                     self.calculate()
@@ -450,7 +455,7 @@ class NPBC_cli_args(NPBC_cli):
         elif self.args.command == 'update':
             self.update()
 
-    def extract_days_and_cost(self):
+    def extract_days_and_cost(self) -> dict:
         sold = [int(i == 'Y') for i in str(self.args.days).upper()]
         prices = self.args.price.split(';')
 
@@ -471,7 +476,7 @@ class NPBC_cli_args(NPBC_cli):
 
         return days
 
-    def edit_config_files(self):
+    def edit_config_files(self) -> None:
         filepaths = self.args.files.split(';')
 
         for filepath in filepaths:
@@ -483,7 +488,7 @@ class NPBC_cli_args(NPBC_cli):
         with open(CONFIG_FILEPATH, 'w') as config_file:
             config_file.write(dumps(self.config))
 
-    def run(self):
+    def run(self) -> None:
         if self.args.command != 'ui' and self.args.command in self.functions:
             self.check_args()
         
@@ -494,13 +499,11 @@ class NPBC_cli_interactive(NPBC_cli):
     def __init__(self):
         NPBC_cli.__init__(self)
         
-    def run_ui(self):
-        task = input(
-            "What do you want to do right now? ([c]alculate, edit the [p]apers, edit the [f]iles configuration, [a]dd undelivered data, [r]emove undelivered data, [u]pdate, or e[x]it) ").strip().lower()
+    def run_ui(self) -> None:
+        task = input("What do you want to do right now? ([c]alculate, edit the [p]apers, edit the [f]iles configuration, [a]dd undelivered data, [r]emove undelivered data, [u]pdate, or e[x]it) ").strip().lower()
 
         if task in ['c', 'calculate', 'a', 'add', 'r', 'remove']:
-            month = input(
-                "\nPlease enter the month you want to calculate (either enter a number, or leave blank to use the previous month): ")
+            month = input("\nPlease enter the month you want to calculate (either enter a number, or leave blank to use the previous month): ")
 
             if month.isdigit():
                 self.month = int(month)
@@ -508,8 +511,7 @@ class NPBC_cli_interactive(NPBC_cli):
             else:
                 self.month = self.get_previous_month().month
 
-            year = input(
-                "\nPlease enter the year you want to calculate (either enter a number, or leave blank to use the year of the previous month): ")
+            year = input("\nPlease enter the year you want to calculate (either enter a number, or leave blank to use the year of the previous month): ")
 
             if year.isdigit():
                 self.year = int(year)
@@ -543,15 +545,14 @@ class NPBC_cli_interactive(NPBC_cli):
         elif task in ['x', 'exit']:
             pass
 
-    def edit_papers(self):
+    def edit_papers(self) -> None:
         print ("The following papers currently exist.\n")
 
         for paper_key in self.papers:
             print (f"{paper_key}: {self.papers[paper_key]['name']}")
         
 
-        mode = input(
-            "\n Do you want to create a [n]ew newspaper, [e]dit an existing one, [d]elete an existing one, or e[x]it? ").lower().strip()
+        mode = input("\n Do you want to create a [n]ew newspaper, [e]dit an existing one, [d]elete an existing one, or e[x]it? ").lower().strip()
 
         if (mode in ['n', 'ne', 'new']) or (mode in ['e', 'ed', 'edi', 'edit']) or (mode in ['d', 'de', 'del', 'dele', 'delet', 'delete']):
             paper_key = input("\nEnter the key of the paper to edit: ")
@@ -597,7 +598,7 @@ class NPBC_cli_interactive(NPBC_cli):
         else:
             print("\nInvalid mode. Please try again.")
 
-    def get_days_and_cost(self):
+    def get_days_and_cost(self) -> dict:
         paper_days = {}
 
         for day in weekday_names:
@@ -614,9 +615,8 @@ class NPBC_cli_interactive(NPBC_cli):
             paper_days[day] = {'sold': sold, 'cost': cost}
         return paper_days
 
-    def acquire_undelivered_papers(self):
-        confirmation = input(
-            "\nDo you want to report any undelivered data? ([Y]es/[n]o) ")
+    def acquire_undelivered_papers(self) -> None:
+        confirmation = input("\nDo you want to report any undelivered data? ([Y]es/[n]o) ")
 
         while confirmation.lower() in ['y', 'ye,' 'yes']:
             print("These are the available newspapers:\n")
@@ -626,8 +626,7 @@ class NPBC_cli_interactive(NPBC_cli):
 
             print("\tall: ALL NEWSPAPERS\n")
 
-            paper_key = input(
-                "Please enter the key of the newspaper you want to report, or press Return to cancel: ")
+            paper_key = input("Please enter the key of the newspaper you want to report, or press Return to cancel: ")
 
             if paper_key == '':
                 pass
@@ -638,10 +637,9 @@ class NPBC_cli_interactive(NPBC_cli):
             else:
                 print("Invalid key. Please try again.")
 
-            confirmation = input(
-                "Do you want to report any more undelivered data? ([Y]es/[n]o) ")
+            confirmation = input("Do you want to report any more undelivered data? ([Y]es/[n]o) ")
 
-    def report_undelivered_dates(self, paper_key: str):
+    def report_undelivered_dates(self, paper_key: str) -> None:
         finished = False
         string = ""
 
@@ -652,19 +650,17 @@ class NPBC_cli_interactive(NPBC_cli):
                 system(HELP_FILEPATH)
 
             else:
-                self.undelivered_strings[f"{self.month}/{self.year}"][paper_key].append(
-                    string)
+                self.undelivered_strings[f"{self.month}/{self.year}"][paper_key].append(string)
 
                 finished = True
 
-    def edit_config_files(self):
+    def edit_config_files(self) -> None:
         print("\nThe following filepaths can be edited:")
 
         for key in self.config:
             print(f"{key}: {self.config[key]}")
 
-        confirmation = input(
-            "\nDo you want to edit any of these paths? ([Y]es/[n]o) ").lower().strip()
+        confirmation = input("\nDo you want to edit any of these paths? ([Y]es/[n]o) ").lower().strip()
 
         while confirmation in ['y', 'ye', 'yes']:
 
@@ -674,35 +670,33 @@ class NPBC_cli_interactive(NPBC_cli):
                 path_key = input("\nPlease enter the path key to edit: ")
 
                 if path_key in self.config:
-                    self.config[path_key] = input(
-                        f"Please enter the new path for {path_key}: ")
+                    self.config[path_key] = input(f"Please enter the new path for {path_key}: ")
                     invalid = False
 
                 else:
                     print("Invalid key. Please try again.")
 
-            confirmation = input(
-                "\nDo you want to edit any more of these paths? ([Y]es/[n]o) ").lower().strip()
+            confirmation = input("\nDo you want to edit any more of these paths? ([Y]es/[n]o) ").lower().strip()
 
         with open(CONFIG_FILEPATH, 'w') as config_file:
             config_file.write(dumps(self.config))
 
-    def run(self):
+    def run(self) -> None:
         if self.args.command == 'ui':
             self.run_ui()
 
-def interactive():
+def interactive() -> None:
     calculator = NPBC_cli_interactive()
     calculator.run()
     del calculator
 
 # @Gooey
-def args():
+def args() -> None:
     calculator = NPBC_cli_args()
     calculator.run()
     del calculator
 
-def main():
+def main() -> None:
     interactive()
     args()
     exit(0)
