@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from json import dumps, loads
 from os import chdir, system
 from pathlib import Path
-# from sys import _MEIPASS as root_dir
+from sys import _MEIPASS as root_dir
 from sys import exit
 
 # from gooey import Gooey
@@ -325,7 +325,7 @@ class NPBC_cli(NPBC_core):
     }
 
     def __init__(self):
-        # chdir(root_dir)
+        chdir(root_dir)
         self.load_files()
         self.args = self.define_and_read_args()
 
