@@ -103,8 +103,9 @@ class NPBC_core():
     def get_previous_month(self) -> date_type:
 
         ## select current day
-         # set the day to the first day of the month
+         # set the day to the first day of the (current) month
          # subtract one day
+         # set the day to the first day of the (previous) month
         return (datetime.today().replace(day=1) - timedelta(days=1)).replace(day=1)
 
     ## create an entry for a new newspaper
@@ -160,7 +161,7 @@ class NPBC_core():
             ## let the user know that the paper does not exist
             print(f"\nPaper with key {paper_key} does not exist, please create it.")
 
-    
+
     def parse_undelivered_string(self, string: str) -> list:
         undelivered_dates = []
         durations = string.split(',')
