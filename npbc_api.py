@@ -1,46 +1,96 @@
-from flask import Flask, jsonify, request, abort
-from npbc import NPBC_core
+from npbc_core import NPBC_core, CONFIG_FILEPATH
+from flask import Flask, request, jsonify, abort
 
 app = Flask(__name__)
-base_name = "/npbc/api"
+BASE_NAME = "/npbc/api"
 
 core = NPBC_core()
 core.load_files()
 
-@app.route(f"{base_name}/addpaper", methods=["POST"])
-def add_paper():
-    if (not request.json) or ('paper_key' not in request.json):
+@app.route(f"{BASE_NAME}/getpapers", methods=["GET"])
+def get_papers():
+    return jsonify(core.papers), 200
+
+@app.route(f"{BASE_NAME}/getpaper/<paper_key>", methods=["GET"])
+def get_paper(paper_key):
+    if paper_key in core.papers:
+        return jsonify(core.papers[paper_key]), 200
+
+    abort(406)
+
+@app.route(f"{BASE_NAME}/getudlstrings", methods=["GET"])
+def get_undelivered_strings():
+    return jsonify(core.undelivered_strings), 200
+
+@app.route(f"{BASE_NAME}/getudlstring/<int:year>/<int:month>", methods=["GET"])
+def get_undelivered_string(year, month):
+    if f"{month}/{year}" in core.undelivered_strings:
+        return jsonify(core.undelivered_strings[f"{month}/{year}"]), 200
+
+    abort(406)
+
+@app.route(f"{BASE_NAME}/getudldates/<int:year>/<int:month>", methods=["GET"])
+def get_undelivered_dates(year, month):
+    core.month = month
+    core.year = year
+    core.prepare_dated_data()
+    core.undelivered_strings_to_dates()
+
+    return jsonify(core.undelivered_dates), 200
+
+@app.route(f"{BASE_NAME}/addudl/<int:year>/<int:month>", methods=["POST"])
+def add_undelivered_string(year, month):
+    if not request.json:
         abort(400)
 
-    decoded_delivery_data = core.decode_days_and_cost(request.json['days']['sold'], request.json['days']['costs'])
+    core.month = month
+    core.year = year
+    core.prepare_dated_data()
 
-    core.create_new_paper(request.json['paper_key'], request.json['name'], decoded_delivery_data)
-    
-    return jsonify({'result': True}), 201
+    for paper_key, string in request.json.items():
+        if paper_key in core.papers:
+            core.undelivered_strings[f"{month}/{year}"][paper_key].append(string)
 
-@app.route(f"{base_name}/editpaper", methods=["POST"])
-def edit_paper():
-    if (not request.json) or ('paper_key' not in request.json):
+    core.addudl()
+
+    return jsonify({"status": "success"}), 201
+
+@app.route(f"{BASE_NAME}/deludl/<int:year>/<int:month>", methods=["POST"])
+def delete_undelivered_string(year, month):
+    core.month = month
+    core.year = year
+    core.prepare_dated_data()
+    core.deludl()
+    return jsonify({"status": "success"}), 201
+
+@app.route(f"{BASE_NAME}/editconfig", methods=["POST"])
+def edit_config():
+    if not request.json:
         abort(400)
 
-    decoded_delivery_data = core.decode_days_and_cost(request.json['days']['sold'], request.json['days']['costs'])
+    if core.edit_config_file(request.json):
+        return jsonify({"status": "success"}), 200
     
-    core.edit_existing_paper(request.json['paper_key'], request.json['name'], decoded_delivery_data)
-    
-    return jsonify({'result': True}), 201
+    else:
+        abort(406)
 
-@app.route(f"{base_name}/delpaper", methods=["POST"])
-def delete_paper():
-    if (not request.json) or ('paper_key' not in request.json):
-        abort(400)
+@app.route(f"{BASE_NAME}/calculate/<int:year>/<int:month>/<int:save>", methods=["GET"])
+def calculate(year, month, save):
+    core.month = month
+    core.year = year
+    core.prepare_dated_data()
+    core.undelivered_strings_to_dates()
+    core.calculate_all_papers()
+    core.format()
 
-    core.delete_existing_paper(request.json['paper_key'])
-    
-    return jsonify({'result': True}), 201
+
+    if bool(save):
+        core.save_results()
+
+    return jsonify({"status": "success"}), 200
 
 def main():
     app.run(debug=True)
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
