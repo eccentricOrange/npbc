@@ -38,6 +38,10 @@ def get_undelivered_dates(year, month):
 
     return jsonify(core.undelivered_dates), 200
 
+@app.route(f"{BASE_NAME}/getconfig", methods=["GET"])
+def get_config():
+    return jsonify(core.config), 200
+
 @app.route(f"{BASE_NAME}/addudl/<int:year>/<int:month>", methods=["POST"])
 def add_undelivered_string(year, month):
     if not request.json:
@@ -90,7 +94,7 @@ def calculate(year, month, save):
     return jsonify({"status": "success"}), 200
 
 def main():
-    app.run(debug=True)
+    app.run(debug=False)
 
 if __name__ == "__main__":
     main()

@@ -4,14 +4,9 @@ from datetime import date as date_type
 from datetime import datetime, timedelta
 from json import dumps, loads
 from pathlib import Path
-# from sys import _MEIPASS as root_dir
-
-from pyperclip import copy as copy_to_clipboard
-
 
 CONFIG_FILEPATH = Path('data') / 'config.json'
 # CONFIG_FILEPATH = Path.home() / '.npbc' / 'config.json'
-
 
 class NPBC_core():
 
@@ -21,7 +16,6 @@ class NPBC_core():
     undelivered_dates = {}
 
     def load_files(self) -> None:
-
         with open(CONFIG_FILEPATH, 'r') as config_file:
             self.config = loads(config_file.read())
 
@@ -83,6 +77,27 @@ class NPBC_core():
     def get_previous_month(self) -> date_type:
 
         return (datetime.today().replace(day=1) - timedelta(days=1)).replace(day=1)
+
+    def decode_days_and_cost(self, encoded_days: str, encoded_prices: str) -> dict:
+        sold = [int(i == 'Y') for i in str(encoded_days).upper()]
+        prices = encoded_prices.split(';')
+
+        days = {}
+        prices = [float(price) for price in prices if float(price) != 0.0]
+
+        delivered_count = -1
+
+        for day in range(7):
+            delivered = sold[day]
+            delivered_count += delivered
+            
+            day_name = weekday_names[day]
+            days[day_name] = {}
+
+            days[day_name]['cost'] = prices[delivered_count] if delivered else 0
+            days[day_name]['sold'] = delivered
+
+        return days
 
     def create_new_paper(self, paper_key: str, paper_name: str,  paper_days: dict) -> None:
 
