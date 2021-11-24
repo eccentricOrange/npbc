@@ -1,4 +1,4 @@
-from npbc_core import NPBC_core, CONFIG_FILEPATH
+from npbc_core import NPBC_core
 from flask import Flask, request, jsonify, abort
 
 app = Flask(__name__)

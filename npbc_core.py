@@ -1,23 +1,16 @@
-
-from argparse import ArgumentParser, RawTextHelpFormatter
-import argparse
 from calendar import day_name as weekday_names
 from calendar import monthrange
 from datetime import date as date_type
 from datetime import datetime, timedelta
 from json import dumps, loads
-from os import chdir, system
 from pathlib import Path
 # from sys import _MEIPASS as root_dir
-from sys import exit
 
-# from gooey import Gooey
 from pyperclip import copy as copy_to_clipboard
 
 
 CONFIG_FILEPATH = Path('data') / 'config.json'
 # CONFIG_FILEPATH = Path.home() / '.npbc' / 'config.json'
-HELP_FILEPATH = Path(f'includes/undelivered_help.pdf')
 
 
 class NPBC_core():
