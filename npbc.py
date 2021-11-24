@@ -108,8 +108,29 @@ class NPBC_core():
          # set the day to the first day of the (previous) month
         return (datetime.today().replace(day=1) - timedelta(days=1)).replace(day=1)
 
+    def decode_days_and_cost(self, encoded_days: str, encoded_prices: str) -> dict:
+        sold = [int(i == 'Y') for i in str(encoded_days).upper()]
+        prices = encoded_prices.split(';')
+
+        days = {}
+        prices = [float(price) for price in prices if float(price) != 0.0]
+
+        delivered_count = -1
+
+        for day in range(7):
+            delivered = sold[day]
+            delivered_count += delivered
+            
+            day_name = weekday_names[day]
+            days[day_name] = {}
+
+            days[day_name]['cost'] = prices[delivered_count] if delivered else 0
+            days[day_name]['sold'] = delivered
+
+        return days
+
     ## create an entry for a new newspaper
-    def create_new_paper(self, paper_key: str,paper_name: str,  paper_days: dict) -> None:
+    def create_new_paper(self, paper_key: str, paper_name: str,  paper_days: dict) -> None:
         
         ## add new paper to papers dictionary
         self.papers[paper_key] = {
@@ -509,25 +530,9 @@ class NPBC_cli_args(NPBC_cli):
             self.update()
 
     def extract_days_and_cost(self) -> dict:
-        sold = [int(i == 'Y') for i in str(self.args.days).upper()]
-        prices = self.args.price.split(';')
-
-        days = {}
-        prices = [float(price) for price in prices if float(price) != 0.0]
-
-        delivered_count = -1
-
-        for day in range(7):
-            delivered = sold[day]
-            delivered_count += delivered
-            
-            day_name = weekday_names[day]
-            days[day_name] = {}
-
-            days[day_name]['cost'] = prices[delivered_count] if delivered else 0
-            days[day_name]['sold'] = delivered
-
-        return days
+        encoded_days = self.args.days
+        encoded_prices = self.args.price
+        return self.decode_days_and_cost(encoded_days, encoded_prices)
 
     def edit_config_files(self) -> None:
         filepaths = self.args.files.split(';')
