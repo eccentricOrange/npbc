@@ -4,6 +4,7 @@ from sys import exit
 from npbc_core import NPBC_core
 from argparse import ArgumentParser, RawTextHelpFormatter, Namespace as arg_namespace
 from pyperclip import copy as copy_to_clipboard
+from json import dumps
 
 class NPBC_cli(NPBC_core):
     functions = {
@@ -234,13 +235,13 @@ class NPBC_cli_args(NPBC_cli):
             self.update()
 
         elif self.args.command == 'getudl':
-            print(self.undelivered_strings)
+            print(dumps(self.undelivered_strings, indent=4))
         
         elif self.args.command == 'getpapers':
-            print(self.papers)
+            print(dumps(self.papers, indent=4))
         
         elif self.args.command == 'getconfig':
-            print(self.config)
+            print(dumps(self.config, indent=4))
 
     def extract_days_and_cost(self) -> dict:
         encoded_days = self.args.days
