@@ -5,8 +5,8 @@ from datetime import datetime, timedelta
 from json import dumps, loads
 from pathlib import Path
 
-CONFIG_FILEPATH = Path('data') / 'config.json'
-# CONFIG_FILEPATH = Path.home() / '.npbc' / 'config.json'
+# CONFIG_FILEPATH = Path('data') / 'config.json'
+CONFIG_FILEPATH = Path.home() / '.npbc' / 'config.json'
 
 class NPBC_core():
 
