@@ -4,7 +4,7 @@
 block_cipher = None
 
 
-a = Analysis(['..\\npbc_cli.py'],
+a = Analysis(['../npbc_cli.py'],
              pathex=['spec'],
              binaries=[],
              datas=[],
