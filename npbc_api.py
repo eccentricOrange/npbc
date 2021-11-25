@@ -1,8 +1,11 @@
 from npbc_core import NPBC_core
 from flask import Flask, request, jsonify, abort
+from waitress import serve
 
 app = Flask(__name__)
 BASE_NAME = "/npbc/api"
+HOSTNAME = "127.0.0.1"
+PORT = 8083
 
 core = NPBC_core()
 core.load_files()
@@ -92,9 +95,10 @@ def calculate(year, month, save):
         core.save_results()
 
     return jsonify({"status": "success"}), 200
-
+    
 def main():
-    app.run(debug=False)
+    print(f"http://{HOSTNAME}:{PORT}{BASE_NAME}")
+    serve(app, host=HOSTNAME, port=PORT)
 
 if __name__ == "__main__":
     main()
