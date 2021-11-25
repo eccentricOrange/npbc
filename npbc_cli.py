@@ -5,7 +5,6 @@ from npbc_core import NPBC_core
 from argparse import ArgumentParser, RawTextHelpFormatter, Namespace as arg_namespace
 from pyperclip import copy as copy_to_clipboard
 
-
 class NPBC_cli(NPBC_core):
     functions = {
         'calculate': {
@@ -233,6 +232,15 @@ class NPBC_cli_args(NPBC_cli):
 
         elif self.args.command == 'update':
             self.update()
+
+        elif self.args.command == 'getudl':
+            print(self.undelivered_strings)
+        
+        elif self.args.command == 'getpapers':
+            print(self.papers)
+        
+        elif self.args.command == 'getconfig':
+            print(self.config)
 
     def extract_days_and_cost(self) -> dict:
         encoded_days = self.args.days
