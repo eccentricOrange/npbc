@@ -95,7 +95,8 @@ def calculate(year, month, save):
         core.save_results()
 
     return jsonify({"status": "success"}), 200
-    
+
+
 def main():
     print(f"http://{HOSTNAME}:{PORT}{BASE_NAME}")
     serve(app, host=HOSTNAME, port=PORT)
