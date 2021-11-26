@@ -15,9 +15,16 @@ class NPBC_core():
     totals = {'TOTAL': 0.0}
     undelivered_dates = {}
 
+    def load_json_file(self, filepath: Path) -> dict:
+        with open(filepath, 'r') as json_file:
+            try:
+                return loads(json_file.read())
+            
+            except ValueError:
+                return {}
+
     def load_files(self) -> None:
-        with open(CONFIG_FILEPATH, 'r') as config_file:
-            self.config = loads(config_file.read())
+        self.config = self.load_json_file(CONFIG_FILEPATH)
 
         if self.config['root_folder'] == 'UNSET':
 
@@ -27,12 +34,8 @@ class NPBC_core():
                 config_file.write(dumps(self.config))
 
         self.define_file_structure()
-
-        with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'r') as papers_file:
-            self.papers = loads(papers_file.read())
-
-        with open(Path(f"{self.config['root_folder']}/{self.config['undelivered_strings']}"), 'r') as undelivered_file:
-            self.undelivered_strings = loads(undelivered_file.read())
+        self.papers = self.load_json_file(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"))
+        self.undelivered_strings = self.load_json_file(Path(f"{self.config['root_folder']}/{self.config['undelivered_strings']}"))
 
         for paper_key in self.papers:
             self.totals[paper_key] = 0.0
@@ -51,7 +54,6 @@ class NPBC_core():
             f"{self.config['root_folder']}/{self.config['delivery_record_file']}").touch(exist_ok=True)
 
     def prepare_dated_data(self) -> list:
-
         if f"{self.month}/{self.year}" not in self.undelivered_strings:
             self.undelivered_strings[f"{self.month}/{self.year}"] = {}
 
@@ -65,7 +67,6 @@ class NPBC_core():
         return self.get_list_of_all_dates()
 
     def get_list_of_all_dates(self) -> list:
-
         self.dates_in_active_month = []
 
         for date_number in range(monthrange(self.year, self.month)[1]):
@@ -100,7 +101,6 @@ class NPBC_core():
         return days
 
     def create_new_paper(self, paper_key: str, paper_name: str,  paper_days: dict) -> None:
-
         self.papers[paper_key] = {
             'name': paper_name,
             'key': paper_key,
@@ -111,7 +111,6 @@ class NPBC_core():
             papers_file.write(dumps(self.papers))
 
     def edit_existing_paper(self, paper_key: str, paper_name: str, days: dict) -> None:
-
         if paper_key in self.papers:
 
             self.papers[paper_key] = {
@@ -127,9 +126,7 @@ class NPBC_core():
             print(f"\n{paper_name} does not exist, please create it.")
 
     def delete_existing_paper(self, paper_key: str) -> None:
-
         if paper_key in self.papers:
-
             del self.papers[paper_key]
 
             with open(Path(f"{self.config['root_folder']}/{self.config['papers_data']}"), 'w') as papers_file:
@@ -151,7 +148,6 @@ class NPBC_core():
             config_file.write(dumps(self.config))
 
         return found
-
 
     def parse_undelivered_string(self, string: str) -> list:
         undelivered_dates = []
@@ -291,9 +287,6 @@ class NPBC_core():
 
         with open(Path(f"{self.config['root_folder']}/{self.config['undelivered_strings']}"), 'w') as undelivered_file:
             undelivered_file.write(dumps(self.undelivered_strings))
-
-    def get_papers(self) -> None:
-        return self.papers
 
     def update(self) -> None:
         pass
