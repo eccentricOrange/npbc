@@ -15,7 +15,8 @@ class NPBC_core():
     totals = {'TOTAL': 0.0}
     undelivered_dates = {}
 
-    def load_json_file(self, filepath: Path) -> dict:
+    @staticmethod
+    def load_json_file(filepath: Path) -> dict:
         with open(filepath, 'r') as json_file:
             try:
                 return loads(json_file.read())
@@ -79,7 +80,8 @@ class NPBC_core():
 
         return (datetime.today().replace(day=1) - timedelta(days=1)).replace(day=1)
 
-    def decode_days_and_cost(self, encoded_days: str, encoded_prices: str) -> dict:
+    @staticmethod
+    def decode_days_and_cost(encoded_days: str, encoded_prices: str) -> dict:
         sold = [int(i == 'Y') for i in str(encoded_days).upper()]
         prices = encoded_prices.split(';')
 

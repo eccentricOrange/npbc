@@ -368,7 +368,8 @@ class NPBC_cli_interactive(NPBC_cli):
         else:
             print("\nInvalid mode. Please try again.")
 
-    def get_days_and_cost(self) -> dict:
+    @staticmethod
+    def get_days_and_cost() -> dict:
         paper_days = {}
 
         for day in weekday_names:
