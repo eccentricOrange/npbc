@@ -2,13 +2,12 @@ from npbc_core import NPBC_core
 from flask import Flask, request, jsonify, abort
 from waitress import serve
 
+core = NPBC_core()
 app = Flask(__name__)
+
 BASE_NAME = "/npbc/api"
 HOSTNAME = "127.0.0.1"
 PORT = 8083
-
-core = NPBC_core()
-core.load_files()
 
 @app.route(f"{BASE_NAME}/getpapers", methods=["GET"])
 def get_papers():
@@ -98,6 +97,7 @@ def calculate(year, month, save):
 
 
 def main():
+    core.load_files()
     print(f"http://{HOSTNAME}:{PORT}{BASE_NAME}")
     serve(app, host=HOSTNAME, port=PORT)
 
