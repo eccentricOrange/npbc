@@ -179,7 +179,6 @@ class NPBC_core():
                                 date_type(self.year, self.month, day))
 
                 elif (start in weekday_names) and end.isdigit():
-                    print(start)
                     all_dates_with_matching_name = [i for i in self.dates_in_active_month if list(
                         weekday_names)[i.weekday()] == start]
                     undelivered_dates.append(
