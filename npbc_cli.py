@@ -198,7 +198,7 @@ class NPBC_cli_args(NPBC_cli):
                 self.month = self.args.month
                 self.year = self.args.year
 
-            self.prepare_dated_data()
+            self.get_undelivered_strings()
 
             if self.args.command != 'deludl':
 
@@ -289,7 +289,7 @@ class NPBC_cli_interactive(NPBC_cli):
             else:
                 self.year = self.get_previous_month().year
 
-            self.prepare_dated_data()
+            self.get_undelivered_strings()
 
             if task not in ['r', 'remove']:
                 self.acquire_undelivered_papers()

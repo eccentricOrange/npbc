@@ -3,3 +3,5 @@ npbc-env
 __pycache__
 build
 .vs
+exp
+*legacy*

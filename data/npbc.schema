@@ -1,0 +1,44 @@
+CREATE TABLE IF NOT EXISTS papers (
+    paper_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS papers_days_delivered(
+    paper_id INTEGER,
+    monday INTEGER NOT NULL,
+    tuesday INTEGER NOT NULL,
+    wednesday INTEGER NOT NULL,
+    thursday INTEGER NOT NULL,
+    friday INTEGER NOT NULL,
+    saturday INTEGER NOT NULL,
+    sunday INTEGER NOT NULL
+    FOREIGN KEY(paper_id) REFERENCES papers(paper_id)
+);
+CREATE TABLE IF NOT EXISTS papers_days_costs(
+    paper_id INTEGER,
+    monday REAL,
+    tuesday REAL,
+    wednesday REAL,
+    thursday REAL,
+    friday REAL,REAL
+    saturday REAL,
+    sunday REAL,
+    FOREIGN KEY(paper_id) REFERENCES papers(paper_id)
+);
+CREATE TABLE IF NOT EXISTS undelivered_strings (
+    entry_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    year INTEGER NOT NULL,
+    month NOT NULL,
+    paper_id INTEGER NOT NULL,
+    string TEXT NOT NULL,
+    FOREIGN KEY (paper_id) REFERENCES papers(paper_id)
+);
+CREATE TABLE IF NOT EXISTS undelivered_dates (
+    entry_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    year INTEGER NOT NULL,
+    month INTEGER NOT NULL,
+    paper_id INTEGER NOT NULL,
+    dates TEXT NOT NULL,
+    FOREIGN KEY (paper_id) REFERENCES papers(paper_id)
+);
+CREATE INDEX search_strings
+ON undelivered_strings(year, month);

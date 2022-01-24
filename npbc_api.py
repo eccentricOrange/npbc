@@ -35,7 +35,7 @@ def get_undelivered_string(year, month):
 def get_undelivered_dates(year, month):
     core.month = month
     core.year = year
-    core.prepare_dated_data()
+    core.get_undelivered_strings()
     core.undelivered_strings_to_dates()
 
     return jsonify(core.undelivered_dates), 200
@@ -51,7 +51,7 @@ def add_undelivered_string(year, month):
 
     core.month = month
     core.year = year
-    core.prepare_dated_data()
+    core.get_undelivered_strings()
 
     for paper_key, string in request.json.items():
         if paper_key in core.papers:
@@ -65,7 +65,7 @@ def add_undelivered_string(year, month):
 def delete_undelivered_string(year, month):
     core.month = month
     core.year = year
-    core.prepare_dated_data()
+    core.get_undelivered_strings()
     core.deludl()
     return jsonify({"status": "success"}), 201
 
@@ -84,7 +84,7 @@ def edit_config():
 def calculate(year, month, save):
     core.month = month
     core.year = year
-    core.prepare_dated_data()
+    core.get_undelivered_strings()
     core.undelivered_strings_to_dates()
     core.calculate_all_papers()
     core.format()
