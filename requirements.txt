@@ -2,4 +2,3 @@ pyperclip
 pyinstaller
 Flask
 waitress
-# Gooey

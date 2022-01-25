@@ -1,10 +1,8 @@
-from calendar import day_name as weekday_names
 from datetime import datetime
-from sys import exit
-from npbc_core import NPBC_core
-from argparse import ArgumentParser, RawTextHelpFormatter, Namespace as arg_namespace
-from pyperclip import copy as copy_to_clipboard
 from json import dumps
+from pyperclip import copy as copy_to_clipboard
+from argparse import ArgumentParser, RawTextHelpFormatter, Namespace as arg_namespace
+from npbc_core import NPBC_core
 
 class NPBC_cli(NPBC_core):
     functions = {
@@ -40,14 +38,6 @@ class NPBC_cli(NPBC_core):
             'choice': 'getpapers',
             'help': "Get all newspapers."
         },
-        'editconfig': {
-            'choice': 'editconfig',
-            'help': "Edit filepaths of record files and newspaper data."
-        },
-        'getconfig': {
-            'choice': 'getconfig',
-            'help': "Get the current configuration."
-        },
         'update': {
             'choice': 'update',
             'help': "Update the application."
@@ -76,12 +66,6 @@ class NPBC_cli(NPBC_core):
             'long': '--undelivered',
             'type': str,
             'help': "Dates when you did not receive any papers.",
-        },
-        'files': {
-            'short': '-f',
-            'long': '--files',
-            'type': str,
-            'help': "Data for filepaths to be edited.",
         },
         'key': {
             'short': '-k',
@@ -122,7 +106,7 @@ class NPBC_cli(NPBC_core):
     }
 
     def __init__(self):
-        self.load_files()
+        self.define_schema()
         self.args = self.define_and_read_args()
 
     def define_and_read_args(self) -> arg_namespace:
@@ -167,7 +151,7 @@ class NPBC_cli(NPBC_core):
             print("\nSummary copied to clipboard.")
 
     def calculate(self) -> None:
-        self.undelivered_strings_to_dates()
+        self.get_number_of_weekdays()
         self.calculate_all_papers()
         self.format_and_copy()
 
@@ -201,262 +185,58 @@ class NPBC_cli_args(NPBC_cli):
             self.get_undelivered_strings()
 
             if self.args.command != 'deludl':
-
                 if self.args.undelivered is not None:
                     undelivered_data = self.args.undelivered.split(';')
 
                     for paper in undelivered_data:
                         paper_key, undelivered_string = paper.split(':')
 
-                        self.undelivered_strings[f"{self.month}/{self.year}"][paper_key].append(undelivered_string)
+                        if paper_key in self.undelivered_strings:
+                            self.undelivered_strings[paper_key] += ',' + undelivered_string
+
+                        else:
+                            self.undelivered_strings[paper_key] = undelivered_string
 
                 if self.args.command == 'calculate':
                     self.calculate()
 
                 else:
-                    self.addudl()
+                    self.add_undelivered_string(self.args.key, self.undelivered_strings[self.args.key])
 
             else:
-                self.deludl()
+                self.delete_undelivered_string(self.args.key)
+
+        elif self.args.command == 'getudl':
+            print(dumps(self.get_undelivered_strings(), indent=4))
+
+        elif self.args.command == 'getpapers':
+            print(dumps(self.get_all_papers(), indent=4))
+
+        elif self.args.command == 'editpaper':
+            self.update_existing_paper(self.args.key, self.args.name, self.extract_days_and_cost())
 
         elif self.args.command == 'addpaper':
-            self.create_new_paper(self.args.key, self.args.name, self.extract_days_and_cost())
+            self.create_new_paper(self.args.name, self.extract_days_and_cost())
 
         elif self.args.command == 'delpaper':
             self.delete_existing_paper(self.args.key)
 
-        elif self.args.command == 'editpaper':
-            self.edit_existing_paper(self.args.key, self.args.name, self.extract_days_and_cost())
-
-        elif self.args.command == 'editconfig':
-            self.edit_file_paths()
-
-        elif self.args.command == 'update':
-            self.update()
-
-        elif self.args.command == 'getudl':
-            print(dumps(self.undelivered_strings, indent=4))
-        
-        elif self.args.command == 'getpapers':
-            print(dumps(self.papers, indent=4))
-        
-        elif self.args.command == 'getconfig':
-            print(dumps(self.config, indent=4))
-
-    def extract_days_and_cost(self) -> dict:
-        encoded_days = self.args.days
-        encoded_prices = self.args.price
-        return self.decode_days_and_cost(encoded_days, encoded_prices)
-
-    def edit_file_paths(self) -> None:
-        new_paths = {}
-        filepaths = self.args.files.split(';')
-
-        for filepath in filepaths:
-            path_key, path = filepath.split(':')
-            new_paths[path_key] = path
-        
-        self.edit_config_file(new_paths)
+    def extract_days_and_cost(self) -> list:
+        return self.decode_delivered_and_cost(self.args.days, self.args.price)
 
     def run(self) -> None:
         if self.args.command != 'ui' and self.args.command in self.functions:
             self.check_args()
+            self.connection.close()
         
         else:
+            self.connection.close()
             exit(1)
 
-class NPBC_cli_interactive(NPBC_cli):
-    def __init__(self):
-        NPBC_cli.__init__(self)
-        
-    def run_ui(self) -> None:
-        task = input("What do you want to do right now? ([c]alculate, edit the [p]apers, edit the [f]iles configuration, [a]dd undelivered data, [r]emove undelivered data, [u]pdate, or e[x]it) ").strip().lower()
-
-        if task in ['c', 'calculate', 'a', 'add', 'r', 'remove']:
-            month = input("\nPlease enter the month you want to calculate (either enter a number, or leave blank to use the previous month): ")
-
-            if month.isdigit():
-                self.month = int(month)
-
-            else:
-                self.month = self.get_previous_month().month
-
-            year = input("\nPlease enter the year you want to calculate (either enter a number, or leave blank to use the year of the previous month): ")
-
-            if year.isdigit():
-                self.year = int(year)
-
-            else:
-                self.year = self.get_previous_month().year
-
-            self.get_undelivered_strings()
-
-            if task not in ['r', 'remove']:
-                self.acquire_undelivered_papers()
-
-                if task in ['c', 'calculate']:
-                    self.calculate()
-
-                else:
-                    self.addudl()
-
-            else:
-                self.deludl()
-
-        elif task in ['p', 'papers']:
-            self.edit_papers()
-
-        elif task in ['f', 'files']:
-            self.edit_file_paths()
-
-        elif task in ['u', 'update']:
-            self.update()
-
-        elif task in ['x', 'exit']:
-            pass
-
-    def edit_papers(self) -> None:
-        print ("The following papers currently exist.\n")
-
-        for paper_key in self.papers:
-            print (f"{paper_key}: {self.papers[paper_key]['name']}")
-        
-
-        mode = input("\n Do you want to create a [n]ew newspaper, [e]dit an existing one, [d]elete an existing one, or e[x]it? ").lower().strip()
-
-        if (mode in ['n', 'ne', 'new']) or (mode in ['e', 'ed', 'edi', 'edit']) or (mode in ['d', 'de', 'del', 'dele', 'delet', 'delete']):
-            paper_key = input("\nEnter the key of the paper to edit: ")
-
-            if mode in ['n', 'ne', 'new']:
-                if paper_key in self.papers:
-                    print(f"{paper_key} already exists. Please try editing it.")
-                    exit(1)
-
-                paper_name = input("\nWhat is the name of the newspaper? ")
-
-                paper_days = self.get_days_and_cost()
-                self.create_new_paper(paper_key, paper_name, paper_days)
-                print(f"\n{paper_name} has been added.")
-
-            elif mode in ['e', 'ed', 'edi', 'edit']:
-                if paper_key not in self.papers:
-                    print(f"{paper_key} does not exist. Please try again.")
-                    exit(1)
-
-                new_paper_name = input("Enter a new name for the paper, or leave blank to retain: ")
-
-                if not new_paper_name:
-                    new_paper_name = self.papers[paper_key]['name']
-
-                paper_days = self.get_days_and_cost()
-                self.edit_existing_paper(paper_key, new_paper_name, paper_days)
-                print(f"\n{new_paper_name} has been edited.")
-
-            elif mode in ['d', 'de', 'del', 'dele', 'delet', 'delete']:
-                if paper_key not in self.papers:
-                    print(f"{paper_key} does not exist. Please try again.")
-                    exit(1)
-
-                self.delete_existing_paper(paper_key)
-
-                print(f"\n{paper_key} has been deleted.")
-            
-
-        elif mode.lower() in ['x', 'ex', 'exi', 'exit']:
-            pass
-
-        else:
-            print("\nInvalid mode. Please try again.")
-
-    @staticmethod
-    def get_days_and_cost() -> dict:
-        paper_days = {}
-
-        for day in weekday_names:
-            sold = input(f"\nIs the newspaper sold on {day}? ([y]es/[N]o) ")
-
-            if sold.lower() in ['y', 'ye', 'yes']:
-                sold = int(True)
-                cost = float(input(f"What is the cost on {day}? "))
-
-            else:
-                sold = int(False)
-                cost = 0.0
-
-            paper_days[day] = {'sold': sold, 'cost': cost}
-        return paper_days
-
-    def acquire_undelivered_papers(self) -> None:
-        confirmation = input("\nDo you want to report any undelivered data? ([Y]es/[n]o) ")
-
-        while confirmation.lower() in ['y', 'ye,' 'yes']:
-            print("These are the available newspapers:\n")
-
-            for paper_key, value in self.papers.items():
-                print(f"\t{paper_key}: {value['name']}")
-
-            print("\tall: ALL NEWSPAPERS\n")
-
-            paper_key = input("Please enter the key of the newspaper you want to report, or press Return to cancel: ")
-
-            if paper_key == '':
-                pass
-
-            elif (paper_key in self.papers) or (paper_key == 'all'):
-                self.report_undelivered_dates(paper_key)
-
-            else:
-                print("Invalid key. Please try again.")
-
-            confirmation = input("Do you want to report any more undelivered data? ([Y]es/[n]o) ")
-
-    def report_undelivered_dates(self, paper_key: str) -> None:
-        finished = False
-        string = ""
-
-        while not finished:
-            string = input(f"Please tell us when {paper_key} was undelivered, or enter '?' for help: ").strip()
-
-            self.undelivered_strings[f"{self.month}/{self.year}"][paper_key].append(string)
-
-            finished = True
-
-    def edit_file_paths(self) -> None:
-        new_paths = {}
-
-        print("\nThe following filepaths can be edited:")
-
-        for key in self.config:
-            print(f"{key}: {self.config[key]}")
-
-        confirmation = input("\nDo you want to edit any of these paths? ([Y]es/[n]o) ").lower().strip()
-
-        while confirmation in ['y', 'ye', 'yes']:
-
-            invalid = True
-
-            while invalid:
-                path_key = input("\nPlease enter the path key to edit: ")
-
-                if path_key in self.config:
-                    new_paths[path_key] = input(f"Please enter the new path for {path_key}: ")
-                    invalid = False
-
-                else:
-                    print("Invalid key. Please try again.")
-
-            confirmation = input("\nDo you want to edit any more of these paths? ([Y]es/[n]o) ").lower().strip()
-
-        self.edit_config_file(new_paths)
-
-    def run(self) -> None:
-        if self.args.command == 'ui':
-            self.run_ui()
-
-def interactive() -> None:
-    calculator = NPBC_cli_interactive()
-    calculator.run()
-    del calculator
+# def interactive() -> None:
+#     calculator = NPBC_cli_interactive()
+#     calculator.run()
+#     del calculator
 
 def args() -> None:
     calculator = NPBC_cli_args()
@@ -464,7 +244,7 @@ def args() -> None:
     del calculator
 
 def main() -> None:
-    interactive()
+    # interactive()
     args()
     exit(0)
 
