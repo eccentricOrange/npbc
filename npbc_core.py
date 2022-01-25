@@ -6,7 +6,12 @@ from pathlib import Path
 
 # DB_DIR = Path.home() / '.npbc'
 DB_DIR = Path('data')
-DB_PATH = DB_DIR / 'npbc.db'
+
+SCHEMA_FILE = 'schema.sql'
+DB_FILE = 'npbc.db'
+
+DB_PATH = DB_DIR / DB_FILE
+SCHEMA_PATH = DB_DIR / SCHEMA_FILE
 
 weekday_names = list(weekday_names_iterable)
 
@@ -26,7 +31,7 @@ class NPBC_core():
 
         self.connection = connect(DB_PATH)
 
-        with open(DB_DIR / 'npbc.schema', 'r') as schema_file:
+        with open(SCHEMA_PATH, 'r') as schema_file:
             self.connection.executescript(schema_file.read())
             self.connection.commit()
         
