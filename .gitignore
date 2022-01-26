@@ -2,6 +2,7 @@
 npbc-env
 __pycache__
 *build
+*dist
 .vs
 exp
 *legacy*
