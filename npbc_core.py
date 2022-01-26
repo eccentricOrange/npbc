@@ -4,14 +4,11 @@ from calendar import monthrange, monthcalendar
 from datetime import date as date_type, datetime, timedelta
 from pathlib import Path
 
-# DB_DIR = Path.home() / '.npbc'
-DB_DIR = Path('data')
 
-SCHEMA_FILE = 'schema.sql'
-DB_FILE = 'npbc.db'
-
-DB_PATH = DB_DIR / DB_FILE
-SCHEMA_PATH = DB_DIR / SCHEMA_FILE
+# DB_DIR = Path('data')
+DB_DIR = Path.home() / '.npbc'
+DB_PATH = DB_DIR / 'npbc.db'
+SCHEMA_PATH = Path(__file__) / 'schema.sql'
 
 weekday_names = list(weekday_names_iterable)
 
