@@ -1,8 +1,9 @@
 .python-version
 npbc-env
 __pycache__
-build
+*build
 .vs
 exp
 *legacy*
 npbc.db
+pyenv-install

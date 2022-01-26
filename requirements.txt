@@ -2,3 +2,4 @@ pyperclip
 pyinstaller
 Flask
 waitress
+nuitka
