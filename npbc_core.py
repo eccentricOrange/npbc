@@ -25,6 +25,9 @@ class NPBC_core():
     def __init__(self):
         self.define_schema()
 
+    def __del__(self):
+        self.connection.close()
+
     def define_schema(self):
         Path(DB_DIR).mkdir(parents=True, exist_ok=True)
         Path(DB_PATH).touch(exist_ok=True)
@@ -46,6 +49,13 @@ class NPBC_core():
         self.undelivered_strings = {str(i[0]): i[1] for i in undelivered_strings_list}
 
         return self.undelivered_strings
+
+    def get_undelivered_dates(self) -> dict:
+        undeliver_dates_list = self.connection.execute("SELECT paper_id, string FROM undelivered_dates WHERE year = ? AND month = ?;", (self.year, self.month)).fetchall()
+
+        undelivered_dates = {str(i[0]): self.parse_undelivered_string(i[1]) for i in undeliver_dates_list}
+
+        return undelivered_dates
 
     def get_number_of_weekdays(self) -> list:
         self.main_calendar = monthcalendar(self.year, self.month)
