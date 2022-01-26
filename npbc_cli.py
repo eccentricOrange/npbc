@@ -233,19 +233,10 @@ class NPBC_cli_args(NPBC_cli):
             self.connection.close()
             exit(1)
 
-# def interactive() -> None:
-#     calculator = NPBC_cli_interactive()
-#     calculator.run()
-#     del calculator
-
-def args() -> None:
+def main() -> None:
     calculator = NPBC_cli_args()
     calculator.run()
     del calculator
-
-def main() -> None:
-    # interactive()
-    args()
     exit(0)
 
 if __name__ == '__main__':
