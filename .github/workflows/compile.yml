@@ -7,5 +7,7 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     name: ${{ matrix.os }}
     steps:
-      - run: pip install -r requirements.txt
+      - name: Install Python dependencies
+        uses: py-actions/py-dependency-install@v3
+      # - run: pip install -r requirements.txt
       - run: python -m nuitka --include-data-file=/home/anujv/pts/npbc/data/schema.sql=schema.sql --onefile --standalone -o bin/executables/npbc_cli npbc_cli.py
