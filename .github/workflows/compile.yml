@@ -1,26 +1,26 @@
 on: [push]
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [macos-latest, ubuntu-latest]
-        # os: [ubuntu-latest]
-    name: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: '3.10'
-          architecture: 'x64'
-          cache: pip
-      - run: pip install -r requirements.txt pyinstaller
-      - run: mkdir build
-      - run: mkdir bin
-      - run: pyinstaller --add-data data/schema.sql:schema.sql --onefile --distpath bin/npbc_cli --clean npbc_cli.py
-      - uses: actions/upload-artifact@v2
-        with:
-          path: bin
+  # build:
+  #   runs-on: ${{ matrix.os }}
+  #   strategy:
+  #     matrix:
+  #       os: [macos-latest, ubuntu-latest]
+  #       # os: [ubuntu-latest]
+  #   name: ${{ matrix.os }}
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: actions/setup-python@v2
+  #       with:
+  #         python-version: '3.10'
+  #         architecture: 'x64'
+  #         cache: pip
+  #     - run: pip install -r requirements.txt pyinstaller
+  #     - run: mkdir build
+  #     - run: mkdir bin
+  #     - run: pyinstaller --add-data data/schema.sql:schema.sql --onefile --distpath bin/npbc_cli --clean npbc_cli.py
+  #     - uses: actions/upload-artifact@v2
+  #       with:
+  #         path: bin
   build-win:
     runs-on: windows-latest
     name: windows-latest
@@ -34,7 +34,7 @@ jobs:
       - run: pip install -r requirements.txt pyinstaller
       - run: mkdir build
       - run: mkdir bin
-      - run: pyinstaller --add-data data/schema.sql;schema.sql --onefile --distpath bin/npbc_cli --clean npbc_cli.py
+      - run: pyinstaller --add-data 'data/schema.sql;schema.sql' --onefile --distpath bin/npbc_cli --clean npbc_cli.py
       - uses: actions/upload-artifact@v2
         with:
           path: bin
