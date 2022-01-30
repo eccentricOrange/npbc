@@ -4,8 +4,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        # os: [ubuntu-latest, macos-latest, windows-latest]
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        # os: [ubuntu-latest]
     name: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
@@ -13,5 +13,10 @@ jobs:
         with:
           python-version: '3.10'
           architecture: 'x64'
+          cache: pip
       - run: pip install -r requirements.txt pyinstaller
-      - run: pyinstaller --add-data data/schema.sql:schema.sql --onefile --distpath bin/executables/npbc_cli --clean npbc_cli.py
+      - run: mkdir build
+      - run: pyinstaller --add-data data/schema.sql:schema.sql --onefile --distpath build/npbc_cli --clean npbc_cli.py
+      - uses: actions/upload-artifact@v2
+        with:
+          path: build/*
