@@ -8,12 +8,9 @@ jobs:
         os: [ubuntu-latest]
     name: ${{ matrix.os }}
     steps:
-      # - run: cd ../..
-      # - run: pwd
-      # - run: ls -al ..
-      - uses: actions/setup-python@v2 # THIS IS IMPORTANT
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
         with:
-          python-version: '3.10'
-      - name: Install Python dependencies
-        uses: py-actions/py-dependency-install@v3
+          python-version: 3.10
+      - run: pip install -r requirements.txt nuitka
       - run: python -m nuitka --include-data-file=/home/anujv/pts/npbc/data/schema.sql=schema.sql --onefile --standalone -o bin/executables/npbc_cli npbc_cli.py
