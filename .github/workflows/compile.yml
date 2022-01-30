@@ -15,7 +15,8 @@ jobs:
           architecture: 'x64'
           cache: pip
       - run: pip install -r requirements.txt pyinstaller
-      - run: mkdir bin build
+      - run: mkdir build
+      - run: mkdir bin
       - run: pyinstaller --add-data data/schema.sql:schema.sql --onefile --distpath bin/npbc_cli --clean npbc_cli.py
       - uses: actions/upload-artifact@v2
         with:
