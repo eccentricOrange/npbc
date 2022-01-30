@@ -44,7 +44,7 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt pyinstaller
       - run: mkdir build
-      - run: pyinstaller --add-data data/schema.sql:schema.sql --onefile --distpath bin/npbc_cli.pkg --clean npbc_cli.py
+      - run: pyinstaller --add-data data/schema.sql:schema.sql --onefile --distpath npbc_cli.pkg --clean npbc_cli.py
       - uses: actions/upload-artifact@v2
         with:
           path: npbc_cli.pkg
