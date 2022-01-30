@@ -9,6 +9,7 @@ jobs:
     name: ${{ matrix.os }}
     steps:
       - run: pwd
+      - run: ls -al ..
       - run: ls -al $HOME
       # - name: Install Python dependencies
       #   uses: py-actions/py-dependency-install@v3
