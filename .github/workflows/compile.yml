@@ -18,6 +18,11 @@ jobs:
       - run: mkdir build
       - run: mkdir bin
       - run: pyinstaller --add-data data/schema.sql:schema.sql --onefile --distpath bin/npbc_cli --clean npbc_cli.py
+        exclude:
+          os: windows-latest
+      - run: pyinstaller --add-data data/schema.sql;schema.sql --onefile --distpath bin/npbc_cli --clean npbc_cli.py
+        include:
+          os: windows-latest
       - uses: actions/upload-artifact@v2
         with:
           path: bin
