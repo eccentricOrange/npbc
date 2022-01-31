@@ -34,3 +34,4 @@ jobs:
         with:
           artifacts: "npbc_cli*x*"
           token: ${{ secrets.GITHUB_TOKEN }}
+          tag: 'latest'
