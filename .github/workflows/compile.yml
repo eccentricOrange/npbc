@@ -1,10 +1,10 @@
 on: [push]
 jobs:
-  strategy:
-    matrix:
-      os: [windows-latest, macos-latest, linux-latest]
-      architecture: ['x86', 'x64']
-  build-win:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, linux-latest]
+        architecture: ['x86', 'x64']
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.os }}-${{ matrix.architecture }}
     steps:
