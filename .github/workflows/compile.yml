@@ -3,7 +3,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-latest, macos-latest, linux-latest]
+        os: [windows-latest, ubuntu-latest]
         architecture: ['x86', 'x64']
         exclude:
           - os: macos-latest
