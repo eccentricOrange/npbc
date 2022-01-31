@@ -12,39 +12,40 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt pyinstaller
       - run: mkdir build
-      - run: pyinstaller --add-data 'data/schema.sql;schema.sql' --onefile --distpath npbc_cli.exe --clean npbc_cli.py
+      - run: pyinstaller --add-data 'data/schema.sql;schema.sql' --onefile --distpath npbc_cli.exe npbc_cli.py
       - uses: actions/upload-artifact@v2
         with:
-          path: npbc_cli.exe *.spec
-  build-linux:
-    runs-on: ubuntu-latest
-    name: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: '3.10'
-          architecture: 'x64'
-          cache: pip
-      - run: pip install -r requirements.txt pyinstaller
-      - run: mkdir build
-      - run: pyinstaller --add-data data/schema.sql:schema.sql --onefile --distpath npbc_cli --clean npbc_cli.py
-      - uses: actions/upload-artifact@v2
-        with:
-          path: npbc_cli
-  build-mac:
-    runs-on: macos-latest
-    name: macos-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: '3.10'
-          architecture: 'x64'
-          cache: pip
-      - run: pip install -r requirements.txt pyinstaller
-      - run: mkdir build
-      - run: pyinstaller --add-data data/schema.sql:schema.sql --onefile --distpath npbc_cli.pkg --clean npbc_cli.py
-      - uses: actions/upload-artifact@v2
-        with:
-          path: npbc_cli.pkg
+          path: npbc_cli.exe
+          path: *.spec
+  # build-linux:
+  #   runs-on: ubuntu-latest
+  #   name: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: actions/setup-python@v2
+  #       with:
+  #         python-version: '3.10'
+  #         architecture: 'x64'
+  #         cache: pip
+  #     - run: pip install -r requirements.txt pyinstaller
+  #     - run: mkdir build
+  #     - run: pyinstaller --add-data data/schema.sql:schema.sql --onefile --distpath npbc_cli --clean npbc_cli.py
+  #     - uses: actions/upload-artifact@v2
+  #       with:
+  #         path: npbc_cli
+  # build-mac:
+  #   runs-on: macos-latest
+  #   name: macos-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: actions/setup-python@v2
+  #       with:
+  #         python-version: '3.10'
+  #         architecture: 'x64'
+  #         cache: pip
+  #     - run: pip install -r requirements.txt pyinstaller
+  #     - run: mkdir build
+  #     - run: pyinstaller --add-data data/schema.sql:schema.sql --onefile --distpath npbc_cli.pkg --clean npbc_cli.py
+  #     - uses: actions/upload-artifact@v2
+  #       with:
+  #         path: npbc_cli.pkg
