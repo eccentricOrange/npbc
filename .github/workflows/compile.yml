@@ -1,8 +1,12 @@
 on: [push]
 jobs:
+  strategy:
+    matrix:
+      os: [windows-latest, macos-latest, linux-latest]
+      architecture: ['x86', 'x64']
   build-win:
-    runs-on: windows-latest
-    name: windows-latest
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.os }}-${{ matrix.architecture }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
@@ -12,13 +16,10 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt pyinstaller
       - run: mkdir build
-      - run: pyinstaller --add-data 'data/schema.sql;schema.sql' --onefile --distpath npbc_cli.exe npbc_cli.py
+      - run: pyinstaller --distpath npbc_cli-${{ matrix.os }}-${{ matrix.architecture }} --clean spec/cli.spec
       - uses: actions/upload-artifact@v2
         with:
-          path: |
-            npbc_cli.exe
-            *.spec
-            */*.spec
+          path: npbc_cli-${{ matrix.os }}-${{ matrix.architecture }}*
   # build-linux:
   #   runs-on: ubuntu-latest
   #   name: ubuntu-latest
