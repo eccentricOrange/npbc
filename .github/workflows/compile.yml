@@ -21,3 +21,21 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           path: npbc_cli-${{ matrix.os }}-${{ matrix.architecture }}*
+
+on: 
+  push:
+    branch:
+    - 'master'
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ncipollo/release-action@v1
+      with:
+        artifacts: "npbc_cli*"
+        token: ${{ secrets.GITHUB_TOKEN }}
