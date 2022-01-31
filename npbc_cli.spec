@@ -1,6 +1,8 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+
 block_cipher = None
+
 
 a = Analysis(['npbc_cli.py'],
              pathex=[],
@@ -24,7 +26,7 @@ exe = EXE(pyz,
           a.zipfiles,
           a.datas,  
           [],
-          name=npbc_cli,
+          name='npbc_cli',
           debug=False,
           bootloader_ignore_signals=False,
           strip=False,
