@@ -15,7 +15,7 @@ jobs:
       - run: pyinstaller --add-data 'data/schema.sql;schema.sql' --onefile --distpath npbc_cli.exe --clean npbc_cli.py
       - uses: actions/upload-artifact@v2
         with:
-          path: npbc_cli.exe
+          path: npbc_cli.exe *.spec
   build-linux:
     runs-on: ubuntu-latest
     name: ubuntu-latest
