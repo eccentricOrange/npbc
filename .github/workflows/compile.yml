@@ -17,8 +17,7 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt pyinstaller
       - run: mkdir build
-      - run: mkdir bin
-      - run: pyinstaller --name npbc_cli-${{ matrix.os }}-${{ matrix.architecture }} --distpath bin --clean npbc_cli.spec
+      - run: pyinstaller --distpath npbc_cli-${{ matrix.os }}-${{ matrix.architecture }} --clean npbc_cli.spec
       - uses: actions/upload-artifact@v2
         with:
           path: npbc_cli-${{ matrix.os }}-${{ matrix.architecture }}*
