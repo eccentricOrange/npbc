@@ -5,6 +5,9 @@ jobs:
       matrix:
         os: [windows-latest, macos-latest, linux-latest]
         architecture: ['x86', 'x64']
+        exclude:
+          - os: macos-latest
+            architecture: 'x86'
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.os }}-${{ matrix.architecture }}
     steps:
