@@ -3,8 +3,8 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
-        # os: [ubuntu-latest]
+        # os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
         architecture: ['x64']
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.os }}-${{ matrix.architecture }}
@@ -32,6 +32,6 @@ jobs:
       - uses: actions/download-artifact@v2
       - uses: ncipollo/release-action@v1
         with:
-          artifacts: "npbc_cli*x*"
+          artifacts: "npbc_cli/npbc_cli*x*"
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: 'latest'
