@@ -28,7 +28,7 @@ jobs:
       contents: write
     if: github.ref == 'refs/heads/master'
     steps:
-      # - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
       - uses: mkdir bin
       - uses: actions/download-artifact@v2
         with:
