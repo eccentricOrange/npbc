@@ -16,12 +16,12 @@ jobs:
           architecture: ${{ matrix.architecture }}
       - run: pip install -r requirements.txt pyinstaller
       - run: mkdir build
+      - run: mkfir bin
       - run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-      - run: pyinstaller --distpath npbc_cli-${{ env.RELEASE_VERSION }}-${{ matrix.os }}-${{ matrix.architecture }} --clean npbc_cli.spec
-      - uses: actions/upload-artifact@v2
-        with:
-          path: npbc_cli-${{ matrix.os }}-${{ matrix.architecture }}*
-      - run: mkdir ./bin
+      - run: pyinstaller --distpath bin/npbc_cli-${{ env.RELEASE_VERSION }}-${{ matrix.os }}-${{ matrix.architecture }} --clean npbc_cli.spec
+      # - uses: actions/upload-artifact@v2
+      #   with:
+      #     path: npbc_cli-${{ matrix.os }}-${{ matrix.architecture }}*
       - run: tree .
       - id: release_step
         uses: "marvinpinto/action-automatic-releases@latest"
@@ -39,6 +39,6 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ steps.release_step.outputs.upload_url }}
-          asset_path: "./npbc_cli*x*"
+          asset_path: "bin/*"
           asset_name: my-widget
           asset_content_type: application/octet-stream
