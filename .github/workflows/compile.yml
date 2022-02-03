@@ -22,9 +22,6 @@ jobs:
         with:
           path: npbc_cli-${{ matrix.os }}-${{ matrix.architecture }}*
       - run: mkdir ./bin
-      - uses: actions/download-artifact@v2
-        with:
-          path: ./bin
       - run: tree .
       - id: release_step
         uses: "marvinpinto/action-automatic-releases@latest"
@@ -42,6 +39,6 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ steps.release_step.outputs.upload_url }}
-          asset_path: "npbc_cli*x*"
+          asset_path: "./npbc_cli*x*"
           asset_name: my-widget
           asset_content_type: application/octet-stream
