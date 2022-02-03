@@ -23,7 +23,8 @@ jobs:
       #   with:
       #     path: npbc_cli-${{ matrix.os }}-${{ matrix.architecture }}*
       - run: tree .
-      - id: release_step
+      - name: do_release
+        id: release_step
         uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
@@ -41,4 +42,3 @@ jobs:
           upload_url: ${{ steps.release_step.outputs.upload_url }}
           asset_path: "./bin/*"
           asset_content_type: application/octet-stream
-        run: tree .
