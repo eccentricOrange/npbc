@@ -27,7 +27,7 @@ jobs:
         id: release_step
         uses: "marvinpinto/action-automatic-releases@latest"
         with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          repo_token: "${{ secrets.TOKEN }}"
           automatic_release_tag: "latest"
           prerelease: true
           title: "Development Build"
@@ -37,7 +37,7 @@ jobs:
       - name: Upload release binary
         uses: actions/upload-release-asset@v1.0.2
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
         with:
           upload_url: ${{ steps.release_step.outputs.upload_url }}
           asset_path: "./bin/"
