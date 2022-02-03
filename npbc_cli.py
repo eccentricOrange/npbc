@@ -5,6 +5,7 @@ from argparse import ArgumentParser, RawTextHelpFormatter, Namespace as arg_name
 from npbc_core import NPBC_core
 
 class NPBC_cli(NPBC_core):
+
     functions = {
         'calculate': {
             'choice': 'calculate',
@@ -37,14 +38,6 @@ class NPBC_cli(NPBC_core):
         'getpapers': {
             'choice': 'getpapers',
             'help': "Get all newspapers."
-        },
-        'update': {
-            'choice': 'update',
-            'help': "Update the application."
-        },
-        'ui': {
-                'choice': 'ui',
-                'help': "Launch interactive CLI."
         }
     }
 
@@ -104,7 +97,6 @@ class NPBC_cli(NPBC_core):
             'action': 'store_true'
         }
     }
-
     def __init__(self):
         self.define_schema()
         self.args = self.define_and_read_args()
@@ -158,10 +150,6 @@ class NPBC_cli(NPBC_core):
         if not self.args.nolog:
             self.save_results()
             print("Saved results to logs.") 
-
-class NPBC_cli_args(NPBC_cli):
-    def __init__(self):
-        NPBC_cli.__init__(self)
 
     def check_args(self) -> None:
         if self.args.command == 'calculate' or self.args.command == 'addudl' or self.args.command == 'deludl':
@@ -234,7 +222,7 @@ class NPBC_cli_args(NPBC_cli):
             exit(1)
 
 def main() -> None:
-    calculator = NPBC_cli_args()
+    calculator = NPBC_cli()
     calculator.run()
     del calculator
     exit(0)

@@ -1,3 +1,4 @@
 pyperclip
 Flask
 waitress
+sh

@@ -279,6 +279,3 @@ class NPBC_core():
             }
 
         return all_papers
-
-    def update(self) -> None:
-        pass
