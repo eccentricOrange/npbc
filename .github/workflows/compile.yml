@@ -33,13 +33,13 @@ jobs:
           title: "Development Build"
           files: |
             LICENSE.txt
-            *.jar
-      - name: Upload release binary
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
-        with:
-          upload_url: ${{ steps.release_step.outputs.upload_url }}
-          asset_path: "bin/npbc_cli-${{ env.RELEASE_VERSION }}-${{ matrix.os }}-${{ matrix.architecture }}"
-          asset_name: npbc_cli*
-          asset_content_type: application/octet-stream
+            bin/*
+      # - name: Upload release binary
+      #   uses: actions/upload-release-asset@v1.0.2
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.TOKEN }}
+      #   with:
+      #     upload_url: ${{ steps.release_step.outputs.upload_url }}
+      #     asset_path: "bin/npbc_cli-${{ env.RELEASE_VERSION }}-${{ matrix.os }}-${{ matrix.architecture }}"
+      #     asset_name: npbc_cli*
+      #     asset_content_type: application/octet-stream
