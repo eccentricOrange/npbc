@@ -3,8 +3,8 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
-        # os: [ubuntu-latest]
+        # os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
         architecture: ['x64']
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.os }}-${{ matrix.architecture }}
@@ -21,17 +21,31 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           path: npbc_cli-${{ matrix.os }}-${{ matrix.architecture }}*
-  # release:
-  #   runs-on: ubuntu-latest
-  #   needs: build
-  #   permissions:
-  #     contents: write
-  #   if: github.ref == 'refs/heads/test'
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions/download-artifact@v2
-  #     - uses: ncipollo/release-action@v1
-  #       with:
-  #         artifacts: "npbc_cli/npbc_cli*x*"
-  #         token: ${{ secrets.GITHUB_TOKEN }}
-  #         tag: 'latest'
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+    if: github.ref == 'refs/heads/test'
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+      - id: release_step
+        uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "latest"
+          prerelease: true
+          title: "Development Build"
+          files: |
+            LICENSE.txt
+            *.jar
+      - name: Upload release binary
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.release_step.outputs.upload_url }}
+          asset_path: "npbc_cli*x*"
+          asset_name: my-widget
+          asset_content_type: application/octet-stream
