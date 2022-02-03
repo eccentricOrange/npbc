@@ -1,0 +1,38 @@
+on: [push]
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        # os: [ubuntu-latest]
+        architecture: ['x64']
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.os }}-${{ matrix.architecture }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+          architecture: ${{ matrix.architecture }}
+          cache: pip
+      - run: pip install -r requirements.txt pyinstaller
+      - run: mkdir build
+      - run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - run: pyinstaller --distpath npbc_cli-${{ env.RELEASE_VERSION }}-${{ matrix.os }}-${{ matrix.architecture }} --clean npbc_cli.spec
+      - uses: actions/upload-artifact@v2
+        with:
+          path: npbc_cli-${{ matrix.os }}-${{ matrix.architecture }}*
+  # release:
+  #   runs-on: ubuntu-latest
+  #   needs: build
+  #   permissions:
+  #     contents: write
+  #   if: github.ref == 'refs/heads/test'
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: actions/download-artifact@v2
+  #     - uses: ncipollo/release-action@v1
+  #       with:
+  #         artifacts: "npbc_cli/npbc_cli*x*"
+  #         token: ${{ secrets.GITHUB_TOKEN }}
+  #         tag: 'latest'

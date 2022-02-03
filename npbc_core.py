@@ -8,7 +8,8 @@ from pathlib import Path
 # DB_DIR = Path('data')
 DB_DIR = Path.home() / '.npbc'
 DB_PATH = DB_DIR / 'npbc.db'
-SCHEMA_PATH = Path(__file__) / 'schema.sql'
+SCHEMA_PATH = Path(__file__).parent / 'schema.sql'
+# SCHEMA_PATH = DB_DIR / 'schema.sql'
 
 weekday_names = list(weekday_names_iterable)
 
@@ -278,6 +279,3 @@ class NPBC_core():
             }
 
         return all_papers
-
-    def update(self) -> None:
-        pass

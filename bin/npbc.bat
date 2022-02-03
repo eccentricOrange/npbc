@@ -1,1 +1,0 @@
-if "%1"=="update" (git -C %APPDATA%\npbc pull) else (%APPDATA%\npbc\bin\executables\npbc_cli.exe %*)
