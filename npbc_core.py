@@ -49,7 +49,7 @@ class NPBC_core():
         return self.undelivered_strings
 
     def get_undelivered_dates(self) -> dict:
-        undeliver_dates_list = self.connection.execute("SELECT paper_id, string FROM undelivered_dates WHERE year = ? AND month = ?;", (self.year, self.month)).fetchall()
+        undeliver_dates_list = self.connection.execute("SELECT paper_id, dates FROM undelivered_dates WHERE year = ? AND month = ?;", (self.year, self.month)).fetchall()
 
         undelivered_dates = {str(i[0]): self.parse_undelivered_string(i[1]) for i in undeliver_dates_list}
 
@@ -180,13 +180,10 @@ class NPBC_core():
 
     def format(self) -> str:
         string = f"For {date_type(self.year, self.month, 1):%B %Y}\n\n"
-
         string += f"TOTAL: {self.totals.pop('0')}\n"
 
-        
         string += '\n'.join([
             f"{self.connection.cursor().execute('SELECT name FROM papers WHERE paper_id = ?;', (paper_id,)).fetchone()[0]}: {cost}"
-
             for paper_id, cost in self.totals.items()
         ])
 
