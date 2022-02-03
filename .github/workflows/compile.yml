@@ -30,6 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
+      - run: tree .
       - id: release_step
         uses: "marvinpinto/action-automatic-releases@latest"
         with:
