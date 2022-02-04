@@ -1,0 +1,27 @@
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+     
+      - run: tree .
+      - name: do_release
+        id: release_step
+        uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.TOKEN }}"
+          automatic_release_tag: "test"
+          prerelease: true
+          title: "Development Build"
+          files: |
+            LICENSE.txt
+            ./npbc_cli-${{ matrix.os }}-${{ matrix.architecture }}/npbc_cli*
+      - name: Upload release binary
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        with:
+          upload_url: ${{ steps.release_step.outputs.upload_url }}
+          asset_path: "bin/npbc_cli-${{ env.RELEASE_VERSION }}-${{ matrix.os }}-${{ matrix.architecture }}"
+          asset_name: npbc_cli*
+          asset_content_type: application/octet-stream
