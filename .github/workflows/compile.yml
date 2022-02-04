@@ -19,6 +19,8 @@ jobs:
       - run: mkdir bin
       - run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
       - run: pyinstaller --distpath npbc_cli-${{ env.RELEASE_VERSION }}-${{ matrix.os }}-${{ matrix.architecture }} --clean npbc_cli.spec
+
+      if: github.ref == 'refs/heads/master'
       - uses: actions/upload-artifact@v2
         with:
           path: npbc_cli-${{ matrix.os }}-${{ matrix.architecture }}*
