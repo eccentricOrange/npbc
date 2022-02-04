@@ -6,7 +6,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-     
       - run: tree .
       - name: do_release
         id: release_step
