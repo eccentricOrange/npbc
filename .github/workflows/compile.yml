@@ -1,5 +1,5 @@
 on: [push]
-  on: upload
+  branch: upload
 jobs:
   build:
     strategy:

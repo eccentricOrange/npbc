@@ -1,3 +1,5 @@
+on: [push]
+  branch: master
 jobs:
   build:
     runs-on: ubuntu-latest
