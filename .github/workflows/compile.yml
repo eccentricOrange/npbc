@@ -4,8 +4,8 @@ jobs:
   build:
     strategy:
       matrix:
-        # os: [windows-latest, ubuntu-latest, macos-latest]
-        os: [ubuntu-latest]
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        # os: [ubuntu-latest]
         architecture: ['x64']
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.os }}-${{ matrix.architecture }}
