@@ -23,6 +23,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           path: bin
+          name: npbc_cli-${{ matrix.os }}-${{ matrix.architecture }}
       - run: pwd
       - run: tree .
   
@@ -42,5 +43,5 @@ jobs:
     - run: pwd
     - uses: ncipollo/release-action@v1
       with:
-        artifacts: "bin/*"
+        artifacts: "bin/npbc_cli*/*"
         token: ${{ secrets.GITHUB_TOKEN }}
