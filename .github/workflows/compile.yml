@@ -22,8 +22,7 @@ jobs:
       - run: pyinstaller --distpath bin/npbc_cli-${{ env.RELEASE_VERSION }}-${{ matrix.os }}-${{ matrix.architecture }} --clean npbc_cli.spec
       - uses: actions/upload-artifact@v2
         with:
-          path: bin
-          name: npbc_cli-${{ matrix.os }}-${{ matrix.architecture }}/*
+          path: bin/npbc_cli-${{ matrix.os }}-${{ matrix.architecture }}/
       - run: tree .
   
   release:
