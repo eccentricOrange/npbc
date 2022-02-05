@@ -40,7 +40,6 @@ jobs:
         path: bin
     - run: tree .
     - run: pwd
-    - uses: actions/checkout@v2
     - uses: ncipollo/release-action@v1
       with:
         artifacts: "bin/*"
