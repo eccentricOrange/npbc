@@ -24,6 +24,7 @@ jobs:
         with:
           path: bin
           name: npbc_cli-${{ matrix.os }}-${{ matrix.architecture }}
+      - run: pwd
       - run: tree .
   
   release:
@@ -39,6 +40,7 @@ jobs:
       with:
         path: bin
     - run: tree .
+    - run: pwd
     - uses: actions/checkout@v2
     - uses: ncipollo/release-action@v1
       with:
