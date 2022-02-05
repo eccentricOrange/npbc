@@ -19,10 +19,11 @@ jobs:
       - run: mkdir build
       - run: mkdir bin
       - run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-      - run: pyinstaller --distpath bin/npbc_cli-${{ env.RELEASE_VERSION }}-${{ matrix.os }}-${{ matrix.architecture }} --clean npbc_cli.spec
+      - run: pyinstaller --distpath bin --clean npbc_cli.spec
       - uses: actions/upload-artifact@v2
         with:
-          path: bin/npbc_cli-${{ matrix.os }}-${{ matrix.architecture }}/
+          path: bin
+          name: npbc_cli-${{ matrix.os }}-${{ matrix.architecture }}
       - run: tree .
   
   release:
