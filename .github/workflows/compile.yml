@@ -4,8 +4,8 @@ jobs:
   build:
     strategy:
       matrix:
-        # os: [windows-latest, ubuntu-latest, macos-latest]
-        os: [ubuntu-latest]
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        # os: [ubuntu-latest]
         architecture: ['x64']
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.os }}-${{ matrix.architecture }}
@@ -19,11 +19,12 @@ jobs:
       - run: mkdir build
       - run: mkdir bin
       - run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-      - run: pyinstaller --distpath bin/npbc_cli-${{ env.RELEASE_VERSION }}-${{ matrix.os }}-${{ matrix.architecture }} --clean npbc_cli.spec
+      - run: pyinstaller --distpath bin --clean npbc_cli.spec
       - uses: actions/upload-artifact@v2
         with:
           path: bin
           name: npbc_cli-${{ matrix.os }}-${{ matrix.architecture }}
+      - run: pwd
       - run: tree .
   
   release:
@@ -33,12 +34,14 @@ jobs:
     permissions:
       contents: write
     steps:
+    - uses: actions/checkout@v2
+    - run: mkdir bin
     - uses: actions/download-artifact@v2
       with:
         path: bin
     - run: tree .
-    - uses: actions/checkout@v2
+    - run: pwd
     - uses: ncipollo/release-action@v1
       with:
-        artifacts: "bin/*"
+        artifacts: "bin/npbc_cli*/*"
         token: ${{ secrets.GITHUB_TOKEN }}
