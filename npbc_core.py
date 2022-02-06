@@ -32,8 +32,6 @@ class NPBC_core():
 
         self.connection = connect(DB_PATH)
 
-        print(SCHEMA_PATH)
-
         with open(SCHEMA_PATH, 'r') as schema_file:
             self.connection.executescript(schema_file.read())
             self.connection.commit()
