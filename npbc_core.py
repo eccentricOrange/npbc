@@ -11,7 +11,7 @@ from os import chdir
 DB_DIR = Path.home() / '.npbc'
 DB_PATH = DB_DIR / 'npbc.db'
 chdir(sys._MEIPASS)
-SCHEMA_PATH = Path('schema.sql')
+SCHEMA_PATH = 'schema.sql'
 # SCHEMA_PATH = DB_DIR / 'schema.sql'
 
 weekday_names = list(weekday_names_iterable)
