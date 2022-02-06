@@ -18,12 +18,15 @@ jobs:
         include:
           - os: windows
             data-file: "data/schema.sql;schema.sql"
+            name: windows
           - os: macos
             data-file: "data/schema.sql:schema.sql"
+            name: macos
           - os: ubuntu
             data-file: "data/schema.sql:schema.sql"
+            name: linux
     runs-on: ${{ matrix.os }}-latest
-    name: ${{ matrix.app }}-${{ matrix.os }}-${{ matrix.architecture }}
+    name: ${{ matrix.app }}-${{ matrix.name }}-${{ matrix.architecture }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
@@ -33,11 +36,11 @@ jobs:
       - run: pip install -r requirements.txt pyinstaller
       - run: mkdir build
       - run: mkdir bin
-      - run: pyinstaller --distpath bin --clean --add-data "${{ matrix.data-file }}" --onefile --name npbc_${{ matrix.app }}-${{ matrix.os }}-${{ matrix.architecture }} npbc_${{ matrix.app }}.py
+      - run: pyinstaller --distpath bin --clean --add-data "${{ matrix.data-file }}" --onefile --name npbc_${{ matrix.app }}-${{ matrix.name }}-${{ matrix.architecture }} npbc_${{ matrix.app }}.py
       - uses: actions/upload-artifact@v2
         with:
           path: bin
-          name: npbc_${{ matrix.app }}-${{ matrix.os }}-${{ matrix.architecture }}
+          name: npbc_${{ matrix.app }}-${{ matrix.name }}-${{ matrix.architecture }}
   
   release:
     needs:
