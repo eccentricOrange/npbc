@@ -51,6 +51,9 @@ class NPBC_updater:
         with open(self.api_path, 'wb') as api_file:
             api_file.write(api)
 
+        self.cli_path.chmod(0o755)
+        self.api_path.chmod(0o755)
+
     def execute(self):
         call([self.cli_path, *argv[1:]])
 
