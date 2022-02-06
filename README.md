@@ -37,7 +37,7 @@ This app calculates your monthly newspaper bill.
 
     For Windows systems, run the following and add `%programfiles%\npbc` to PATH:
     ```cmd
-    echo "%programfiles%\npbc\npbc_updater-windows-x64.exe %*" >> "%programfiles%\npbc\npbc.bat"
+    echo "%programfiles%\npbc\npbc_updater-windows-x64.exe %*" > "%programfiles%\npbc\npbc.bat"
     ```
 2. Run the following command:
 
