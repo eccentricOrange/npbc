@@ -1,9 +1,6 @@
 name: build and release
 
-on:
-  push:
-    branch:
-      - master
+on: [push]
 
 jobs:
   build:
