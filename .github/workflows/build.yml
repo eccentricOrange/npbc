@@ -28,11 +28,11 @@ jobs:
       - run: pip install -r requirements.txt pyinstaller
       - run: mkdir build
       - run: mkdir bin
-      - run: pyinstaller --distpath bin --clean --add-data "${{ matrix.data-file }}" --onefile --name npbc_cli-${{ matrix.os }}-${{ matrix.architecture }} npbc_cli.py
+      - run: pyinstaller --distpath bin --clean --add-data "${{ matrix.data-file }}" --onefile --name ${{ matrix.app }-${{ matrix.os }}-${{ matrix.architecture }} ${{ matrix.app }.py
       - uses: actions/upload-artifact@v2
         with:
           path: bin
-          name: npbc_cli-${{ matrix.os }}-${{ matrix.architecture }}
+          name: ${{ matrix.app }-${{ matrix.os }}-${{ matrix.architecture }}
   
   release:
     needs:
@@ -49,7 +49,7 @@ jobs:
         path: bin
     - uses: ncipollo/release-action@v1
       with:
-        artifacts: "bin/npbc_cli*/*"
+        artifacts: "bin/npbc*/*"
         token: ${{ secrets.GITHUB_TOKEN }}
         generateReleaseNotes: true
         artifactErrorsFailBuild: true
