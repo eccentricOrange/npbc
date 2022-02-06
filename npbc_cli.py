@@ -3,6 +3,7 @@ from json import dumps
 from pyperclip import copy as copy_to_clipboard
 from argparse import ArgumentParser, Namespace as arg_namespace
 from npbc_core import NPBC_core
+from sys import exit
 
 class NPBC_cli(NPBC_core):
 
