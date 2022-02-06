@@ -25,7 +25,7 @@ jobs:
 
   build-win:
     runs-on: windows-latest
-    name: $windows-latest-x64
+    name: windows-latest-x64
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
