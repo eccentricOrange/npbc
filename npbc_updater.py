@@ -4,27 +4,12 @@ from sys import argv
 from pathlib import Path
 from urllib.request import urlopen
 from sys import exit
-
-
-location_data = {
-    "Linux": {
-        "name": "linux-x64",
-        "path": Path.home() / 'bin' / 'npbc'
-    },
-    "Windows": {
-        "name": "windows-x64.exe",
-        "path": Path('C:') / 'Program Files' / 'npbc'
-    },
-    "Darwin": {
-        "name": "macos-x64",
-        "path": Path.home() / 'Applictaions' / 'npbc'
-    }
-}
-
+from os import environ
 
 class NPBC_updater:
     def __init__(self):
-        self.current_platform_data = location_data[get_platform_data()]
+        self.current_platform_data = {}
+        self.set_paths()
         self.current_platform_data['path'].mkdir(parents=True, exist_ok=True)
         self.cli_path = self.current_platform_data['path'] / \
             f"npbc_cli-{self.current_platform_data['name']}"
@@ -32,6 +17,25 @@ class NPBC_updater:
             f"npbc_api-{self.current_platform_data['name']}"
         self.cli_url = f"https://github.com/eccentricOrange/npbc/releases/latest/download/npbc_cli-{self.current_platform_data['name']}"
         self.api_url = f"https://github.com/eccentricOrange/npbc/releases/latest/download/npbc_api-{self.current_platform_data['name']}"
+
+    def set_paths(self):
+        self.current_platform = get_platform_data()
+
+        if self.current_platform == "Linux":
+            self.current_platform_data['path'] = Path.home() / 'bin' / 'npbc'
+            self.current_platform_data['name'] = 'linux-x64'
+
+        elif self.current_platform == "Windows":
+            self.current_platform_data['path'] = Path(environ['PROGRAMFILES']) / 'npbc'
+            self.current_platform_data['name'] = 'windows-x64.exe'
+
+        elif self.current_platform == "Darwin":
+            self.current_platform_data['path'] = Path.home() / 'Applictaions' / 'npbc'
+            self.current_platform_data['name'] = 'macos-x64'
+
+        else:
+            print("Your platform is not supported by NPBC.")
+            exit(1)
 
     def read_args(self):
         if len(argv) > 1:
