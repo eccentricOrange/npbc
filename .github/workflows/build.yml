@@ -33,7 +33,7 @@ jobs:
       - run: pip install -r requirements.txt pyinstaller
       - run: mkdir build
       - run: mkdir bin
-      - run: pyinstaller --distpath bin --clean --add-data "${{ matrix.data-file }}" --onefile --name npbc_${{ matrix.app }}-${{ matrix.name }}-${{ matrix.architecture }} npbc_${{ matrix.app }}.py
+      - run: pyinstaller --distpath bin --clean --add-data ${{ matrix.data-file }} --onefile --name npbc_${{ matrix.app }}-${{ matrix.name }}-${{ matrix.architecture }} npbc_${{ matrix.app }}.py
       - uses: actions/upload-artifact@v2
         with:
           path: bin
