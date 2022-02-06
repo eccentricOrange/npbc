@@ -19,7 +19,7 @@ This app calculates your monthly newspaper bill.
     | --- | --- |
     | Linux | `~/bin/npbc/npbc_updater-linux-x64` |
     | macOS | `~/Applications/npbc/npbc_updater-macos-x64` |
-    | Windows | `%programfiles%\npbc\npbc_updater-windows-x64.exe` |
+    | Windows | `C:\Program Files\npbc\npbc_updater-windows-x64.exe` |
 
     For Linux systems, run:
     ```bash
@@ -37,7 +37,7 @@ This app calculates your monthly newspaper bill.
 
     For Windows systems, run the following and add `%programfiles%\npbc` to PATH:
     ```bat
-    echo "'%programfiles%\npbc\npbc_updater-windows-x64.exe %*'" > "%programfiles%\npbc\npbc.bat"
+    echo "^"%programfiles%\npbc\npbc_updater-windows-x64.exe %*^"" > "C:\Program Files\npbc\npbc.bat"
     ```
 2. Run the following command:
 
