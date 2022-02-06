@@ -14,7 +14,7 @@ jobs:
             data-file: "data/schema.sql;schema.sql"
           - os: macos
             data-file: "data/schema.sql:schema.sql"
-          - os: linux
+          - os: ubuntu
             data-file: "data/schema.sql:schema.sql"
     runs-on: ${{ matrix.os }}-latest
     name: ${{ matrix.os }}-${{ matrix.architecture }}
