@@ -36,7 +36,7 @@ Alternatively, just run these scripts.
 For Linux systems, run:
 ```bash
 mkdir -p ~/bin/npbc
-wget https://github.com/eccentricOrange/npbc/releases/download/v1.0.4/npbc_updater-linux-x64 -O ~/bin/npbc/npbc_updater-linux-x64
+wget https://github.com/eccentricOrange/npbc/releases/latest/download/npbc_updater-linux-x64 -O ~/bin/npbc/npbc_updater-linux-x64
 chmod +x ~/bin/npbc/npbc_updater-linux-x64
 ~/bin/npbc/npbc_updater-linux-x64 update
 echo "alias npbc=\"~/bin/npbc/npbc_updater-linux-x64\"" >> ~/.bashrc
@@ -46,7 +46,7 @@ exec "$SHELL"
 For macOS systems, run:
 ```bash
 mkdir -p ~/Applications/npbc
-wget https://github.com/eccentricOrange/npbc/releases/download/v1.0.4/npbc_updater-macos-x64 -O ~/Applications/npbc/npbc_updater-macos-x64
+wget https://github.com/eccentricOrange/npbc/releases/latest/download/npbc_updater-macos-x64 -O ~/Applications/npbc/npbc_updater-macos-x64
 chmod +x ~/Applications/npbc/npbc_updater-macos-x64
 ~/bin/Applications/npbc_updater-macos-x64 update
 echo "alias npbc=\"~/Applications/npbc/npbc_updater-macos-x64\"" >> ~/.bashrc
@@ -56,7 +56,7 @@ exec "$SHELL"
 For Windows systems, run the following and add `C:\Program Files\npbc` to PATH:
 ```bat
 mkdir -p "C:\Program Files\npbc";
-wget https://github.com/eccentricOrange/npbc/releases/download/v1.0.4/npbc_updater-windows-x64 -O "C:\Program Files\npbc\npbc_updater-windows-x64";
+wget https://github.com/eccentricOrange/npbc/releases/latest/download/npbc_updater-windows-x64 -O "C:\Program Files\npbc\npbc_updater-windows-x64";
 "C:\Program Files\npbc\npbc_updater-windows-x64" update;
 echo ""%programfiles%\npbc\npbc_updater-windows-x64.exe %*"" > "C:\Program Files\npbc\npbc.bat";
 ```
