@@ -7,7 +7,7 @@ This app calculates your monthly newspaper bill.
 ## Key concepts
 1. Each newspaper has a certain cost per day of the week
 2. Each newspaper may or may not be delivered on a given day
-3. Each newspaper has a name and a short name, called a key
+3. Each newspaper has a name, and a number called a key
 4. You may register any dates when you didn't receive a paper in advance using the `addudl` command
 5. Once you calculate, the results are displayed and copied to your clipboard
 
