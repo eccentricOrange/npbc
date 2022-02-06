@@ -8,19 +8,19 @@ jobs:
       matrix:
         os:
           - ubuntu
-          # - windows
-          # - macos
+          - windows
+          - macos
         architecture: ['x64']
         app: ['cli', 'api', updater]
         include:
-          # - os: windows
-          #   data-file: "data/schema.sql;/schema.sql"
-          #   name: windows
-          # - os: macos
-          #   data-file: data/schema.sql:/schema.sql
-          #   name: macos
+          - os: windows
+            data-file: data/schema.sql;.
+            name: windows
+          - os: macos
+            data-file: data/schema.sql:.
+            name: macos
           - os: ubuntu
-            data-file: data/schema.sql:/schema.sql
+            data-file: data/schema.sql:.
             name: linux
     runs-on: ${{ matrix.os }}-latest
     name: ${{ matrix.app }}-${{ matrix.name }}-${{ matrix.architecture }}
@@ -33,7 +33,7 @@ jobs:
       - run: pip install -r requirements.txt pyinstaller
       - run: mkdir build
       - run: mkdir bin
-      - run: pyinstaller --distpath bin --clean --add-data ${{ matrix.data-file }} --onefile --name npbc_${{ matrix.app }}-${{ matrix.name }}-${{ matrix.architecture }} npbc_${{ matrix.app }}.py
+      - run: pyinstaller --distpath bin --clean --add-data "${{ matrix.data-file }}" --onefile --name npbc_${{ matrix.app }}-${{ matrix.name }}-${{ matrix.architecture }} npbc_${{ matrix.app }}.py
       - uses: actions/upload-artifact@v2
         with:
           path: bin

@@ -3,15 +3,12 @@ from calendar import day_name as weekday_names_iterable
 from calendar import monthrange, monthcalendar
 from datetime import date as date_type, datetime, timedelta
 from pathlib import Path
-import sys
-from os import chdir
 
 
 # DB_DIR = Path('data')
 DB_DIR = Path.home() / '.npbc'
 DB_PATH = DB_DIR / 'npbc.db'
-chdir(sys._MEIPASS)
-SCHEMA_PATH = 'schema.sql'
+SCHEMA_PATH = Path(__file__).parent / 'schema.sql'
 # SCHEMA_PATH = DB_DIR / 'schema.sql'
 
 weekday_names = list(weekday_names_iterable)
