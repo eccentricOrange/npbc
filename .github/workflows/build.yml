@@ -9,7 +9,7 @@ jobs:
           - windows
           - macos
         architecture: ['x64']
-        app: ['npbc_cli', 'npbc_api']
+        app: ['cli', 'api']
         include:
           - os: windows
             data-file: "data/schema.sql;schema.sql"
@@ -18,7 +18,7 @@ jobs:
           - os: ubuntu
             data-file: "data/schema.sql:schema.sql"
     runs-on: ${{ matrix.os }}-latest
-    name: ${{ matrix.os }}-${{ matrix.architecture }}
+    name: ${{ matrix.app }}-${{ matrix.os }}-${{ matrix.architecture }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
@@ -28,11 +28,11 @@ jobs:
       - run: pip install -r requirements.txt pyinstaller
       - run: mkdir build
       - run: mkdir bin
-      - run: pyinstaller --distpath bin --clean --add-data "${{ matrix.data-file }}" --onefile --name ${{ matrix.app }}-${{ matrix.os }}-${{ matrix.architecture }} ${{ matrix.app }}.py
+      - run: pyinstaller --distpath bin --clean --add-data "${{ matrix.data-file }}" --onefile --name npbc_${{ matrix.app }}-${{ matrix.os }}-${{ matrix.architecture }} npbc_${{ matrix.app }}.py
       - uses: actions/upload-artifact@v2
         with:
           path: bin
-          name: ${{ matrix.app }}-${{ matrix.os }}-${{ matrix.architecture }}
+          name: npbc_${{ matrix.app }}-${{ matrix.os }}-${{ matrix.architecture }}
   
   release:
     needs:
