@@ -3,6 +3,7 @@ from platform import system as get_platform_data
 from sys import argv
 from pathlib import Path
 from urllib.request import urlopen
+from sys import exit
 
 
 location_data = {
