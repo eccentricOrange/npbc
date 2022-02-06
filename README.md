@@ -11,32 +11,38 @@ This app calculates your monthly newspaper bill.
 4. You may register any dates when you didn't receive a paper in advance using the `addudl` command
 5. Once you calculate, the results are displayed and copied to your clipboard
 
-## Key files
-
-The `~` represents your home directory.
-
-| Location | Name | Purpose |
-| -- | -- | -- |
-| `~/.npbc` | `papers.json` | holds all newspapers, their names and keys, and all delivery and cost information |
-| `~/.npbc` | `undelivered_strings.json` | holds dates when papers weren't delivered |
-| `~/.npbc/record-files` | `cost-record.csv` | holds records of each paper' cost from every calculation |
-| `~/.npbc/record-files` | `cost-record.csv` | holds records of when any paper wasn't delivered |
-
 ## Installation
+1. From [the latest release](https://github.com/eccentricOrange/npbc/releases/latest), download the "updater" file for your operating system in any folder, and make it executable.
 
-### Bash shells (most Unix-like systems)
+    **Recommended locations**, where the CLI and API will always download
+    | OS | Location |
+    | --- | --- |
+    | Linux | `~/bin/npbc/npbc_updater-linux-x64` |
+    | macOS | `~/Applications/npbc/npbc_updater-macos-x64` |
+    | Windows | `C:\Program Files\npbc\npbc_updater-windows-x64.exe` |
 
-Run the following shell command on x64 or x86 systems.
+    For Linux systems, run:
+    ```bash
+    chmod +x ~/bin/npbc/npbc_updater-linux-x64
+    echo "alias npbc=\"~/bin/npbc/npbc_updater-linux-x64\"" >> ~/.bashrc
+    exec "$SHELL"
+    ```
 
-```sh
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/eccentricOrange/npbc/master/install/install.sh)"
-```
+    For macOS systems, run:
+    ```bash
+    chmod +x ~/Applications/npbc/npbc_updater-macos-x64
+    echo "alias npbc=\"~/Applications/npbc/npbc_updater-macos-x64\"" >> ~/.bashrc
+    exec "$SHELL"
+    ```
 
-For an ARM-based systems (like the Raspberry Pi), run the following command.
+    For Windows systems, run the following and add `C:\Program Files\npbc` to PATH:
+    ```cmd
+    echo "C:\Program Files\npbc\npbc_updater-windows-x64.exe %*" >> "C:\Program Files\npbc\npbc.bat"
+    ```
+2. Run the following command:
 
-```sh
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/eccentricOrange/npbc/master/install/piinstall.sh)"
-```
+    ```sh
+    /path/to/updater update
+    ```
 
-### Windows
-Download and run `install/install.bat` from this repository. You'll have to add the download location (`%APPDATA%\npbc\bin`)to your Windows path. Or do whatever you like to run `npbc.bat` from that path—it's all that matters.
+3. You can now run `npbc -h` to begin.
