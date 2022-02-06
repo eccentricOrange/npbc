@@ -7,15 +7,15 @@ from urllib.request import urlopen
 
 location_data = {
     "Linux": {
-        "name": "ubuntu-x64",
+        "name": "linux-x64",
         "path": Path.home() / 'bin' / 'npbc'
     },
     "Windows": {
-        "name": "win-x64.exe",
+        "name": "windows-x64.exe",
         "path": Path('C:') / 'Program Files' / 'npbc'
     },
     "Darwin": {
-        "name": "mac-x64",
+        "name": "macos-x64",
         "path": Path.home() / 'Applictaions' / 'npbc'
     }
 }
