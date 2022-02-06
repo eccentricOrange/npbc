@@ -50,3 +50,6 @@ jobs:
       with:
         artifacts: "bin/npbc_cli*/*"
         token: ${{ secrets.GITHUB_TOKEN }}
+        generateReleaseNotes: true
+        artifactErrorsFailBuild: true
+        prerelease: true
