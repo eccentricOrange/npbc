@@ -33,11 +33,13 @@ class NPBC_updater:
         self.api_url = f"https://github.com/eccentricOrange/npbc/releases/latest/download/npbc_api-{self.current_platform_data['name']}"
 
     def read_args(self):
-        if argv[1].strip().lower() == "update":
-            self.update()
+        if len(argv) > 1:
+            if argv[1].strip().lower() == "update":
+                self.update()
+                exit(0)
 
-        else:
-            self.execute()
+        self.execute()
+        exit(0)
 
     def update(self):
         cli_download = urlopen(self.cli_url).read()
