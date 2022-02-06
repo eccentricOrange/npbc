@@ -13,12 +13,12 @@ jobs:
         architecture: ['x64']
         app: ['cli', 'api', updater]
         include:
-          - os: windows
-            data-file: "data/schema.sql;schema.sql"
-            name: windows
-          - os: macos
-            data-file: data/schema.sql:schema.sql
-            name: macos
+          # - os: windows
+          #   data-file: "data/schema.sql;schema.sql"
+          #   name: windows
+          # - os: macos
+          #   data-file: data/schema.sql:schema.sql
+          #   name: macos
           - os: ubuntu
             data-file: data/schema.sql:schema.sql
             name: linux
