@@ -61,4 +61,4 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         generateReleaseNotes: true
         artifactErrorsFailBuild: true
-        prerelease: true
+        prerelease: false
