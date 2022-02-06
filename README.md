@@ -2,7 +2,7 @@
 
 This app calculates your monthly newspaper bill.
 
-[![.github/workflows/compile.yml](https://github.com/eccentricOrange/npbc/actions/workflows/compile.yml/badge.svg?branch=master)](https://github.com/eccentricOrange/npbc/actions/workflows/compile.yml)
+[![.github/workflows/compile.yml](https://github.com/eccentricOrange/npbc/actions/workflows/compile.yml/badge.svg)](https://github.com/eccentricOrange/npbc/actions/workflows/compile.yml)
 
 ## Key concepts
 1. Each newspaper has a certain cost per day of the week
