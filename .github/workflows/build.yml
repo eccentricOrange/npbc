@@ -14,13 +14,13 @@ jobs:
         app: ['cli', 'api', updater]
         include:
           # - os: windows
-          #   data-file: "data/schema.sql;schema.sql"
+          #   data-file: "data/schema.sql;/schema.sql"
           #   name: windows
           # - os: macos
-          #   data-file: data/schema.sql:schema.sql
+          #   data-file: data/schema.sql:/schema.sql
           #   name: macos
           - os: ubuntu
-            data-file: data/schema.sql:schema.sql
+            data-file: data/schema.sql:/schema.sql
             name: linux
     runs-on: ${{ matrix.os }}-latest
     name: ${{ matrix.app }}-${{ matrix.name }}-${{ matrix.architecture }}
