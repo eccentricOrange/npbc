@@ -38,10 +38,9 @@ class NPBC_updater:
             exit(1)
 
     def read_args(self):
-        if len(argv) > 1:
-            if argv[1].strip().lower() == "update":
-                self.update()
-                exit(0)
+        if len(argv) == 2 and argv[1].strip().lower() == "update":
+            self.update()
+            exit(0)
 
         self.execute()
         exit(0)
