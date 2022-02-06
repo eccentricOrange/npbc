@@ -56,7 +56,7 @@ exec "$SHELL"
 For Windows systems, run the following and add `C:\Program Files\npbc` to PATH:
 ```bat
 mkdir -p "C:\Program Files\npbc";
-wget https://github.com/eccentricOrange/npbc/releases/latest/download/npbc_updater-windows-x64 -O "C:\Program Files\npbc\npbc_updater-windows-x64";
-"C:\Program Files\npbc\npbc_updater-windows-x64" update;
+wget https://github.com/eccentricOrange/npbc/releases/latest/download/npbc_updater-windows-x64.exe -O "C:\Program Files\npbc\npbc_updater-windows-x64.exe";
+"C:\Program Files\npbc\npbc_updater-windows-x64.exe" update;
 echo ""%programfiles%\npbc\npbc_updater-windows-x64.exe %*"" > "C:\Program Files\npbc\npbc.bat";
 ```
