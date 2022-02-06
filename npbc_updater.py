@@ -46,23 +46,23 @@ class NPBC_updater:
         exit(0)
 
     def update(self):
-        print ("Downloading NPBC CLI...", end="")
+        print ("Downloading NPBC CLI...")
         cli_download = urlopen(self.cli_url).read()
-        print (" done.")
+        print ("Done.\n")
 
-        print ("Downloading NPBC API...", end="")
+        print ("Downloading NPBC API...")
         api = urlopen(self.api_url).read()
-        print (" done.\n")
+        print ("Done.\n\n")
 
-        print ("Installing NPBC CLI...", end="")
+        print ("Installing NPBC CLI...")
         with open(self.cli_path, 'wb') as cli_file:
             cli_file.write(cli_download)
-        print (" done.")
+        print ("Done.\n")
 
-        print ("Installing NPBC API...", end="")
+        print ("Installing NPBC API...")
         with open(self.api_path, 'wb') as api_file:
             api_file.write(api)
-        print (" done.\n")
+        print ("Done.\n\n")
 
         self.cli_path.chmod(0o755)
         self.api_path.chmod(0o755)
