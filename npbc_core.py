@@ -267,10 +267,11 @@ class NPBC_core():
             day_name = weekday_names[day_id]
             if str(paper_id) not in all_papers:
                 all_papers[str(paper_id)] = {
-                    'name': name
+                    'name': name,
+                    'days': {}
                 }
 
-            all_papers[str(paper_id)][day_name] = {
+            all_papers[str(paper_id)]['days'][day_name] = {
                 'cost': cost,
                 'delivered': delivered
             }

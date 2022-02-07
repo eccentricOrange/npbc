@@ -27,10 +27,8 @@ class NPBC_cli(NPBC_core):
         calculate.add_argument('-m', '--month', type=int, help="Month to calculate bill for. Must be between 1 and 12.")
         calculate.add_argument('-y', '--year', type=int, help="Year to calculate bill for. Must be between 1 and 9999.")
         calculate.add_argument('-u', '--undelivered', type=str, help="Dates when you did not receive any papers.")
-        calculate.add_argument('-c', '--nocopy', help="Don't copy the result of the calculation to the clipboard.",
-                action='store_true')
-        calculate.add_argument('-l', '--nolog', help="Don't log the result of the calculation.",
-                action='store_true')
+        calculate.add_argument('-c', '--nocopy', help="Don't copy the result of the calculation to the clipboard.", action='store_true')
+        calculate.add_argument('-l', '--nolog', help="Don't log the result of the calculation.", action='store_true')
 
 
         addudl = subparsers.add_parser(
@@ -102,6 +100,9 @@ class NPBC_cli(NPBC_core):
         )
 
         getpapers.set_defaults(func=self.getpapers)
+        getpapers.add_argument('-n', '--names', help="Get the names of the newspapers.", action='store_true')
+        getpapers.add_argument('-d', '--days', help="Get the days the newspapers are delivered. Monday is the first day, and all seven weekdays are required. A 'Y' means it is delivered, and an 'N' means it isn't.", action='store_true')
+        getpapers.add_argument('-p', '--prices', help="Get the daywise prices of the newspapers. Monday is the first day. Values must be separated by semicolons, and 0s are ignored.", action='store_true')
 
 
         getlogs = subparsers.add_parser(
@@ -162,7 +163,42 @@ class NPBC_cli(NPBC_core):
         self.update_existing_paper(self.args.key, self.args.name, self.extract_days_and_cost())
 
     def getpapers(self):
-        print(dumps(self.get_all_papers(), indent=4))
+        all_paper_data = self.get_all_papers()
+
+        all_paper_data_formatted = ""
+
+        if self.args.names or self.args.days or self.args.prices:
+            for paper_id, current_paper_data in all_paper_data.items():
+                all_paper_data_formatted += f"{paper_id}: "
+
+                days_delivered = ""
+                costs = []
+                if self.args.days or self.args.prices:
+
+                    for day_name, day_data in current_paper_data['days'].items():
+                        if int(day_data['delivered']) == 1:
+                            days_delivered += 'Y'
+                        else:
+                            days_delivered += 'N'
+
+                        if float(day_data['cost']) != 0:
+                            costs.append(f"{day_data['cost']}")
+
+                if self.args.names:
+                    all_paper_data_formatted += f"{current_paper_data['name']}"
+
+                if self.args.days:
+                    all_paper_data_formatted += f", {days_delivered}"
+
+                if self.args.prices:
+                    all_paper_data_formatted += f", {';'.join(costs)}"
+
+                all_paper_data_formatted += "\n"
+
+        else:
+            all_paper_data_formatted = dumps(all_paper_data, indent=4)
+
+        print(all_paper_data_formatted)
 
     def getudl(self):
         print(dumps(self.get_undelivered_strings(), indent=4))
