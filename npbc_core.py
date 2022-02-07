@@ -42,16 +42,61 @@ class NPBC_core():
         self.connection = connect(DB_PATH)
 
     def get_undelivered_strings(self) -> dict:
-        undelivered_strings_list = self.connection.execute("SELECT paper_id, string FROM undelivered_strings WHERE  year = ? AND month = ?;", (self.year, self.month)).fetchall()
+        self.undelivered_strings_user = {}
+
+        if self.month is None or self.year is None:
+            if self.month is not None:
+                undelivered_strings_list = self.connection.execute("SELECT paper_id, string, year, month FROM undelivered_strings WHERE month = ?;", (self.month,)).fetchall()
+
+            elif self.year is not None:
+                undelivered_strings_list = self.connection.execute("SELECT paper_id, string, year, month FROM undelivered_strings WHERE year = ?;", (self.year,)).fetchall()
+
+            else:
+                undelivered_strings_list = self.connection.execute("SELECT paper_id, string, year, month FROM undelivered_strings;").fetchall()
+
+        else:
+            undelivered_strings_list = self.connection.execute("SELECT paper_id, string, year, month FROM undelivered_strings WHERE  year = ? AND month = ?;", (self.year, self.month)).fetchall()
 
         self.undelivered_strings = {str(i[0]): i[1] for i in undelivered_strings_list}
+
+        for paper_id, string, year, month in undelivered_strings_list:
+            if str(year) not in self.undelivered_strings_user:
+                self.undelivered_strings_user[str(year)] = {}
+
+            if str(month) not in self.undelivered_strings_user[str(year)]:
+                self.undelivered_strings_user[str(year)][str(month)] = {}
+
+            self.undelivered_strings_user[str(year)][str(month)][str(paper_id)] = string
 
         return self.undelivered_strings
 
     def get_undelivered_dates(self) -> dict:
-        undeliver_dates_list = self.connection.execute("SELECT paper_id, dates FROM undelivered_dates WHERE year = ? AND month = ?;", (self.year, self.month)).fetchall()
+        if self.month is None or self.year is None:
+            if self.month is not None:
+                undeliver_dates_list = self.connection.execute("SELECT year, month, timestamp, paper_id, dates FROM undelivered_dates WHERE month = ?;", (self.month,)).fetchall()
 
-        undelivered_dates = {str(i[0]): self.parse_undelivered_string(i[1]) for i in undeliver_dates_list}
+            elif self.year is not None:
+                undeliver_dates_list = self.connection.execute("SELECT year, month, timestamp, paper_id, dates FROM undelivered_dates WHERE year = ?;", (self.year,)).fetchall()
+
+            else:
+                undeliver_dates_list = self.connection.execute("SELECT year, month, timestamp, paper_id, dates FROM undelivered_dates;").fetchall()
+
+        else:
+            undeliver_dates_list = self.connection.execute("SELECT year, month, timestamp, paper_id, dates FROM undelivered_dates WHERE  year = ? AND month = ?;", (self.year, self.month)).fetchall()
+
+        undelivered_dates = {}
+
+        for year, month, timestamp, paper_id, dates in undeliver_dates_list:
+            if str(year) not in undelivered_dates:
+                undelivered_dates[str(year)] = {}
+
+            if str(month) not in undelivered_dates[str(year)]:
+                undelivered_dates[str(year)][str(month)] = {}
+
+            if timestamp not in undelivered_dates[str(year)][str(month)]:
+                undelivered_dates[str(year)][str(month)][timestamp] = {}
+
+            undelivered_dates[str(year)][str(month)][timestamp][paper_id] = dates
 
         return undelivered_dates
 
@@ -171,7 +216,8 @@ class NPBC_core():
         self.connection.commit()
 
     def update_undelivered_string(self, paper_id: int, string: str) -> None:
-        self.connection.execute("UPDATE undelivered_strings SET string = ? WHERE paper_id = ? AND year = ? AND month = ?;", (string, paper_id, self.year, self.month))
+        new_string = f"{self.undelivered_strings[str(paper_id)]},{string}"
+        self.connection.execute("UPDATE undelivered_strings SET string = ? WHERE paper_id = ? AND year = ? AND month = ?;", (new_string, paper_id, self.year, self.month))
         self.connection.commit()
 
     def delete_undelivered_string(self, paper_id: int) -> None:

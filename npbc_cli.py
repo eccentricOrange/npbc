@@ -60,6 +60,8 @@ class NPBC_cli(NPBC_core):
         )
 
         getudl.set_defaults(func=self.getudl)
+        getudl.add_argument('-m', '--month', type=int, help="Month to calculate bill for. Must be between 1 and 12.")
+        getudl.add_argument('-y', '--year', type=int, help="Year to calculate bill for. Must be between 1 and 9999.")
 
 
         editpaper = subparsers.add_parser(
@@ -111,6 +113,8 @@ class NPBC_cli(NPBC_core):
         )
 
         getlogs.set_defaults(func=self.getlogs)
+        getlogs.add_argument('-m', '--month', type=int, help="Month to calculate bill for. Must be between 1 and 12.")
+        getlogs.add_argument('-y', '--year', type=int, help="Year to calculate bill for. Must be between 1 and 9999.")
 
 
         update = subparsers.add_parser(
@@ -132,8 +136,40 @@ class NPBC_cli(NPBC_core):
             copy_to_clipboard(string)
             print("\nSummary copied to clipboard.")
 
+    def set_dates_current_default(self) -> None:
+        if self.args.month is None:
+            self.month = datetime.now().month
+        
+        else:
+            self.month = self.args.month
+
+        if self.args.year is None:
+            self.year = datetime.now().year
+        
+        else:
+            self.year = self.args.year
+
+    def set_dates_none_default(self) -> None:
+        self.month = self.args.month if self.args.month is not None else None
+        self.year = self.args.year if self.args.year is not None else None
+
     def calculate(self) -> None:
-        self.set_dates()
+        if self.args.month is None and self.args.year is None:
+            self.month = self.get_previous_month().month
+            self.year = self.get_previous_month().year
+
+        elif self.args.month is not None and self.args.year is None:
+            self.month = self.args.month
+            self.year = datetime.today().year
+
+        elif self.args.month is None and self.args.year is not None:
+            self.month = datetime.today().month
+            self.year = self.args.year
+
+        else:
+            self.month = self.args.month
+            self.year = self.args.year
+            
         self.get_undelivered_strings()
         self.get_number_of_weekdays()
         self.calculate_all_papers()
@@ -144,14 +180,18 @@ class NPBC_cli(NPBC_core):
             print("Saved results to logs.") 
 
     def deludl(self):
-        self.set_dates()
+        self.set_dates_current_default()
         self.get_undelivered_strings()
         self.delete_undelivered_string(self.args.key)
 
     def addudl(self):
-        self.set_dates()
+        self.set_dates_current_default()
         self.get_undelivered_strings()
-        self.add_undelivered_string(self.args.key, self.undelivered_strings[self.args.key])
+        
+        if self.args.key in self.undelivered_strings:
+            self.update_undelivered_string(self.args.key, self.args.undelivered)
+        else:
+            self.add_undelivered_string(self.args.key, self.args.undelivered)
 
     def delpaper(self):
         self.delete_existing_paper(self.args.key)
@@ -201,9 +241,12 @@ class NPBC_cli(NPBC_core):
         print(all_paper_data_formatted)
 
     def getudl(self):
-        print(dumps(self.get_undelivered_strings(), indent=4))
+        self.set_dates_none_default()
+        self.get_undelivered_strings()
+        print(dumps(self.undelivered_strings_user, indent=4))
 
     def getlogs(self):
+        self.set_dates_none_default()
         print(dumps(self.get_undelivered_dates(), indent=4))
 
     def extract_undelivered_data(self):
@@ -218,23 +261,6 @@ class NPBC_cli(NPBC_core):
 
                 else:
                     self.undelivered_strings[paper_key] = undelivered_string
-
-    def set_dates(self):
-        if self.args.month is None and self.args.year is None:
-            self.month = self.get_previous_month().month
-            self.year = self.get_previous_month().year
-
-        elif self.args.month is not None and self.args.year is None:
-            self.month = self.args.month
-            self.year = datetime.today().year
-
-        elif self.args.month is None and self.args.year is not None:
-            self.month = datetime.today().month
-            self.year = self.args.year
-
-        else:
-            self.month = self.args.month
-            self.year = self.args.year
 
     def extract_days_and_cost(self) -> list:
         return self.decode_delivered_and_cost(self.args.days, self.args.price)
