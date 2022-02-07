@@ -31,7 +31,7 @@ This app calculates your monthly newspaper bill.
 
 &nbsp;
 
-Alternatively, just run these scripts.
+Alternatively, just run these scripts. You'll need to have wget installed, and in Windows, need to use an elevated PowerShell.
 
 For Linux systems, run:
 ```bash
@@ -58,5 +58,5 @@ For Windows systems, run the following and add `C:\Program Files\npbc` to PATH:
 mkdir -p "C:\Program Files\npbc";
 wget https://raw.githubusercontent.com/eccentricOrange/npbc/master/runtime/npbc.bat -O "C:\Program Files\npbc\npbc.bat";
 wget https://github.com/eccentricOrange/npbc/releases/latest/download/npbc_updater-windows-x64.exe -O "C:\Program Files\npbc\npbc_updater-windows-x64.exe";
-"C:\Program Files\npbc\npbc_updater-windows-x64.exe" update;
+& "C:\Program Files\npbc\npbc_updater-windows-x64.exe" update;
 ```
