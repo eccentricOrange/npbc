@@ -27,10 +27,8 @@ class NPBC_cli(NPBC_core):
         calculate.add_argument('-m', '--month', type=int, help="Month to calculate bill for. Must be between 1 and 12.")
         calculate.add_argument('-y', '--year', type=int, help="Year to calculate bill for. Must be between 1 and 9999.")
         calculate.add_argument('-u', '--undelivered', type=str, help="Dates when you did not receive any papers.")
-        calculate.add_argument('-c', '--nocopy', help="Don't copy the result of the calculation to the clipboard.",
-                action='store_true')
-        calculate.add_argument('-l', '--nolog', help="Don't log the result of the calculation.",
-                action='store_true')
+        calculate.add_argument('-c', '--nocopy', help="Don't copy the result of the calculation to the clipboard.", action='store_true')
+        calculate.add_argument('-l', '--nolog', help="Don't log the result of the calculation.", action='store_true')
 
 
         addudl = subparsers.add_parser(
@@ -62,6 +60,8 @@ class NPBC_cli(NPBC_core):
         )
 
         getudl.set_defaults(func=self.getudl)
+        getudl.add_argument('-m', '--month', type=int, help="Month to calculate bill for. Must be between 1 and 12.")
+        getudl.add_argument('-y', '--year', type=int, help="Year to calculate bill for. Must be between 1 and 9999.")
 
 
         editpaper = subparsers.add_parser(
@@ -102,6 +102,9 @@ class NPBC_cli(NPBC_core):
         )
 
         getpapers.set_defaults(func=self.getpapers)
+        getpapers.add_argument('-n', '--names', help="Get the names of the newspapers.", action='store_true')
+        getpapers.add_argument('-d', '--days', help="Get the days the newspapers are delivered. Monday is the first day, and all seven weekdays are required. A 'Y' means it is delivered, and an 'N' means it isn't.", action='store_true')
+        getpapers.add_argument('-p', '--prices', help="Get the daywise prices of the newspapers. Monday is the first day. Values must be separated by semicolons, and 0s are ignored.", action='store_true')
 
 
         getlogs = subparsers.add_parser(
@@ -110,6 +113,8 @@ class NPBC_cli(NPBC_core):
         )
 
         getlogs.set_defaults(func=self.getlogs)
+        getlogs.add_argument('-m', '--month', type=int, help="Month to calculate bill for. Must be between 1 and 12.")
+        getlogs.add_argument('-y', '--year', type=int, help="Year to calculate bill for. Must be between 1 and 9999.")
 
 
         update = subparsers.add_parser(
@@ -131,59 +136,24 @@ class NPBC_cli(NPBC_core):
             copy_to_clipboard(string)
             print("\nSummary copied to clipboard.")
 
+    def set_dates_current_default(self) -> None:
+        if self.args.month is None:
+            self.month = datetime.now().month
+        
+        else:
+            self.month = self.args.month
+
+        if self.args.year is None:
+            self.year = datetime.now().year
+        
+        else:
+            self.year = self.args.year
+
+    def set_dates_none_default(self) -> None:
+        self.month = self.args.month if self.args.month is not None else None
+        self.year = self.args.year if self.args.year is not None else None
+
     def calculate(self) -> None:
-        self.set_dates()
-        self.get_undelivered_strings()
-        self.get_number_of_weekdays()
-        self.calculate_all_papers()
-        self.format_and_copy()
-
-        if not self.args.nolog:
-            self.save_results()
-            print("Saved results to logs.") 
-
-    def deludl(self):
-        self.set_dates()
-        self.get_undelivered_strings()
-        self.delete_undelivered_string(self.args.key)
-
-    def addudl(self):
-        self.set_dates()
-        self.get_undelivered_strings()
-        self.add_undelivered_string(self.args.key, self.undelivered_strings[self.args.key])
-
-    def delpaper(self):
-        self.delete_existing_paper(self.args.key)
-
-    def addpaper(self):
-        self.create_new_paper(self.args.name, self.extract_days_and_cost())
-
-    def editpaper(self):
-        self.update_existing_paper(self.args.key, self.args.name, self.extract_days_and_cost())
-
-    def getpapers(self):
-        print(dumps(self.get_all_papers(), indent=4))
-
-    def getudl(self):
-        print(dumps(self.get_undelivered_strings(), indent=4))
-
-    def getlogs(self):
-        print(dumps(self.get_undelivered_dates(), indent=4))
-
-    def extract_undelivered_data(self):
-        if self.args.undelivered is not None:
-            undelivered_data = self.args.undelivered.split(';')
-
-            for paper in undelivered_data:
-                paper_key, undelivered_string = paper.split(':')
-
-                if paper_key in self.undelivered_strings:
-                    self.undelivered_strings[paper_key] += ',' + undelivered_string
-
-                else:
-                    self.undelivered_strings[paper_key] = undelivered_string
-
-    def set_dates(self):
         if self.args.month is None and self.args.year is None:
             self.month = self.get_previous_month().month
             self.year = self.get_previous_month().year
@@ -199,6 +169,98 @@ class NPBC_cli(NPBC_core):
         else:
             self.month = self.args.month
             self.year = self.args.year
+            
+        self.get_undelivered_strings()
+        self.get_number_of_weekdays()
+        self.calculate_all_papers()
+        self.format_and_copy()
+
+        if not self.args.nolog:
+            self.save_results()
+            print("Saved results to logs.") 
+
+    def deludl(self):
+        self.set_dates_current_default()
+        self.get_undelivered_strings()
+        self.delete_undelivered_string(self.args.key)
+
+    def addudl(self):
+        self.set_dates_current_default()
+        self.get_undelivered_strings()
+        
+        if self.args.key in self.undelivered_strings:
+            self.update_undelivered_string(self.args.key, self.args.undelivered)
+        else:
+            self.add_undelivered_string(self.args.key, self.args.undelivered)
+
+    def delpaper(self):
+        self.delete_existing_paper(self.args.key)
+
+    def addpaper(self):
+        self.create_new_paper(self.args.name, self.extract_days_and_cost())
+
+    def editpaper(self):
+        self.update_existing_paper(self.args.key, self.args.name, self.extract_days_and_cost())
+
+    def getpapers(self):
+        all_paper_data = self.get_all_papers()
+
+        all_paper_data_formatted = ""
+
+        if self.args.names or self.args.days or self.args.prices:
+            for paper_id, current_paper_data in all_paper_data.items():
+                all_paper_data_formatted += f"{paper_id}: "
+
+                days_delivered = ""
+                costs = []
+                if self.args.days or self.args.prices:
+
+                    for day_name, day_data in current_paper_data['days'].items():
+                        if int(day_data['delivered']) == 1:
+                            days_delivered += 'Y'
+                        else:
+                            days_delivered += 'N'
+
+                        if float(day_data['cost']) != 0:
+                            costs.append(f"{day_data['cost']}")
+
+                if self.args.names:
+                    all_paper_data_formatted += f"{current_paper_data['name']}"
+
+                if self.args.days:
+                    all_paper_data_formatted += f", {days_delivered}"
+
+                if self.args.prices:
+                    all_paper_data_formatted += f", {';'.join(costs)}"
+
+                all_paper_data_formatted += "\n"
+
+        else:
+            all_paper_data_formatted = dumps(all_paper_data, indent=4)
+
+        print(all_paper_data_formatted)
+
+    def getudl(self):
+        self.set_dates_none_default()
+        self.get_undelivered_strings()
+        print(dumps(self.undelivered_strings_user, indent=4))
+
+    def getlogs(self):
+        self.set_dates_none_default()
+        print(dumps(self.get_undelivered_dates(), indent=4))
+
+    def extract_undelivered_data(self):
+        if self.args.undelivered is not None:
+            undelivered_data = self.args.undelivered.split(';')
+
+            for paper in undelivered_data:
+                paper_key, undelivered_string = paper.split(':')
+
+                if paper_key in self.undelivered_strings:
+                    self.undelivered_strings[paper_key] += ',' + undelivered_string
+
+                else:
+                    self.undelivered_strings[paper_key] = undelivered_string
 
     def extract_days_and_cost(self) -> list:
         return self.decode_delivered_and_cost(self.args.days, self.args.price)

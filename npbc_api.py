@@ -9,14 +9,14 @@ HOSTNAME = "127.0.0.1"
 PORT = 8083
 
 @app.route(f"{BASE_NAME}/getpapers", methods=["GET"])
-def get_papers():
+def getpapers():
     core = NPBC_core()
     all_papers = core.get_all_papers()
     del core
     return jsonify(all_papers), 200
 
 @app.route(f"{BASE_NAME}/getpaper/<paper_key>", methods=["GET"])
-def get_paper(paper_key):
+def getpaper(paper_key):
     core = NPBC_core()
     all_papers = core.get_all_papers()
     del core
@@ -26,16 +26,17 @@ def get_paper(paper_key):
 
     abort(406)
 
-@app.route(f"{BASE_NAME}/getudlstrings", methods=["GET"])
-def get_undelivered_strings():
+@app.route(f"{BASE_NAME}/getudl", methods=["GET"])
+def getudl():
     core = NPBC_core()
-    undelivered_strings = core.get_undelivered_strings()
+    core.get_undelivered_strings()
+    undelivered_strings = core.undelivered_strings_user
     del core
 
     return jsonify(undelivered_strings), 200
 
-@app.route(f"{BASE_NAME}/getudlstring/<int:year>/<int:month>", methods=["GET"])
-def get_undelivered_string(year, month):
+@app.route(f"{BASE_NAME}/getudls/<int:year>/<int:month>", methods=["GET"])
+def getudls(year, month):
     core = NPBC_core()
     core.year = year
     core.month = month
@@ -44,8 +45,16 @@ def get_undelivered_string(year, month):
 
     return jsonify(undelivered_strings), 200
 
-@app.route(f"{BASE_NAME}/getudldates/<int:year>/<int:month>", methods=["GET"])
-def get_undelivered_dates(year, month):
+@app.route(f"{BASE_NAME}/getlogs", methods=["GET"])
+def getlogs():
+    core = NPBC_core()
+    undelivered_dates = core.get_undelivered_dates()
+    del core
+    
+    return jsonify(undelivered_dates), 200
+
+@app.route(f"{BASE_NAME}/getlog/<int:year>/<int:month>", methods=["GET"])
+def getlog(year, month):
     core = NPBC_core()
     core.month = month
     core.year = year
@@ -55,7 +64,7 @@ def get_undelivered_dates(year, month):
     return jsonify(undelivered_dates), 200
 
 @app.route(f"{BASE_NAME}/addudl/<int:year>/<int:month>", methods=["POST"])
-def add_undelivered_string(year, month):
+def addudl(year, month):
     if not request.json:
         abort(400)
 
@@ -65,14 +74,19 @@ def add_undelivered_string(year, month):
 
     for paper_key, string in request.json.items():
         if paper_key in core.get_all_papers():
-            core.add_undelivered_string(paper_key, string)
+            core.get_undelivered_strings()
+
+            if paper_key in core.undelivered_strings:
+                core.update_undelivered_string(paper_key, string)
+            else:
+                core.add_undelivered_string(paper_key, string)
     
     del core
 
     return jsonify({"status": "success"}), 201
     
 @app.route(f"{BASE_NAME}/deludl/<int:year>/<int:month>", methods=["POST"])
-def delete_undelivered_string(year, month):
+def deludl(year, month):
     if not request.json:
         abort(400)
     
