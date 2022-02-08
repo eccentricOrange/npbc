@@ -19,7 +19,7 @@ This app calculates your monthly newspaper bill.
     | --- | --- |
     | Linux | `~/bin/npbc/npbc_updater-linux-x64` |
     | macOS | `~/Applications/npbc/npbc_updater-macos-x64` |
-    | Windows | `C:\Program Files\npbc\npbc_updater-windows-x64.exe` |
+    | Windows | `~\.npbc\bin\npbc.exe` |
 
 2. Run the following command:
 
@@ -31,7 +31,7 @@ This app calculates your monthly newspaper bill.
 
 &nbsp;
 
-Alternatively, just run these scripts. You'll need to have wget installed, and in Windows, need to use an elevated PowerShell.
+Alternatively, just run these scripts. You'll need to have wget installed.
 
 For Linux systems, run:
 ```bash
@@ -53,9 +53,9 @@ echo "alias npbc=\"~/Applications/npbc/npbc\"" >> ~/.bashrc
 exec "$SHELL"
 ```
 
-For Windows systems, run the following and add `C:\Program Files\npbc` to PATH:
+For Windows systems, run the following from PowerShell and add `~\.npbc\bin` to PATH:
 ```bat
-mkdir -p "C:\Program Files\npbc";
-wget https://github.com/eccentricOrange/npbc/releases/latest/download/npbc_updater-windows-x64.exe -O "C:\Program Files\npbc\npbc.exe";
-& "C:\Program Files\npbc\npbc.exe" update;
+mkdir -p "~\.npbc\bin";
+wget https://github.com/eccentricOrange/npbc/releases/latest/download/npbc_updater-windows-x64.exe -O "~\.npbc\bin\npbc.exe";
+& "~\.npbc\bin\npbc.exe" update;
 ```
