@@ -205,7 +205,7 @@ class NPBC_cli(NPBC_core):
     def getpapers(self):
         all_paper_data = self.get_all_papers()
 
-        all_paper_data_formatted = ""
+        all_paper_data_formatted = []
 
         if self.args.names or self.args.days or self.args.prices:
             for paper_id, current_paper_data in all_paper_data.items():
@@ -225,15 +225,17 @@ class NPBC_cli(NPBC_core):
                             costs.append(f"{day_data['cost']}")
 
                 if self.args.names:
-                    all_paper_data_formatted += f"{current_paper_data['name']}"
+                    all_paper_data_formatted.append(f"{current_paper_data['name']}")
 
                 if self.args.days:
-                    all_paper_data_formatted += f", {days_delivered}"
+                    all_paper_data_formatted.append(f"{days_delivered}")
 
                 if self.args.prices:
-                    all_paper_data_formatted += f", {';'.join(costs)}"
+                    all_paper_data_formatted.append(f"{';'.join(costs)}")
 
-                all_paper_data_formatted += "\n"
+                all_paper_data_formatted.append("\n")
+
+            all_paper_data_formatted = ', '.join(all_paper_data_formatted)
 
         else:
             all_paper_data_formatted = dumps(all_paper_data, indent=4)
