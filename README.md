@@ -17,8 +17,8 @@ This app calculates your monthly newspaper bill.
     **Recommended locations**, where the CLI and API will always download.
     | OS | Location |
     | --- | --- |
-    | Linux | `~/bin/npbc/npbc_updater-linux-x64` |
-    | macOS | `~/Applications/npbc/npbc_updater-macos-x64` |
+    | Linux | `~/bin/npbc/npbc` |
+    | macOS | `~/Applications/npbc/npbc` |
     | Windows | `~\.npbc\bin\npbc.exe` |
 
 2. Run the following command:
