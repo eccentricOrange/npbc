@@ -226,7 +226,7 @@ class NPBC_core():
 
     def format(self) -> str:
         string = f"For {date_type(self.year, self.month, 1):%B %Y}\n\n"
-        string += f"TOTAL: {self.totals.pop('0')}\n"
+        string += f"*TOTAL:* {self.totals.pop('0')}\n"
 
         string += '\n'.join([
             f"{self.connection.cursor().execute('SELECT name FROM papers WHERE paper_id = ?;', (paper_id,)).fetchone()[0]}: {cost}"
