@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS papers_days_delivered (
     paper_id INTEGER NOT NULL,
     day_id INTEGER NOT NULL,
     delivered INTEGER NOT NULL,
+    FOREIGN KEY(paper_id) REFERENCES papers(paper_id),
     CONSTRAINT unique_paper_day UNIQUE (paper_id, day_id)
 );
 CREATE TABLE IF NOT EXISTS papers_days_cost(
