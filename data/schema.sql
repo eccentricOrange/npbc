@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS papers_days_delivered (
 CREATE TABLE IF NOT EXISTS papers_days_cost(
     paper_id INTEGER NOT NULL,
     day_id INTEGER NOT NULL,
-    cost INTEGER, 
+    cost INTEGER,
     FOREIGN KEY(paper_id) REFERENCES papers(paper_id),
     CONSTRAINT unique_paper_day UNIQUE (paper_id, day_id)
 );
@@ -33,7 +33,5 @@ CREATE TABLE IF NOT EXISTS undelivered_dates (
     dates TEXT NOT NULL,
     FOREIGN KEY (paper_id) REFERENCES papers(paper_id)
 );
-CREATE INDEX IF NOT EXISTS search_strings
-ON undelivered_strings(year, month);
-CREATE INDEX IF NOT EXISTS paper_names
-ON papers(name);
+CREATE INDEX IF NOT EXISTS search_strings ON undelivered_strings(year, month);
+CREATE INDEX IF NOT EXISTS paper_names ON papers(name);
