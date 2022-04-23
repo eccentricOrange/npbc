@@ -72,6 +72,13 @@ def generate_sql_query(table_name: str, conditions: dict[str, int | str] | None 
     return sql_query
 
 
+def query_database(query: str) -> list[tuple]:
+    with connect(DATABASE_PATH) as connection:
+        return connection.execute(query).fetchall()
+    
+    return []
+
+
 def get_number_of_days_per_week(month: int, year: int) -> list[int]:
     main_calendar = monthcalendar(year, month)
     number_of_weeks = len(main_calendar)
@@ -212,7 +219,7 @@ def calculate_cost_of_one_paper(number_of_days_per_week: list[int], undelivered_
     )
 
 
-def calculate_cost_of_all_papers(undelivered_strings: list[str], month: int, year: int) -> tuple[dict[int, float], float, dict[int, set[date_type]]]:
+def calculate_cost_of_all_papers(undelivered_strings: dict[int, str], month: int, year: int) -> tuple[dict[int, float], float, dict[int, set[date_type]]]:
     NUMBER_OF_DAYS_PER_WEEK = get_number_of_days_per_week(month, year)
 
     with connect(DATABASE_PATH) as connection:
@@ -229,8 +236,8 @@ def calculate_cost_of_all_papers(undelivered_strings: list[str], month: int, yea
     ]
 
     undelivered_dates = {
-        paper_id: parse_undelivered_string(undelivered_strings[paper_id], month, year)
-        for paper_id, _ in papers # type: ignore
+        paper_id: parse_undelivered_string(undelivered_string, month, year)
+        for paper_id, undelivered_string in undelivered_strings.items() # type: ignore
     }
 
     costs = {
@@ -268,13 +275,12 @@ def save_results(undelivered_dates: dict[int, set[date_type]], month: int, year:
 
 
 def format_output(costs: dict[int, float], total: float, month: int, year: int) -> str:
-    with connect(DATABASE_PATH) as connection:
-        papers = {
-            paper_id: name
-            for paper_id, name in connection.execute(
-                generate_sql_query('papers')
-            ).fetchall()
-        }
+    papers = {
+        paper_id: name
+        for paper_id, name in query_database(
+            generate_sql_query('papers')
+        )
+    }
 
 
     format_string = f"For {date_type(year=year, month=month, day=1).strftime(r'%B %Y')}\n\n"
