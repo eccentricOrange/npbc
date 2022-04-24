@@ -14,7 +14,7 @@ This app calculates your monthly newspaper bill.
 ## Installation
 1. From [the latest release](https://github.com/eccentricOrange/npbc/releases/latest), download the "updater" file for your operating system in any folder, and make it executable.
 
-    **Recommended locations**, where the CLI and API will always download.
+    **Recommended locations**, where the CLI will always download.
     | OS | Location |
     | --- | --- |
     | Linux | `~/bin/npbc/npbc` |
