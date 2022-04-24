@@ -3,3 +3,6 @@ Flask
 waitress
 sh
 colorama
+
+# test
+pytest
