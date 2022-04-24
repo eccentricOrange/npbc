@@ -52,7 +52,7 @@ build:
         with:
           path: bin
           name: npbc_${{ matrix.app }}-${{ matrix.name }}-${{ matrix.architecture }}
-  
+
   release:
     needs:
       - build
