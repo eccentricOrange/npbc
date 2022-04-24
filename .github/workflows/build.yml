@@ -3,6 +3,17 @@ name: build and release
 on: [push]
 
 jobs:
+  test:
+    name: pytest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - run: pip install -r requirements.txt
+      - uses: cclauss/GitHub-Action-for-pytest@0.5.0
+
   build:
     strategy:
       matrix:
