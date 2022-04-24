@@ -3,323 +3,507 @@ from calendar import day_name as weekday_names_iterable
 from calendar import monthrange, monthcalendar
 from datetime import date as date_type, datetime, timedelta
 from pathlib import Path
+from re import compile as compile_regex
 
+DATABASE_DIR = Path().home() / '.npbc'
+# DATABASE_DIR = Path('data')
 
-# DB_DIR = Path('data')
-DB_DIR = Path.home() / '.npbc'
-DB_PATH = DB_DIR / 'npbc.db'
+DATABASE_PATH = DATABASE_DIR / 'npbc.db'
+
 SCHEMA_PATH = Path(__file__).parent / 'schema.sql'
-# SCHEMA_PATH = DB_DIR / 'schema.sql'
+# SCHEMA_PATH = DATABASE_DIR / 'schema.sql'
 
-weekday_names = list(weekday_names_iterable)
+WEEKDAY_NAMES = list(weekday_names_iterable)
 
-class NPBC_core():
+VALIDATE_REGEX = {
+    # match for a list of comma separated values. each value must be/contain digits, or letters, or hyphens. spaces are allowed between values and commas.
+    'CSVs': compile_regex(r'^[-\w]+( *, *[-\w]+)*( *,)?$'),
 
-    month = 0
-    year = 0
-    totals = {'0': 0.0}
-    undelivered_dates = {}
+    # match for a single number. must be one or two digits
+    'number': compile_regex(r'^[\d]{1,2}?$'),
 
-    def __init__(self):
-        self.define_schema()
+    # match for a range of numbers. each number must be one or two digits. numbers are separated by a hyphen. spaces are allowed between numbers and the hyphen.
+    'range': compile_regex(r'^\d{1,2} *- *\d{1,2}$'),
 
-    def __del__(self):
-        self.connection.close()
+    # match for weekday name. day must appear as "daynames" (example: "mondays"). all lowercase.
+    'days': compile_regex(f"^{'|'.join([day_name.lower() + 's' for day_name in WEEKDAY_NAMES])}$"),
 
-    def define_schema(self):
-        Path(DB_DIR).mkdir(parents=True, exist_ok=True)
-        Path(DB_PATH).touch(exist_ok=True)
+    # match for nth weekday name. day must appear as "n-dayname" (example: "1-monday"). all lowercase. must be one digit.
+    'n-day': compile_regex(f"^\\d *- *({'|'.join([day_name.lower() for day_name in WEEKDAY_NAMES])})$"),
 
-        self.connection = connect(DB_PATH)
+    'costs': compile_regex(r'^(\d+.?\d*)(;(\d+.?\d*))*$'),
 
-        with open(SCHEMA_PATH, 'r') as schema_file:
-            self.connection.executescript(schema_file.read())
-            self.connection.commit()
-        
-        self.connection.close()
-        del self.connection
+    'delivery': compile_regex(r'^[YN]{7}$')
+}
 
-        self.connection = connect(DB_PATH)
+SPLIT_REGEX = {
+    # split on hyphens. spaces are allowed between hyphens and values.
+    'hyphen': compile_regex(r' *- *'),
 
-    def get_undelivered_strings(self) -> dict:
-        self.undelivered_strings_user = {}
+    # split on commas. spaces are allowed between commas and values.
+    'comma': compile_regex(r' *, *')
+}
 
-        if self.month is None or self.year is None:
-            if self.month is not None:
-                undelivered_strings_list = self.connection.execute("SELECT paper_id, string, year, month FROM undelivered_strings WHERE month = ?;", (self.month,)).fetchall()
 
-            elif self.year is not None:
-                undelivered_strings_list = self.connection.execute("SELECT paper_id, string, year, month FROM undelivered_strings WHERE year = ?;", (self.year,)).fetchall()
+def setup_and_connect_DB() -> None:
+    DATABASE_DIR.mkdir(parents=True, exist_ok=True)
+    DATABASE_PATH.touch(exist_ok=True)
 
-            else:
-                undelivered_strings_list = self.connection.execute("SELECT paper_id, string, year, month FROM undelivered_strings;").fetchall()
+    with connect(DATABASE_PATH) as connection:
+        connection.executescript(SCHEMA_PATH.read_text())
+        connection.commit()
 
-        else:
-            undelivered_strings_list = self.connection.execute("SELECT paper_id, string, year, month FROM undelivered_strings WHERE  year = ? AND month = ?;", (self.year, self.month)).fetchall()
 
-        self.undelivered_strings = {str(i[0]): i[1] for i in undelivered_strings_list}
+def generate_sql_query(table_name: str, conditions: dict[str, int | str] | None = None, columns: list[str] | None = None) -> str:
+    sql_query = f"SELECT"
+    
+    if columns:
+        sql_query += f" {', '.join(columns)}"
+    
+    else:
+        sql_query += f" *"
+    
+    sql_query += f" FROM {table_name}"
 
-        for paper_id, string, year, month in undelivered_strings_list:
-            if str(year) not in self.undelivered_strings_user:
-                self.undelivered_strings_user[str(year)] = {}
-
-            if str(month) not in self.undelivered_strings_user[str(year)]:
-                self.undelivered_strings_user[str(year)][str(month)] = {}
-
-            self.undelivered_strings_user[str(year)][str(month)][str(paper_id)] = string
-
-        return self.undelivered_strings
-
-    def get_undelivered_dates(self) -> dict:
-        if self.month is None or self.year is None:
-            if self.month is not None:
-                undeliver_dates_list = self.connection.execute("SELECT year, month, timestamp, paper_id, dates FROM undelivered_dates WHERE month = ?;", (self.month,)).fetchall()
-
-            elif self.year is not None:
-                undeliver_dates_list = self.connection.execute("SELECT year, month, timestamp, paper_id, dates FROM undelivered_dates WHERE year = ?;", (self.year,)).fetchall()
-
-            else:
-                undeliver_dates_list = self.connection.execute("SELECT year, month, timestamp, paper_id, dates FROM undelivered_dates;").fetchall()
-
-        else:
-            undeliver_dates_list = self.connection.execute("SELECT year, month, timestamp, paper_id, dates FROM undelivered_dates WHERE  year = ? AND month = ?;", (self.year, self.month)).fetchall()
-
-        undelivered_dates = {}
-
-        for year, month, timestamp, paper_id, dates in undeliver_dates_list:
-            if str(year) not in undelivered_dates:
-                undelivered_dates[str(year)] = {}
-
-            if str(month) not in undelivered_dates[str(year)]:
-                undelivered_dates[str(year)][str(month)] = {}
-
-            if timestamp not in undelivered_dates[str(year)][str(month)]:
-                undelivered_dates[str(year)][str(month)][timestamp] = {}
-
-            undelivered_dates[str(year)][str(month)][timestamp][paper_id] = dates
-
-        return undelivered_dates
-
-    def get_number_of_weekdays(self) -> list:
-        self.main_calendar = monthcalendar(self.year, self.month)
-        number_of_weeks = len(self.main_calendar)
-        self.number_of_weekdays = []
-
-        for i in range(7):
-            number_of_weekday = number_of_weeks
-
-            if self.main_calendar[0][i] == 0:
-                number_of_weekday -= 1
-            
-            if self.main_calendar[-1][i] == 0:
-                number_of_weekday -= 1
-
-            self.number_of_weekdays.append(number_of_weekday)
-
-        return self.number_of_weekdays
-
-    def get_previous_month(self) -> date_type:
-        return (datetime.today().replace(day=1) - timedelta(days=1)).replace(day=1)
-
-    def parse_undelivered_string(self, string: str) -> set:
-        undelivered_dates = set([])
-
-        if len(string) > 0:
-            durations = string.split(',')
-            
-            for duration in durations:
-                if len(duration) > 0:
-
-                    duration = f"{duration[0].upper()}{duration[1:].lower()}"
-
-                    if duration.isdigit():
-                        day = int(duration)
-
-                        if day > 0:
-                            undelivered_dates.add(day)
-
-                    elif '-' in duration:
-                        start, end = duration.split('-')
-                        start = f"{start[0].upper()}{start[1:].lower()}"
-
-                        if start.isdigit() and end.isdigit():
-                            start_date = int(start)
-                            end_date = int(end)
-
-                            if 0 < start_date <= end_date <= 31:
-                                for day in range(start_date, end_date + 1):
-                                    undelivered_dates.add(day)
-
-                        elif (start in weekday_names) and end.isdigit():
-                            week_number = int(end)
-                            day_number = weekday_names.index(start)
-                            for week in self.main_calendar:
-                                if week[day_number] != 0:
-                                    if week_number == 1:
-                                        undelivered_dates.add(week[day_number])
-                                        break
-                                    else:
-                                        week_number -= 1
-
-                    elif duration[:-1] in weekday_names:
-                        day_number = weekday_names.index(duration[:-1])
-
-                        for week in self.main_calendar:
-                            if week[day_number] != 0:
-                                undelivered_dates.add(week[day_number])
-                        
-
-                    elif duration.lower() == 'all':
-                        for day in range(monthrange(self.year, self.month)[1]):
-                            undelivered_dates.add(day + 1)
-
-        return undelivered_dates
-
-    def calculate_one_paper(self, paper_id: int, specific_undelivered_string: str, all_undelivered_string: str = None) -> float:
-        undelivered_string = specific_undelivered_string
-
-        if all_undelivered_string is not None:
-            undelivered_string += ',' + all_undelivered_string
-
-        current_paper_undelivered_dates = self.parse_undelivered_string(undelivered_string)
-
-        if len(current_paper_undelivered_dates) > 0:
-            self.undelivered_dates[paper_id] = current_paper_undelivered_dates
-        
-        weekly_count = self.number_of_weekdays.copy()
-
-        for day in current_paper_undelivered_dates:
-            weekly_count[date_type(self.year, self.month, day).weekday()] -= 1
-
-        costs = self.connection.cursor().execute("SELECT day_id, cost FROM papers_days_cost WHERE paper_id = ?;", (paper_id,)).fetchall()
-        total_costs = [cost * weekly_count[day_id] for day_id, cost in costs]
-
-        return sum(total_costs)
-
-    def calculate_all_papers(self) -> dict:
-        papers = self.connection.cursor().execute("SELECT paper_id FROM papers;").fetchall()
-
-        all_undelivered_strings = None
-
-        if 'all' in self.undelivered_strings:
-            all_undelivered_strings = self.undelivered_strings['all']
-
-        for paper_id, in papers:
-            cost_of_current_paper = self.calculate_one_paper(paper_id, self.undelivered_strings[str(paper_id)] if str(paper_id) in self.undelivered_strings else '', all_undelivered_string=all_undelivered_strings)
-            self.totals[str(paper_id)] = cost_of_current_paper
-            self.totals['0'] += cost_of_current_paper
-
-        return self.totals
-
-    def add_undelivered_string(self, paper_id: int, string: str) -> None:
-        self.connection.execute("INSERT INTO undelivered_strings (year, month, paper_id, string) VALUES (?, ?, ?, ?);", (self.year, self.month, paper_id, string))
-        self.connection.commit()
-
-    def update_undelivered_string(self, paper_id: int, string: str) -> None:
-        new_string = f"{self.undelivered_strings[str(paper_id)]},{string}"
-        self.connection.execute("UPDATE undelivered_strings SET string = ? WHERE paper_id = ? AND year = ? AND month = ?;", (new_string, paper_id, self.year, self.month))
-        self.connection.commit()
-
-    def delete_undelivered_string(self, paper_id: int) -> None:
-        self.connection.execute("DELETE FROM undelivered_strings WHERE paper_id = ? AND year = ? AND month = ?;", (paper_id, self.year, self.month))
-        self.connection.commit()
-
-    def format(self) -> str:
-        string = f"For {date_type(self.year, self.month, 1):%B %Y}\n\n"
-        string += f"*TOTAL: {self.totals.pop('0')}*\n"
-
-        string += '\n'.join([
-            f"{self.connection.cursor().execute('SELECT name FROM papers WHERE paper_id = ?;', (paper_id,)).fetchone()[0]}: {cost}"
-            for paper_id, cost in self.totals.items()
+    if conditions:
+        conditions_segment = ' AND '.join([
+            f"{parameter_name} = {parameter_value}"
+            for parameter_name, parameter_value in conditions.items()
         ])
-
-        return string
-
-    def save_results(self) -> None:
-        timestamp = datetime.now().strftime("%d/%m/%Y %I:%M:%S %p")
-
-        for paper_id, undelivered_dates in self.undelivered_dates.items():
-            self.connection.cursor().execute("INSERT INTO undelivered_dates (timestamp, year, month, paper_id, dates) VALUES (?, ?, ?, ?, ?);", (timestamp, self.year, self.month, paper_id, ','.join([str(i) for i in undelivered_dates])))
-
-        self.connection.commit()
-
-    @staticmethod
-    def decode_delivered_and_cost(encoded_days: str, encoded_prices: str) -> list:
-        sold = [int(i == 'Y') for i in str(encoded_days).upper()]
-        prices = [float(price) for price in encoded_prices.split(';') if float(price) > 0]
-
-
-        delievered_and_costs = []
-        delivered_count = -1
         
-        for i, delivered in enumerate(sold):
-            if delivered == 1:
-                delivered_count += 1
-                price = prices[delivered_count]
+        sql_query += f" WHERE {conditions_segment};"
 
-            else:
-                price = 0
+    return sql_query
 
-            delievered_and_costs.append((delivered, price))
 
-        return delievered_and_costs
+def query_database(query: str) -> list[tuple]:
+    with connect(DATABASE_PATH) as connection:
+        return connection.execute(query).fetchall()
+    
+    return []
 
-    def create_new_paper(self, name: str, delivered_and_costs: list):
-        paper_id = self.connection.cursor().execute("INSERT INTO papers (name) VALUES (?);", (name,)).lastrowid
 
-        for day_id, (delivered, cost) in enumerate(delivered_and_costs):
-            self.connection.cursor().execute("INSERT INTO papers_days_cost (paper_id, day_id, cost) VALUES (?, ?, ?);", (paper_id, day_id, cost))
+def get_number_of_days_per_week(month: int, year: int) -> list[int]:
+    main_calendar = monthcalendar(year, month)
+    number_of_weeks = len(main_calendar)
+    number_of_weekdays = []
 
-            self.connection.cursor().execute("INSERT INTO papers_days_delivered (paper_id, day_id, delivered) VALUES (?, ?, ?);", (paper_id, day_id, delivered))
+    for i in range(len(WEEKDAY_NAMES)):
+        number_of_weekday = number_of_weeks
 
-        self.connection.commit()
+        if main_calendar[0][i] == 0:
+            number_of_weekday -= 1
+        
+        if main_calendar[-1][i] == 0:
+            number_of_weekday -= 1
 
-        return paper_id
+        number_of_weekdays.append(number_of_weekday)
 
-    def update_existing_paper(self, paper_id: int, name: str = None, delivered_and_costs: list = None):
+    return number_of_weekdays
 
-        if name:
-            self.connection.cursor().execute("UPDATE papers SET name = ? WHERE paper_id = ?;", (name, paper_id))
 
-        if delivered_and_costs:
+def validate_undelivered_string(string: str) -> bool:
+    if VALIDATE_REGEX['CSVs'].match(string):
+        
+        for section in SPLIT_REGEX['comma'].split(string):
+            section_validity = False
 
-            for day_id, (delivered, cost) in enumerate(delivered_and_costs):
-                self.connection.cursor().execute("UPDATE papers_days_cost SET cost = ? WHERE paper_id = ? AND day_id = ?;", (cost, paper_id, day_id))
+            for pattern, regex in VALIDATE_REGEX.items():
+                if (pattern != "CSVs") and (regex.match(section)):
+                    if not section_validity:
+                        section_validity = True
 
-                self.connection.cursor().execute("UPDATE papers_days_delivered SET delivered = ? WHERE paper_id = ? AND day_id = ?;", (delivered, paper_id, day_id))
+            if not section_validity:
+                return False
+        
+        return True
+    
+    return False
 
-        self.connection.commit()
 
-    def delete_existing_paper(self, paper_id: int):
-        self.connection.cursor().execute("DELETE FROM papers WHERE paper_id = ?;", (paper_id,))
-        self.connection.cursor().execute("DELETE FROM papers_days_cost WHERE paper_id = ?;", (paper_id,))
-        self.connection.cursor().execute("DELETE FROM papers_days_delivered WHERE paper_id = ?;", (paper_id,))
-        self.connection.commit()
+def parse_undelivered_string(string: str, month: int, year: int) -> set[date_type]:
+    dates = set()
 
-    def get_all_papers(self) -> dict:
-        query = (
-            "SELECT papers.paper_id, papers.name, papers_days_cost.day_id, papers_days_cost.cost, papers_days_delivered.delivered "
-            "FROM papers "
-            "JOIN papers_days_cost ON papers.paper_id = papers_days_cost.paper_id "
-            "JOIN papers_days_delivered ON papers.paper_id = papers_days_delivered.paper_id "
-            "WHERE papers_days_cost.day_id = papers_days_delivered.day_id "
-            "ORDER BY papers.name, papers_days_cost.day_id;"
+    for section in SPLIT_REGEX['comma'].split(string):
+        if VALIDATE_REGEX['number'].match(section):
+            date = int(section)
+
+            if date > 0 and date <= monthrange(year, month)[1]:
+                dates.add(date_type(year, month, date))
+
+        elif VALIDATE_REGEX['range'].match(section):
+            start, end = [int(date) for date in SPLIT_REGEX['hyphen'].split(section)]
+
+            if 0 < start <= end <= monthrange(year, month)[1]:
+                dates.update(
+                    date_type(year, month, day)
+                    for day in range(start, end + 1)
+                )
+
+        elif VALIDATE_REGEX['days'].match(section):
+            weekday = WEEKDAY_NAMES.index(section.capitalize().rstrip('s'))
+
+            dates.update(
+                date_type(year, month, day)
+                for day in range(1, monthrange(year, month)[1] + 1)
+                if date_type(year, month, day).weekday() == weekday
+            )
+
+        elif VALIDATE_REGEX['n-day'].match(section):
+            n, weekday = SPLIT_REGEX['hyphen'].split(section)
+
+            n = int(n)
+
+            if n > 0 and n <= len(get_number_of_days_per_week(month, year)):
+                weekday = WEEKDAY_NAMES.index(weekday.capitalize())
+
+                valid_dates = [
+                    date_type(year, month, day)
+                    for day in range(1, monthrange(year, month)[1] + 1)
+                    if date_type(year, month, day).weekday() == weekday
+                ]
+
+                dates.add(valid_dates[n - 1])
+
+        else:
+            print("Congratulations! You broke the program!")
+            print("You managed to write a string that the program considers valid, but isn't actually.")
+            print("Please report it to the developer.")
+            print(f"\nThe string you wrote was: {string}")
+            print("This data has not been counted.")
+
+    return dates
+
+
+def get_cost_and_delivery_data(paper_id: int) -> tuple[dict[int, float], dict[int, bool]]:
+    cost_query = generate_sql_query(
+        'papers_days_cost',
+        columns=['day_id', 'cost'],
+        conditions={'paper_id': paper_id}
+    )
+
+    delivery_query = generate_sql_query(
+        'papers_days_delivered',
+        columns=['day_id', 'delivered'],
+        conditions={'paper_id': paper_id}
+    )
+
+    with connect(DATABASE_PATH) as connection:
+        cost_tuple = connection.execute(cost_query).fetchall()
+        delivery_tuple = connection.execute(delivery_query).fetchall()
+
+    cost_dict = {
+        day_id: cost
+        for day_id, cost in cost_tuple # type: ignore
+    }
+
+    delivery_dict = {
+        day_id: delivery
+        for day_id, delivery in delivery_tuple # type: ignore
+    }
+
+    return cost_dict, delivery_dict
+
+
+def calculate_cost_of_one_paper(number_of_days_per_week: list[int], undelivered_dates: set[date_type], cost_and_delivered_data: tuple[dict[int, float], dict[int, bool]]) -> float:
+    number_of_days_per_week_not_received = [0] * len(number_of_days_per_week)
+    cost_data, delivered_data = cost_and_delivered_data
+
+    for date in undelivered_dates:
+        number_of_days_per_week_not_received[date.weekday()] += 1
+    
+    number_of_days_delivered = [
+        number_of_days_per_week[day_id] - number_of_days_per_week_not_received[day_id] if delivered else 0
+        for day_id, delivered in delivered_data.items()
+    ]
+
+    return sum(
+        cost * number_of_days_delivered[day_id]
+        for day_id, cost in cost_data.items()
+    )
+
+
+def calculate_cost_of_all_papers(undelivered_strings: dict[int, str], month: int, year: int) -> tuple[dict[int, float], float, dict[int, set[date_type]]]:
+    NUMBER_OF_DAYS_PER_WEEK = get_number_of_days_per_week(month, year)
+
+    with connect(DATABASE_PATH) as connection:
+        papers = connection.execute(
+            generate_sql_query(
+                'papers',
+                columns=['paper_id']
+            )
+        ).fetchall()
+
+    cost_and_delivery_data = [
+        get_cost_and_delivery_data(paper_id)
+        for paper_id, in papers # type: ignore
+    ]
+
+    undelivered_dates: dict[int, set[date_type]] = {
+        paper_id: {}
+        for paper_id, in papers # type: ignore
+    }
+
+    for paper_id, undelivered_string in undelivered_strings.items(): # type: ignore
+        undelivered_dates[paper_id] = parse_undelivered_string(undelivered_string, month, year)
+
+
+    costs = {
+        paper_id: calculate_cost_of_one_paper(
+            NUMBER_OF_DAYS_PER_WEEK,
+            undelivered_dates[paper_id],
+            cost_and_delivery_data[index]
+        )
+        for index, (paper_id,) in enumerate(papers) # type: ignore
+    }
+
+    total: float = sum(costs.values())
+
+    return costs, total, undelivered_dates
+
+
+def save_results(undelivered_dates: dict[int, set[date_type]], month: int, year: int) -> None:
+    TIMESTAMP = datetime.now().strftime(r'%d/%m/%Y %I:%M:%S %p')
+
+    with connect(DATABASE_PATH) as connection:
+        for paper_id, undelivered_date_instances in undelivered_dates.items():
+            connection.execute(
+                "INSERT INTO undelivered_dates (timestamp, month, year, paper_id, dates) VALUES (?, ?, ?, ?, ?);",
+                (
+                    TIMESTAMP,
+                    month,
+                    year,
+                    paper_id,
+                    ','.join([
+                        undelivered_date_instance.strftime(r'%d')
+                        for undelivered_date_instance in undelivered_date_instances
+                    ])
+                )
+            )
+
+
+def format_output(costs: dict[int, float], total: float, month: int, year: int) -> str:
+    papers = {
+        paper_id: name
+        for paper_id, name in query_database(
+            generate_sql_query('papers')
+        )
+    }
+
+
+    format_string = f"For {date_type(year=year, month=month, day=1).strftime(r'%B %Y')}\n\n"
+    format_string += f"**TOTAL**: {total}\n"
+
+    format_string += '\n'.join([
+        f"{papers[paper_id]}: {cost}"  # type: ignore
+        for paper_id, cost in costs.items()
+    ])
+
+    return f"{format_string}\n"
+
+
+def add_new_paper(name: str, days_delivered: list[bool], days_cost: list[float]) -> tuple[bool, str]:
+    with connect(DATABASE_PATH) as connection:
+        q = generate_sql_query('papers', columns=['name'], conditions={'name': f"\"{name}\""})
+        paper = connection.execute(
+            q
+        ).fetchall()
+
+        if paper:
+            return False, "Paper already exists. Please try editing the paper instead."
+        
+        connection.execute(
+            "INSERT INTO papers (name) VALUES (?);",
+            (name, )
         )
 
-        data = self.connection.cursor().execute(query).fetchall()
-        all_papers = {}
+        paper_id = connection.execute(
+            "SELECT paper_id FROM papers WHERE name = ?;",
+            (name, )
+        ).fetchone()[0]
 
-        for paper_id, name, day_id, cost, delivered in data:
-            day_name = weekday_names[day_id]
-            if str(paper_id) not in all_papers:
-                all_papers[str(paper_id)] = {
-                    'name': name,
-                    'days': {}
+        for day_id, (cost, delivered) in enumerate(zip(days_cost, days_delivered)):
+            connection.execute(
+                "INSERT INTO papers_days_cost (paper_id, day_id, cost) VALUES (?, ?, ?);",
+                (paper_id, day_id, cost)
+            )
+            connection.execute(
+                "INSERT INTO papers_days_delivered (paper_id, day_id, delivered) VALUES (?, ?, ?);",
+                (paper_id, day_id, delivered)
+            )
+        
+        connection.commit()
+
+        return True, f"Paper {name} added."
+
+    return False, "Something went wrong."
+
+
+def edit_existing_paper(paper_id: int, name: str | None = None, days_delivered: list[bool] | None = None, days_cost: list[float] | None = None) -> tuple[bool, str]:
+    with connect(DATABASE_PATH) as connection:
+        paper = connection.execute(
+            generate_sql_query('papers', columns=['paper_id'], conditions={'paper_id': paper_id})
+        ).fetchone()
+
+        if not paper:
+            return False, f"Paper {paper_id} does not exist. Please try adding it instead."
+
+        if name is not None:
+            connection.execute(
+                "UPDATE papers SET name = ? WHERE paper_id = ?;",
+                (name, paper_id)
+            )
+        
+        if days_delivered is not None:
+            for day_id, delivered in enumerate(days_delivered):
+                connection.execute(
+                    "UPDATE papers_days_delivered SET delivered = ? WHERE paper_id = ? AND day_id = ?;",
+                    (delivered, paper_id, day_id)
+                )
+
+        if days_cost is not None:
+            for day_id, cost in enumerate(days_cost):
+                connection.execute(
+                    "UPDATE papers_days_cost SET cost = ? WHERE paper_id = ? AND day_id = ?;",
+                    (cost, paper_id, day_id)
+                )
+
+        connection.commit()
+
+        return True, f"Paper {paper_id} edited."
+
+    return False, "Something went wrong."
+
+
+def delete_existing_paper(paper_id: int) -> tuple[bool, str]:
+    with connect(DATABASE_PATH) as connection:
+        paper = connection.execute(
+            generate_sql_query('papers', columns=['paper_id'], conditions={'paper_id': paper_id})
+        ).fetchone()
+
+        if not paper:
+            return False, f"Paper {paper_id} does not exist. Please try adding it instead."
+
+        connection.execute(
+            "DELETE FROM papers WHERE paper_id = ?;",
+            (paper_id, )
+        )
+
+        connection.execute(
+            "DELETE FROM papers_days_cost WHERE paper_id = ?;",
+            (paper_id, )
+        )
+
+        connection.execute(
+            "DELETE FROM papers_days_delivered WHERE paper_id = ?;",
+            (paper_id, )
+        )
+
+        connection.commit()
+
+        return True, f"Paper {paper_id} deleted."
+
+    return False, "Something went wrong."
+
+
+def add_undelivered_string(paper_id: int, undelivered_string: str, month: int, year: int) -> tuple[bool, str]:
+    if validate_undelivered_string(undelivered_string):
+        with connect(DATABASE_PATH) as connection:
+            existing_string = connection.execute(
+                generate_sql_query(
+                    'undelivered_strings',
+                    columns=['string'],
+                    conditions={
+                        'paper_id': paper_id,
+                        'month': month,
+                        'year': year
+                    }
+                )
+            ).fetchone()
+
+            if existing_string:
+                new_string = f"{existing_string[0]},{undelivered_string}"
+
+                connection.execute(
+                    "UPDATE undelivered_strings SET string = ? WHERE paper_id = ? AND month = ? AND year = ?;",
+                    (new_string, paper_id, month, year)
+                )
+
+            else:
+                connection.execute(
+                    "INSERT INTO undelivered_strings (string, paper_id, month, year) VALUES (?, ?, ?, ?);",
+                    (undelivered_string, paper_id, month, year)
+                )
+
+            connection.commit()
+
+        return True, f"Undelivered string added."
+
+    return False, f"Invalid undelivered string."
+
+
+def delete_undelivered_string(paper_id: int, month: int, year: int) -> tuple[bool, str]:
+    with connect(DATABASE_PATH) as connection:
+        existing_string = connection.execute(
+            generate_sql_query(
+                'undelivered_strings',
+                columns=['string'],
+                conditions={
+                    'paper_id': paper_id,
+                    'month': month,
+                    'year': year
                 }
+            )
+        ).fetchone()
 
-            all_papers[str(paper_id)]['days'][day_name] = {
-                'cost': cost,
-                'delivered': delivered
-            }
+        if existing_string:
+            connection.execute(
+                "DELETE FROM undelivered_strings WHERE paper_id = ? AND month = ? AND year = ?;",
+                (paper_id, month, year)
+            )
 
-        return all_papers
+            connection.commit()
+
+            return True, f"Undelivered string deleted."
+
+        return False, f"Undelivered string does not exist."
+
+    return False, "Something went wrong."
+
+
+def get_previous_month() -> date_type:
+    return (datetime.today().replace(day=1) - timedelta(days=1)).replace(day=1)
+
+
+def extract_days_and_costs(days_delivered: str | None, prices: str | None) -> tuple[list[bool], list[float]]:
+    days = []
+    costs = []
+
+    if days_delivered is not None:
+        days = [
+            bool(int(day == 'Y')) for day in str(days_delivered).upper()
+        ]
+
+    if prices is not None:
+
+        costs = []
+        encoded_prices = [float(price) for price in prices.split(';') if float(price) > 0]
+
+        day_count = -1
+        for day in days:
+            if day:
+                day_count += 1
+                cost = encoded_prices[day_count]
+
+            else:
+                cost = 0
+
+            costs.append(cost)
+
+    return days, costs
+
+def main():
+    pass
+
+if __name__ == '__main__':
+    main()

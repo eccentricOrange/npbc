@@ -11,12 +11,10 @@ class NPBC_updater:
         self.current_platform_data = {}
         self.set_paths()
         self.current_platform_data['path'].mkdir(parents=True, exist_ok=True)
-        self.cli_path = self.current_platform_data['path'] / \
-            f"npbc_cli-{self.current_platform_data['name']}"
-        self.api_path = self.current_platform_data['path'] / \
-            f"npbc_api-{self.current_platform_data['name']}"
+        self.cli_path = self.current_platform_data['path'] / f"npbc_cli-{self.current_platform_data['name']}"
+        # self.api_path = self.current_platform_data['path'] / f"npbc_api-{self.current_platform_data['name']}"
         self.cli_url = f"https://github.com/eccentricOrange/npbc/releases/latest/download/npbc_cli-{self.current_platform_data['name']}"
-        self.api_url = f"https://github.com/eccentricOrange/npbc/releases/latest/download/npbc_api-{self.current_platform_data['name']}"
+        # self.api_url = f"https://github.com/eccentricOrange/npbc/releases/latest/download/npbc_api-{self.current_platform_data['name']}"
 
     def set_paths(self):
         self.current_platform = get_platform_data()
@@ -50,22 +48,22 @@ class NPBC_updater:
         cli_download = urlopen(self.cli_url).read()
         print ("Done.\n")
 
-        print ("Downloading NPBC API...")
-        api = urlopen(self.api_url).read()
-        print ("Done.\n\n")
+        # print ("Downloading NPBC API...")
+        # api = urlopen(self.api_url).read()
+        # print ("Done.\n\n")
 
         print ("Installing NPBC CLI...")
         with open(self.cli_path, 'wb') as cli_file:
             cli_file.write(cli_download)
         print ("Done.\n")
 
-        print ("Installing NPBC API...")
-        with open(self.api_path, 'wb') as api_file:
-            api_file.write(api)
-        print ("Done.\n\n")
+        # print ("Installing NPBC API...")
+        # with open(self.api_path, 'wb') as api_file:
+        #     api_file.write(api)
+        # print ("Done.\n\n")
 
         self.cli_path.chmod(0o755)
-        self.api_path.chmod(0o755)
+        # self.api_path.chmod(0o755)
 
         print ("NPBC has been updated.")
 
