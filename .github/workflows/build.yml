@@ -13,6 +13,7 @@ jobs:
           python-version: '3.10'
       - run: pip install -r requirements.txt
       - uses: cclauss/GitHub-Action-for-pytest@0.5.0
+      - run: pytest
 
   build:
     needs:
@@ -24,7 +25,7 @@ jobs:
           - windows
           - macos
         architecture: ['x64']
-        app: ['cli', 'api', updater]
+        app: ['cli', updater]
         include:
           - os: windows
             data-file: data/schema.sql;.
