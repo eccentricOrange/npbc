@@ -3,7 +3,20 @@ name: build and release
 on: [push]
 
 jobs:
+  test:
+    name: pytest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - run: pip install -r requirements.txt
+      - uses: cclauss/GitHub-Action-for-pytest@0.5.0
+
   build:
+    needs:
+      - pytest
     strategy:
       matrix:
         os:
@@ -11,7 +24,7 @@ jobs:
           - windows
           - macos
         architecture: ['x64']
-        app: ['cli',  updater]
+        app: ['cli', 'api', updater]
         include:
           - os: windows
             data-file: data/schema.sql;.
@@ -29,7 +42,6 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: '3.10'
-          cache: pip
           architecture: ${{ matrix.architecture }}
       - run: pip install -r requirements.txt pyinstaller
       - run: mkdir build
