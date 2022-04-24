@@ -16,7 +16,7 @@ jobs:
 
   build:
     needs:
-      - pytest
+      - test
     strategy:
       matrix:
         os:
