@@ -6,12 +6,12 @@ from pathlib import Path
 from re import compile as compile_regex
 
 DATABASE_DIR = Path().home() / '.npbc'
-DATABASE_DIR = Path('data')
+# DATABASE_DIR = Path('data')
 
 DATABASE_PATH = DATABASE_DIR / 'npbc.db'
 
 SCHEMA_PATH = Path(__file__).parent / 'schema.sql'
-SCHEMA_PATH = DATABASE_DIR / 'schema.sql'
+# SCHEMA_PATH = DATABASE_DIR / 'schema.sql'
 
 WEEKDAY_NAMES = list(weekday_names_iterable)
 
@@ -29,7 +29,11 @@ VALIDATE_REGEX = {
     'days': compile_regex(f"^{'|'.join([day_name.lower() + 's' for day_name in WEEKDAY_NAMES])}$"),
 
     # match for nth weekday name. day must appear as "n-dayname" (example: "1-monday"). all lowercase. must be one digit.
-    'n-day': compile_regex(f"^\\d *- *({'|'.join([day_name.lower() for day_name in WEEKDAY_NAMES])})$")
+    'n-day': compile_regex(f"^\\d *- *({'|'.join([day_name.lower() for day_name in WEEKDAY_NAMES])})$"),
+
+    'costs': compile_regex(r'^(\d+.?\d*)(;(\d+.?\d*))*$'),
+
+    'delivery': compile_regex(r'^[YN]{7}$')
 }
 
 SPLIT_REGEX = {
@@ -232,21 +236,25 @@ def calculate_cost_of_all_papers(undelivered_strings: dict[int, str], month: int
 
     cost_and_delivery_data = [
         get_cost_and_delivery_data(paper_id)
-        for paper_id, _ in papers # type: ignore
+        for paper_id, in papers # type: ignore
     ]
 
-    undelivered_dates = {
-        paper_id: parse_undelivered_string(undelivered_string, month, year)
-        for paper_id, undelivered_string in undelivered_strings.items() # type: ignore
+    undelivered_dates: dict[int, set[date_type]] = {
+        paper_id: {}
+        for paper_id, in papers # type: ignore
     }
+
+    for paper_id, undelivered_string in undelivered_strings.items(): # type: ignore
+        undelivered_dates[paper_id] = parse_undelivered_string(undelivered_string, month, year)
+
 
     costs = {
         paper_id: calculate_cost_of_one_paper(
             NUMBER_OF_DAYS_PER_WEEK,
             undelivered_dates[paper_id],
-            cost_and_delivery_data[paper_id]
+            cost_and_delivery_data[index]
         )
-        for paper_id, _ in papers # type: ignore
+        for index, (paper_id,) in enumerate(papers) # type: ignore
     }
 
     total: float = sum(costs.values())
@@ -260,14 +268,14 @@ def save_results(undelivered_dates: dict[int, set[date_type]], month: int, year:
     with connect(DATABASE_PATH) as connection:
         for paper_id, undelivered_date_instances in undelivered_dates.items():
             connection.execute(
-                "INSERT INTO undelivered_dates (timestamp, month, year, paper_id, undelivered_dates) VALUES (?, ?, ?, ?, ?);",
+                "INSERT INTO undelivered_dates (timestamp, month, year, paper_id, dates) VALUES (?, ?, ?, ?, ?);",
                 (
                     TIMESTAMP,
                     month,
                     year,
                     paper_id,
                     ','.join([
-                        undelivered_date_instance.strftime(r'%d/%m/%Y')
+                        undelivered_date_instance.strftime(r'%d')
                         for undelivered_date_instance in undelivered_date_instances
                     ])
                 )
@@ -286,18 +294,19 @@ def format_output(costs: dict[int, float], total: float, month: int, year: int) 
     format_string = f"For {date_type(year=year, month=month, day=1).strftime(r'%B %Y')}\n\n"
     format_string += f"**TOTAL**: {total}\n"
 
-    '\n'.join([
+    format_string += '\n'.join([
         f"{papers[paper_id]}: {cost}"  # type: ignore
         for paper_id, cost in costs.items()
     ])
 
-    return format_string
+    return f"{format_string}\n"
 
 
 def add_new_paper(name: str, days_delivered: list[bool], days_cost: list[float]) -> tuple[bool, str]:
     with connect(DATABASE_PATH) as connection:
+        q = generate_sql_query('papers', columns=['name'], conditions={'name': f"\"{name}\""})
         paper = connection.execute(
-            generate_sql_query('papers', columns=['name'], conditions={'name': name})
+            q
         ).fetchall()
 
         if paper:
@@ -399,8 +408,6 @@ def delete_existing_paper(paper_id: int) -> tuple[bool, str]:
 
 def add_undelivered_string(paper_id: int, undelivered_string: str, month: int, year: int) -> tuple[bool, str]:
     if validate_undelivered_string(undelivered_string):
-        new_string = undelivered_string
-
         with connect(DATABASE_PATH) as connection:
             existing_string = connection.execute(
                 generate_sql_query(
@@ -415,7 +422,7 @@ def add_undelivered_string(paper_id: int, undelivered_string: str, month: int, y
             ).fetchone()
 
             if existing_string:
-                new_string += existing_string[0]
+                new_string = f"{existing_string[0]},{undelivered_string}"
 
                 connection.execute(
                     "UPDATE undelivered_strings SET string = ? WHERE paper_id = ? AND month = ? AND year = ?;",
@@ -425,7 +432,7 @@ def add_undelivered_string(paper_id: int, undelivered_string: str, month: int, y
             else:
                 connection.execute(
                     "INSERT INTO undelivered_strings (string, paper_id, month, year) VALUES (?, ?, ?, ?);",
-                    (new_string, paper_id, month, year)
+                    (undelivered_string, paper_id, month, year)
                 )
 
             connection.commit()
@@ -467,6 +474,33 @@ def delete_undelivered_string(paper_id: int, month: int, year: int) -> tuple[boo
 def get_previous_month() -> date_type:
     return (datetime.today().replace(day=1) - timedelta(days=1)).replace(day=1)
 
+
+def extract_days_and_costs(days_delivered: str | None, prices: str | None) -> tuple[list[bool], list[float]]:
+    days = []
+    costs = []
+
+    if days_delivered is not None:
+        days = [
+            bool(int(day == 'Y')) for day in str(days_delivered).upper()
+        ]
+
+    if prices is not None:
+
+        costs = []
+        encoded_prices = [float(price) for price in prices.split(';') if float(price) > 0]
+
+        day_count = -1
+        for day in days:
+            if day:
+                day_count += 1
+                cost = encoded_prices[day_count]
+
+            else:
+                cost = 0
+
+            costs.append(cost)
+
+    return days, costs
 
 def main():
     pass

@@ -2,7 +2,7 @@ from argparse import ArgumentParser, Namespace as arg_namespace
 from datetime import datetime
 from colorama import Fore, Style
 from pyperclip import copy as copy_to_clipboard
-from npbc_core import add_new_paper, add_undelivered_string, calculate_cost_of_all_papers, delete_existing_paper, delete_undelivered_string, edit_existing_paper, format_output, generate_sql_query, get_previous_month, query_database, save_results
+from npbc_core import VALIDATE_REGEX, add_new_paper, add_undelivered_string, calculate_cost_of_all_papers, delete_existing_paper, delete_undelivered_string, edit_existing_paper, extract_days_and_costs, format_output, generate_sql_query, get_previous_month, query_database, save_results, WEEKDAY_NAMES, setup_and_connect_DB
 
 def define_and_read_args() -> arg_namespace:
     parser = ArgumentParser(
@@ -107,8 +107,9 @@ def define_and_read_args() -> arg_namespace:
     )
 
     getlogs_parser.set_defaults(func=getlogs)
-    getlogs_parser.add_argument('-m', '--month', type=int, help="Month to calculate bill for. Must be between 1 and 12.")
-    getlogs_parser.add_argument('-y', '--year', type=int, help="Year to calculate bill for. Must be between 1 and 9999.")
+    getlogs_parser.add_argument('-m', '--month', type=int, help="Month. Must be between 1 and 12.")
+    getlogs_parser.add_argument('-y', '--year', type=int, help="Year. Must be between 1 and 9999.")
+    getlogs_parser.add_argument('-k', '--key', type=str, help="Key for paper.", required=True)
 
 
     update_parser = subparsers.add_parser(
@@ -123,9 +124,9 @@ def define_and_read_args() -> arg_namespace:
 
 def status_print(status: bool, message: str):
     if status:
-        print(f"{Fore.GREEN}{message}{Style.RESET_ALL}")
+        print(f"{Fore.GREEN}{Style.BRIGHT}{message}{Style.RESET_ALL}\n")
     else:
-        print(f"{Fore.RED}{message}{Style.RESET_ALL}")
+        print(f"{Fore.RED}{Style.BRIGHT}{message}{Style.RESET_ALL}\n")
 
 def calculate(args: arg_namespace):
     if args.month or args.year:
@@ -148,7 +149,7 @@ def calculate(args: arg_namespace):
     existing_strings = query_database(
         generate_sql_query(
             'undelivered_strings',
-            columns=['paper_id', 'undelivered_strings'],
+            columns=['paper_id', 'string'],
             conditions={
                 'month': month,
                 'year': year
@@ -169,17 +170,18 @@ def calculate(args: arg_namespace):
 
     formatted = format_output(costs, total, month, year)
 
-    if not args.nocopy():
+    if not args.nocopy:
         copy_to_clipboard(formatted)
 
         formatted += '\nSummary copied to clipboard.'
 
-    if not args.nolog():
+    if not args.nolog:
         save_results(undelivered_dates, month, year)
 
         formatted += '\nLog saved to file.'
 
-    print(f"{Fore.GREEN}Success!{Style.RESET_ALL} SUMMARY:\n{formatted}")
+    status_print(True, "Success!")
+    print(f"SUMMARY:\n{formatted}")
 
 
 def addudl(args: arg_namespace):
@@ -197,7 +199,7 @@ def addudl(args: arg_namespace):
 
     feedback = add_undelivered_string(
         args.key,
-        args.undelivered_string,
+        str(args.undelivered).lower(),
         month,
         year
     )
@@ -226,8 +228,8 @@ def getudl(args: arg_namespace):
     if args.year:
         conditions['year'] = args.year
 
-    if args.undelivered_string:
-        conditions['undelivered_strings'] = args.undelivered_string
+    if args.undelivered:
+        conditions['strings'] = args.undelivered
 
     undelivered_strings = query_database(
         generate_sql_query(
@@ -237,60 +239,58 @@ def getudl(args: arg_namespace):
     )
 
     if undelivered_strings:
-        print(f"{Fore.GREEN}Success!{Style.RESET_ALL}\n")
+        status_print(True, 'Found undelivered strings.')
 
         print(f"{Fore.YELLOW}entry_id{Style.RESET_ALL} | {Fore.YELLOW}year{Style.RESET_ALL} | {Fore.YELLOW}month{Style.RESET_ALL} | {Fore.YELLOW}paper_id{Style.RESET_ALL} | {Fore.YELLOW}string{Style.RESET_ALL}")
         
         for string in undelivered_strings:
-            print('|'.join(string))
+            print('|'.join([str(item) for item in string]))
 
     else:
-        print(f"{Fore.RED}No results found.{Style.RESET_ALL}")
-
-
-def extract_days_and_costs(args: arg_namespace) -> tuple[list[bool], list[float]]:
-    days = [
-        bool(int(day == 'Y')) for day in str(args.days).upper()
-    ]
-
-    prices = []
-    encoded_prices = [float(price) for price in args.price.split(';') if float(price) > 0]
-
-    day_count = -1
-    for day in days:
-        if day:
-            day_count += 1
-            price = encoded_prices[day_count]
-
-        else:
-            price = 0
-
-        prices.append(price)
-
-    return days, prices
+        status_print(False, 'No undelivered strings found.')
 
 
 def editpaper(args: arg_namespace):
-    days, prices = extract_days_and_costs(args)
+    feedback = True, ""
 
-    feedback = edit_existing_paper(
-        args.key,
-        args.name,
-        days,
-        prices
-    )
+    if args.days:
+        if not VALIDATE_REGEX['delivery'].match(args.days):
+            feedback = False, "Invalid delivery days."
+
+    if args.costs:
+        if not VALIDATE_REGEX['prices'].match(args.prices):
+            feedback = False, "Invalid prices."
+
+    
+    if feedback[0]:
+
+        feedback = edit_existing_paper(
+            args.key,
+            args.name,
+            *extract_days_and_costs(args.days, args.price)
+        )
 
     status_print(*feedback)
 
 
 def addpaper(args: arg_namespace):
-    days, prices = extract_days_and_costs(args)
+    feedback = True, ""
+    
+    if args.days:
+        if not VALIDATE_REGEX['delivery'].match(args.days):
+            feedback = False, "Invalid delivery days."
 
-    feedback = add_new_paper(
-        args.name,
-        days,
-        prices
-    )
+    if args.costs:
+        if not VALIDATE_REGEX['prices'].match(args.prices):
+            feedback = False, "Invalid prices."
+
+    
+    if feedback[0]:
+
+        feedback = add_new_paper(
+            args.name,
+            *extract_days_and_costs(args.days, args.price)
+        )
 
     status_print(*feedback)
 
@@ -303,6 +303,151 @@ def delpaper(args: arg_namespace):
     status_print(*feedback)
 
 
+def getpapers(args: arg_namespace):
+    headers = ['paper_id']
+
+    papers_id_list = [
+        paper_id
+        for paper_id, in query_database(
+            generate_sql_query(
+                'papers',
+                columns=['paper_id']
+            )
+        )
+    ]
+
+    paper_name_list, paper_days_list, paper_costs_list = [], [], []
+
+    papers_id_list.sort()
+
+    if args.names:
+        papers_names = {
+            paper_id: paper_name
+            for paper_id, paper_name in query_database(
+                generate_sql_query(
+                    'papers',
+                    columns=['paper_id', 'name']
+                )
+            )
+        }
+
+        paper_name_list = [
+            papers_names[paper_id]
+            for paper_id in papers_id_list
+        ]
+
+        headers.append('name')
+
+    if args.days:
+        papers_days = {
+            paper_id: {}
+            for paper_id in papers_id_list
+        }
+
+        for paper_id, day_id, delivered in query_database(
+            generate_sql_query(
+                'papers_days_delivered',
+                columns=['paper_id', 'day_id', 'delivered']
+            )
+        ):
+            papers_days[paper_id][day_id] = delivered
+
+        paper_days_list = [
+            ''.join([
+                'Y' if int(papers_days[paper_id][day_id]) == 1 else 'N'
+                for day_id, _ in enumerate(WEEKDAY_NAMES)
+            ])
+            for paper_id in papers_id_list
+        ]
+
+        headers.append('days')
+
+    if args.prices:
+        papers_costs = {
+            paper_id: {}
+            for paper_id in papers_id_list
+        }
+
+        for paper_id, day_id, cost in query_database(
+            generate_sql_query(
+                'papers_days_cost',
+                columns=['paper_id', 'day_id', 'cost']
+            )
+        ):
+            papers_costs[paper_id][day_id] = cost
+
+        paper_costs_list = [
+            ';'.join([
+                str(papers_costs[paper_id][day_id])
+                for day_id, _ in enumerate(WEEKDAY_NAMES)
+            ])
+            for paper_id in papers_id_list
+        ]
+
+        headers.append('costs')
+
+    print(' | '.join([
+        f"{Fore.YELLOW}{header}{Style.RESET_ALL}"
+        for header in headers
+    ]))
+
+    for index, paper_id in enumerate(papers_id_list):
+        print(f"{paper_id}: ", end='')
+        
+        values = []
+
+        if args.names:
+            values.append(paper_name_list[index])
+
+        if args.days:
+            values.append(paper_days_list[index])
+
+        if args.prices:
+            values.append(paper_costs_list[index])
+
+        print(', '.join(values))
+
+
+def getlogs(args: arg_namespace):
+    conditions = {}
+
+    if args.key:
+        conditions['paper_id'] = args.key
+
+    if args.month:
+        conditions['month'] = args.month
+
+    if args.year:
+        conditions['year'] = args.year
+
+    undelivered_dates = query_database(
+        generate_sql_query(
+            'undelivered_dates',
+            conditions=conditions
+        )
+    )
+
+    if undelivered_dates:
+        status_print(True, 'Success!')
+
+        print(f"{Fore.YELLOW}entry_id{Style.RESET_ALL} | {Fore.YELLOW}year{Style.RESET_ALL} | {Fore.YELLOW}month{Style.RESET_ALL} | {Fore.YELLOW}paper_id{Style.RESET_ALL} | {Fore.YELLOW}dates{Style.RESET_ALL}")
+
+        for date in undelivered_dates:
+            print(', '.join(date))
+
+    else:
+        status_print(False, 'No results found.')
+
+
+def update(args: arg_namespace):
+    status_print(False, "Update failed.")
+
+
 def main():
+    setup_and_connect_DB()
     args = define_and_read_args()
     args.func(args)
+
+
+if __name__ == '__main__':
+    main()

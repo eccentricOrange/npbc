@@ -11,7 +11,7 @@ jobs:
           - windows
           - macos
         architecture: ['x64']
-        app: ['cli', 'api', updater]
+        app: ['cli',  updater]
         include:
           - os: windows
             data-file: data/schema.sql;.
