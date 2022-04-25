@@ -1,4 +1,4 @@
-from npbc_core import VALIDATE_REGEX, SPLIT_REGEX, generate_sql_query, get_number_of_days_per_week, parse_undelivered_string
+from npbc_core import VALIDATE_REGEX, SPLIT_REGEX, calculate_cost_of_one_paper, extract_days_and_costs, generate_sql_query, get_number_of_days_per_week, get_previous_month, parse_undelivered_string
 from datetime import date as date_type
 
 
@@ -363,3 +363,179 @@ def test_number_of_days_per_week():
     assert get_number_of_days_per_week(3, 2022) == [4, 5, 5 ,5, 4, 4, 4]
     assert get_number_of_days_per_week(2, 2020) == [4, 4, 4, 4, 4, 5, 4]
     assert get_number_of_days_per_week(12, 1954) == [4, 4, 5, 5, 5, 4, 4]
+
+
+def test_calculating_cost_of_one_paper():
+    DAYS_PER_WEEK = [5, 4, 4, 4, 4, 5, 5]
+    COST_PER_DAY: dict[int, float] = {
+        0: 0,
+        1: 0,
+        2: 2,
+        3: 2,
+        4: 5,
+        5: 0,
+        6: 1
+    }
+    DELIVERY_DATA: dict[int, bool] = {
+        0: False,
+        1: False,
+        2: True,
+        3: True,
+        4: True,
+        5: False,
+        6: True
+    }
+    
+    assert calculate_cost_of_one_paper(
+        DAYS_PER_WEEK,
+        set([]),
+        (
+            COST_PER_DAY,
+            DELIVERY_DATA
+        )
+    ) == 41
+
+    assert calculate_cost_of_one_paper(
+        DAYS_PER_WEEK,
+        set([]),
+        (
+            COST_PER_DAY,
+            {
+                0: False,
+                1: False,
+                2: True,
+                3: True,
+                4: True,
+                5: False,
+                6: False
+            }
+        )
+    ) == 36
+
+    assert calculate_cost_of_one_paper(
+        DAYS_PER_WEEK,
+        set([
+            date_type(year=2022, month=1, day=8)
+        ]),
+        (
+            COST_PER_DAY,
+            DELIVERY_DATA
+        )
+    ) == 41
+
+    assert calculate_cost_of_one_paper(
+        DAYS_PER_WEEK,
+        set([
+            date_type(year=2022, month=1, day=8),
+            date_type(year=2022, month=1, day=8)
+        ]),
+        (
+            COST_PER_DAY,
+            DELIVERY_DATA
+        )
+    ) == 41
+
+    assert calculate_cost_of_one_paper(
+        DAYS_PER_WEEK,
+        set([
+            date_type(year=2022, month=1, day=8),
+            date_type(year=2022, month=1, day=17)
+        ]),
+        (
+            COST_PER_DAY,
+            DELIVERY_DATA
+        )
+    ) == 41
+
+    assert calculate_cost_of_one_paper(
+        DAYS_PER_WEEK,
+        set([
+            date_type(year=2022, month=1, day=2)
+        ]),
+        (
+            COST_PER_DAY,
+            DELIVERY_DATA
+        )
+    ) == 40
+
+    assert calculate_cost_of_one_paper(
+        DAYS_PER_WEEK,
+        set([
+            date_type(year=2022, month=1, day=2),
+            date_type(year=2022, month=1, day=2)
+        ]),
+        (
+            COST_PER_DAY,
+            DELIVERY_DATA
+        )
+    ) == 40
+
+    assert calculate_cost_of_one_paper(
+        DAYS_PER_WEEK,
+        set([
+            date_type(year=2022, month=1, day=6),
+            date_type(year=2022, month=1, day=7)
+        ]),
+        (
+            COST_PER_DAY,
+            DELIVERY_DATA
+        )
+    ) == 34
+
+    assert calculate_cost_of_one_paper(
+        DAYS_PER_WEEK,
+        set([
+            date_type(year=2022, month=1, day=6),
+            date_type(year=2022, month=1, day=7),
+            date_type(year=2022, month=1, day=8)
+        ]),
+        (
+            COST_PER_DAY,
+            DELIVERY_DATA
+        )
+    ) == 34
+
+    assert calculate_cost_of_one_paper(
+        DAYS_PER_WEEK,
+        set([
+            date_type(year=2022, month=1, day=6),
+            date_type(year=2022, month=1, day=7),
+            date_type(year=2022, month=1, day=7),
+            date_type(year=2022, month=1, day=7),
+            date_type(year=2022, month=1, day=8),
+            date_type(year=2022, month=1, day=8),
+            date_type(year=2022, month=1, day=8)
+        ]),
+        (
+            COST_PER_DAY,
+            DELIVERY_DATA
+        )
+    ) == 34
+
+
+def test_extracting_days_and_costs():
+    assert extract_days_and_costs(None, None) == ([], [])
+    assert extract_days_and_costs('NNNNNNN', None) == (
+        [False, False, False, False, False, False, False],
+        []
+    )
+
+    assert extract_days_and_costs('NNNYNNN', '7') == (
+        [False, False, False, True, False, False, False],
+        [0, 0, 0, 7, 0, 0, 0]
+    )
+
+    assert extract_days_and_costs('NNNYNNN', '7;7') == (
+        [False, False, False, True, False, False, False],
+        [0, 0, 0, 7, 0, 0, 0]
+    )
+
+    assert extract_days_and_costs('NNNYNNY', '7;4') == (
+        [False, False, False, True, False, False, True],
+        [0, 0, 0, 7, 0, 0, 4]
+    )
+
+    assert extract_days_and_costs('NNNYNNY', '7;4.7') == (
+        [False, False, False, True, False, False, True],
+        [0, 0, 0, 7, 0, 0, 4.7]
+    )
