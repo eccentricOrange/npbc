@@ -2,16 +2,16 @@ from argparse import ArgumentParser, Namespace as arg_namespace
 from datetime import datetime
 from colorama import Fore, Style
 from pyperclip import copy as copy_to_clipboard
-from npbc_core import VALIDATE_REGEX, add_new_paper, add_undelivered_string, calculate_cost_of_all_papers, delete_existing_paper, delete_undelivered_string, edit_existing_paper, extract_days_and_costs, format_output, generate_sql_query, get_previous_month, query_database, save_results, WEEKDAY_NAMES, setup_and_connect_DB
+from npbc_core import VALIDATE_REGEX, WEEKDAY_NAMES, add_new_paper, add_undelivered_string, calculate_cost_of_all_papers, delete_existing_paper, delete_undelivered_string, edit_existing_paper, extract_days_and_costs, format_output, generate_sql_query, get_previous_month, query_database, save_results, setup_and_connect_DB
 
 def define_and_read_args() -> arg_namespace:
-    parser = ArgumentParser(
+    main_parser = ArgumentParser(
         description="Calculates your monthly newspaper bill."
     )
-    subparsers = parser.add_subparsers(required=True)
+    functions = main_parser.add_subparsers(required=True)
 
 
-    calculate_parser = subparsers.add_parser(
+    calculate_parser = functions.add_parser(
         'calculate',
         help="Calculate the bill for one month. Previous month will be used if month or year flags are not set."
     )
@@ -23,7 +23,7 @@ def define_and_read_args() -> arg_namespace:
     calculate_parser.add_argument('-l', '--nolog', help="Don't log the result of the calculation.", action='store_true')
 
 
-    addudl_parser = subparsers.add_parser(
+    addudl_parser = functions.add_parser(
         'addudl',
         help="Store a date when paper(s) were not delivered. Previous month will be used if month or year flags are not set."
     )
@@ -35,7 +35,7 @@ def define_and_read_args() -> arg_namespace:
     addudl_parser.add_argument('-u', '--undelivered', type=str, help="Dates when you did not receive any papers.", required=True)
 
 
-    deludl_parser = subparsers.add_parser(
+    deludl_parser = functions.add_parser(
         'deludl',
         help="Delete a stored date when paper(s) were not delivered. Previous month will be used if month or year flags are not set."
     )
@@ -46,7 +46,7 @@ def define_and_read_args() -> arg_namespace:
     deludl_parser.add_argument('-y', '--year', type=int, help="Year to calculate bill for. Must be between 1 and 9999.", required=True)
 
 
-    getudl_parser = subparsers.add_parser(
+    getudl_parser = functions.add_parser(
         'getudl',
         help="Get a list of all stored date strings when paper(s) were not delivered."
     )
@@ -58,7 +58,7 @@ def define_and_read_args() -> arg_namespace:
     getudl_parser.add_argument('-u', '--undelivered', type=str, help="Dates when you did not receive any papers.")
 
 
-    editpaper_parser = subparsers.add_parser(
+    editpaper_parser = functions.add_parser(
         'editpaper',
         help="Edit a newspaper\'s name, days delivered, and/or price."
     )
@@ -70,7 +70,7 @@ def define_and_read_args() -> arg_namespace:
     editpaper_parser.add_argument('-k', '--key', type=str, help="Key for paper to be edited, deleted, or added.", required=True)
 
 
-    addpaper_parser = subparsers.add_parser(
+    addpaper_parser = functions.add_parser(
         'addpaper',
         help="Add a new newspaper to the list of newspapers."
     )
@@ -81,7 +81,7 @@ def define_and_read_args() -> arg_namespace:
     addpaper_parser.add_argument('-p', '--price', type=str, help="Daywise prices of paper to be edited or added. Monday is the first day. Values must be separated by semicolons, and 0s are ignored.", required=True)
 
 
-    delpaper_parser = subparsers.add_parser(
+    delpaper_parser = functions.add_parser(
         'delpaper',
         help="Delete a newspaper from the list of newspapers."
     )
@@ -90,7 +90,7 @@ def define_and_read_args() -> arg_namespace:
     delpaper_parser.add_argument('-k', '--key', type=str, help="Key for paper to be edited, deleted, or added.", required=True)
 
 
-    getpapers_parser = subparsers.add_parser(
+    getpapers_parser = functions.add_parser(
         'getpapers',
         help="Get all newspapers. Returns JSON if no flags are set."
     )
@@ -101,7 +101,7 @@ def define_and_read_args() -> arg_namespace:
     getpapers_parser.add_argument('-p', '--prices', help="Get the daywise prices of the newspapers. Monday is the first day. Values must be separated by semicolons, and 0s are ignored.", action='store_true')
 
 
-    getlogs_parser = subparsers.add_parser(
+    getlogs_parser = functions.add_parser(
         'getlogs',
         help="Get the log of all undelivered dates."
     )
@@ -112,7 +112,7 @@ def define_and_read_args() -> arg_namespace:
     getlogs_parser.add_argument('-k', '--key', type=str, help="Key for paper.", required=True)
 
 
-    update_parser = subparsers.add_parser(
+    update_parser = functions.add_parser(
         'update',
         help="Update the application."
     )
@@ -120,7 +120,7 @@ def define_and_read_args() -> arg_namespace:
     update_parser.set_defaults(func=update)
 
 
-    return parser.parse_args()
+    return main_parser.parse_args()
 
 def status_print(status: bool, message: str):
     if status:
@@ -199,7 +199,7 @@ def addudl(args: arg_namespace):
 
     feedback = add_undelivered_string(
         args.key,
-        str(args.undelivered).lower(),
+        str(args.undelivered).lower().strip(),
         month,
         year
     )
@@ -229,7 +229,7 @@ def getudl(args: arg_namespace):
         conditions['year'] = args.year
 
     if args.undelivered:
-        conditions['strings'] = args.undelivered
+        conditions['strings'] = str(args.undelivered).lower().strip()
 
     undelivered_strings = query_database(
         generate_sql_query(
@@ -253,12 +253,18 @@ def getudl(args: arg_namespace):
 def editpaper(args: arg_namespace):
     feedback = True, ""
 
+    days, costs = "", ""
+
     if args.days:
-        if not VALIDATE_REGEX['delivery'].match(args.days):
+        days = str(args.days).lower().strip()
+
+        if not VALIDATE_REGEX['delivery'].match(days):
             feedback = False, "Invalid delivery days."
 
     if args.costs:
-        if not VALIDATE_REGEX['prices'].match(args.prices):
+        costs = str(args.costs).lower().strip()
+
+        if not VALIDATE_REGEX['prices'].match(costs):
             feedback = False, "Invalid prices."
 
     
@@ -267,7 +273,7 @@ def editpaper(args: arg_namespace):
         feedback = edit_existing_paper(
             args.key,
             args.name,
-            *extract_days_and_costs(args.days, args.price)
+            *extract_days_and_costs(days, costs)
         )
 
     status_print(*feedback)
@@ -275,13 +281,19 @@ def editpaper(args: arg_namespace):
 
 def addpaper(args: arg_namespace):
     feedback = True, ""
-    
+
+    days, costs = "", ""
+
     if args.days:
-        if not VALIDATE_REGEX['delivery'].match(args.days):
+        days = str(args.days).lower().strip()
+
+        if not VALIDATE_REGEX['delivery'].match(days):
             feedback = False, "Invalid delivery days."
 
     if args.costs:
-        if not VALIDATE_REGEX['prices'].match(args.prices):
+        costs = str(args.costs).lower().strip()
+
+        if not VALIDATE_REGEX['prices'].match(costs):
             feedback = False, "Invalid prices."
 
     
@@ -289,7 +301,7 @@ def addpaper(args: arg_namespace):
 
         feedback = add_new_paper(
             args.name,
-            *extract_days_and_costs(args.days, args.price)
+            *extract_days_and_costs(days, costs)
         )
 
     status_print(*feedback)

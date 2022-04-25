@@ -16,7 +16,7 @@ SCHEMA_PATH = Path(__file__).parent / 'schema.sql'
 WEEKDAY_NAMES = list(weekday_names_iterable)
 
 VALIDATE_REGEX = {
-    # match for a list of comma separated values. each value must be/contain digits, or letters, or hyphens. spaces are allowed between values and commas.
+    # match for a list of comma separated values. each value must be/contain digits, or letters, or hyphens. spaces are allowed between values and commas. any number of values are allowed, but at least one must be present.
     'CSVs': compile_regex(r'^[-\w]+( *, *[-\w]+)*( *,)?$'),
 
     # match for a single number. must be one or two digits
@@ -31,14 +31,19 @@ VALIDATE_REGEX = {
     # match for nth weekday name. day must appear as "n-dayname" (example: "1-monday"). all lowercase. must be one digit.
     'n-day': compile_regex(f"^\\d *- *({'|'.join([day_name.lower() for day_name in WEEKDAY_NAMES])})$"),
 
-    'costs': compile_regex(r'^(\d+.?\d*)(;(\d+.?\d*))*$'),
+    # match for real values, delimited by semicolons. each value must be either an integer or a float with a decimal point. spaces are allowed between values and semicolons, and up to 7 (but at least 1) values are allowed.
+    'costs': compile_regex(r'^\d+(\.\d+)?( ?; ?\d+(\.\d+)?){0,6} ?;?$'),
 
+    # match for seven values, each of which must be a 'Y' or an 'N'. there are no delimiters.
     'delivery': compile_regex(r'^[YN]{7}$')
 }
 
 SPLIT_REGEX = {
     # split on hyphens. spaces are allowed between hyphens and values.
     'hyphen': compile_regex(r' *- *'),
+    
+    # split on semicolons. spaces are allowed between hyphens and values.
+    'semicolon': compile_regex(r' *; *'),
 
     # split on commas. spaces are allowed between commas and values.
     'comma': compile_regex(r' *, *')
@@ -71,9 +76,9 @@ def generate_sql_query(table_name: str, conditions: dict[str, int | str] | None 
             for parameter_name, parameter_value in conditions.items()
         ])
         
-        sql_query += f" WHERE {conditions_segment};"
+        sql_query += f" WHERE {conditions_segment}"
 
-    return sql_query
+    return f"{sql_query};"
 
 
 def query_database(query: str) -> list[tuple]:
@@ -105,7 +110,7 @@ def get_number_of_days_per_week(month: int, year: int) -> list[int]:
 def validate_undelivered_string(string: str) -> bool:
     if VALIDATE_REGEX['CSVs'].match(string):
         
-        for section in SPLIT_REGEX['comma'].split(string):
+        for section in SPLIT_REGEX['comma'].split(string.rstrip(',')):
             section_validity = False
 
             for pattern, regex in VALIDATE_REGEX.items():
@@ -124,7 +129,7 @@ def validate_undelivered_string(string: str) -> bool:
 def parse_undelivered_string(string: str, month: int, year: int) -> set[date_type]:
     dates = set()
 
-    for section in SPLIT_REGEX['comma'].split(string):
+    for section in SPLIT_REGEX['comma'].split(string.rstrip(',')):
         if VALIDATE_REGEX['number'].match(section):
             date = int(section)
 
@@ -132,7 +137,7 @@ def parse_undelivered_string(string: str, month: int, year: int) -> set[date_typ
                 dates.add(date_type(year, month, date))
 
         elif VALIDATE_REGEX['range'].match(section):
-            start, end = [int(date) for date in SPLIT_REGEX['hyphen'].split(section)]
+            start, end = [int(date) for date in SPLIT_REGEX['hyphen'].split(section.rstrip('-'))]
 
             if 0 < start <= end <= monthrange(year, month)[1]:
                 dates.update(
@@ -150,7 +155,7 @@ def parse_undelivered_string(string: str, month: int, year: int) -> set[date_typ
             )
 
         elif VALIDATE_REGEX['n-day'].match(section):
-            n, weekday = SPLIT_REGEX['hyphen'].split(section)
+            n, weekday = SPLIT_REGEX['hyphen'].split(section.rstrip('-'))
 
             n = int(n)
 
@@ -487,7 +492,7 @@ def extract_days_and_costs(days_delivered: str | None, prices: str | None) -> tu
     if prices is not None:
 
         costs = []
-        encoded_prices = [float(price) for price in prices.split(';') if float(price) > 0]
+        encoded_prices = [float(price) for price in SPLIT_REGEX['semicolon'].split(prices.rstrip(';')) if float(price) > 0]
 
         day_count = -1
         for day in days:
@@ -501,9 +506,3 @@ def extract_days_and_costs(days_delivered: str | None, prices: str | None) -> tu
             costs.append(cost)
 
     return days, costs
-
-def main():
-    pass
-
-if __name__ == '__main__':
-    main()
