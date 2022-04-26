@@ -290,7 +290,7 @@ def calculate_cost_of_all_papers(undelivered_strings: dict[int, str], month: int
         for paper_id, in papers # type: ignore
     }
 
-    # calculate the undeliivered dates for each paper
+    # calculate the undelivered dates for each paper
     for paper_id, undelivered_string in undelivered_strings.items(): # type: ignore
         undelivered_dates[paper_id] = parse_undelivered_string(undelivered_string, month, year)
 
