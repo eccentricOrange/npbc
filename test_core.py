@@ -1,4 +1,4 @@
-from npbc_core import VALIDATE_REGEX, SPLIT_REGEX, calculate_cost_of_one_paper, extract_days_and_costs, generate_sql_query, get_number_of_days_per_week, get_previous_month, parse_undelivered_string
+from npbc_core import VALIDATE_REGEX, SPLIT_REGEX, calculate_cost_of_one_paper, extract_days_and_costs, generate_sql_query, get_number_of_days_per_week, parse_undelivered_string
 from datetime import date as date_type
 
 
