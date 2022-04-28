@@ -4,13 +4,18 @@ from colorama import Fore, Style
 from pyperclip import copy as copy_to_clipboard
 from npbc_core import VALIDATE_REGEX, WEEKDAY_NAMES, add_new_paper, add_undelivered_string, calculate_cost_of_all_papers, delete_existing_paper, delete_undelivered_string, edit_existing_paper, extract_days_and_costs, format_output, generate_sql_query, get_previous_month, query_database, save_results, setup_and_connect_DB, validate_month_and_year, validate_undelivered_string
 
+
+## setup parsers
 def define_and_read_args() -> arg_namespace:
+
+    # main parser for all commands
     main_parser = ArgumentParser(
         description="Calculates your monthly newspaper bill."
     )
     functions = main_parser.add_subparsers(required=True)
 
 
+    # calculate subparser
     calculate_parser = functions.add_parser(
         'calculate',
         help="Calculate the bill for one month. Previous month will be used if month or year flags are not set."
@@ -22,7 +27,7 @@ def define_and_read_args() -> arg_namespace:
     calculate_parser.add_argument('-c', '--nocopy', help="Don't copy the result of the calculation to the clipboard.", action='store_true')
     calculate_parser.add_argument('-l', '--nolog', help="Don't log the result of the calculation.", action='store_true')
 
-
+    # add undelivered string subparser
     addudl_parser = functions.add_parser(
         'addudl',
         help="Store a date when paper(s) were not delivered. Previous month will be used if month or year flags are not set."
@@ -34,7 +39,7 @@ def define_and_read_args() -> arg_namespace:
     addudl_parser.add_argument('-k', '--key', type=str, help="Key for paper to be edited, deleted, or added.", required=True)
     addudl_parser.add_argument('-u', '--undelivered', type=str, help="Dates when you did not receive any papers.", required=True)
 
-
+    # delete undelivered string subparser
     deludl_parser = functions.add_parser(
         'deludl',
         help="Delete a stored date when paper(s) were not delivered. Previous month will be used if month or year flags are not set."
@@ -45,7 +50,7 @@ def define_and_read_args() -> arg_namespace:
     deludl_parser.add_argument('-m', '--month', type=int, help="Month to calculate bill for. Must be between 1 and 12.", required=True)
     deludl_parser.add_argument('-y', '--year', type=int, help="Year to calculate bill for. Must be between 1 and 9999.", required=True)
 
-
+    # get undelivered string subparser
     getudl_parser = functions.add_parser(
         'getudl',
         help="Get a list of all stored date strings when paper(s) were not delivered."
@@ -57,7 +62,7 @@ def define_and_read_args() -> arg_namespace:
     getudl_parser.add_argument('-y', '--year', type=int, help="Year. Must be between 1 and 9999.")
     getudl_parser.add_argument('-u', '--undelivered', type=str, help="Dates when you did not receive any papers.")
 
-
+    # edit paper subparser
     editpaper_parser = functions.add_parser(
         'editpaper',
         help="Edit a newspaper\'s name, days delivered, and/or price."
@@ -69,7 +74,7 @@ def define_and_read_args() -> arg_namespace:
     editpaper_parser.add_argument('-p', '--price', type=str, help="Daywise prices of paper to be edited or added. Monday is the first day. Values must be separated by semicolons, and 0s are ignored.")
     editpaper_parser.add_argument('-k', '--key', type=str, help="Key for paper to be edited, deleted, or added.", required=True)
 
-
+    # add paper subparser
     addpaper_parser = functions.add_parser(
         'addpaper',
         help="Add a new newspaper to the list of newspapers."
@@ -80,7 +85,7 @@ def define_and_read_args() -> arg_namespace:
     addpaper_parser.add_argument('-d', '--days', type=str, help="Number of days the paper to be edited or added, is delivered. Monday is the first day, and all seven weekdays are required. A 'Y' means it is delivered, and an 'N' means it isn't. No separator required.", required=True)
     addpaper_parser.add_argument('-p', '--price', type=str, help="Daywise prices of paper to be edited or added. Monday is the first day. Values must be separated by semicolons, and 0s are ignored.", required=True)
 
-
+    # delete paper subparser
     delpaper_parser = functions.add_parser(
         'delpaper',
         help="Delete a newspaper from the list of newspapers."
@@ -89,7 +94,7 @@ def define_and_read_args() -> arg_namespace:
     delpaper_parser.set_defaults(func=delpaper)
     delpaper_parser.add_argument('-k', '--key', type=str, help="Key for paper to be edited, deleted, or added.", required=True)
 
-
+    # get paper subparser
     getpapers_parser = functions.add_parser(
         'getpapers',
         help="Get all newspapers. Returns JSON if no flags are set."
@@ -100,7 +105,7 @@ def define_and_read_args() -> arg_namespace:
     getpapers_parser.add_argument('-d', '--days', help="Get the days the newspapers are delivered. Monday is the first day, and all seven weekdays are required. A 'Y' means it is delivered, and an 'N' means it isn't.", action='store_true')
     getpapers_parser.add_argument('-p', '--prices', help="Get the daywise prices of the newspapers. Monday is the first day. Values must be separated by semicolons, and 0s are ignored.", action='store_true')
 
-
+    # get undelivered logs subparser
     getlogs_parser = functions.add_parser(
         'getlogs',
         help="Get the log of all undelivered dates."
@@ -111,7 +116,7 @@ def define_and_read_args() -> arg_namespace:
     getlogs_parser.add_argument('-y', '--year', type=int, help="Year. Must be between 1 and 9999.")
     getlogs_parser.add_argument('-k', '--key', type=str, help="Key for paper.", required=True)
 
-
+    # update application subparser
     update_parser = functions.add_parser(
         'update',
         help="Update the application."
@@ -122,13 +127,21 @@ def define_and_read_args() -> arg_namespace:
 
     return main_parser.parse_args()
 
+
+## print out a coloured status message using Colorama
 def status_print(status: bool, message: str):
     if status:
         print(f"{Fore.GREEN}{Style.BRIGHT}{message}{Style.RESET_ALL}\n")
     else:
         print(f"{Fore.RED}{Style.BRIGHT}{message}{Style.RESET_ALL}\n")
 
+## calculate the cost for a given month and year
+ # default to the previous month if no month and no year is given
+ # default to the current month if no month is given and year is given
+ # default to the current year if no year is given and month is given
 def calculate(args: arg_namespace):
+
+    # deal with month and year
     if args.month or args.year:
 
         if not validate_month_and_year(args.month, args.year):
@@ -148,9 +161,11 @@ def calculate(args: arg_namespace):
             year = datetime.now().year
 
     else:
-        month = get_previous_month().month
-        year = get_previous_month().year
+        previous_month = get_previous_month()
+        month = previous_month.month
+        year = previous_month.year
 
+    # look for undelivered strings in the database
     existing_strings = query_database(
         generate_sql_query(
             'undelivered_strings',
@@ -162,50 +177,63 @@ def calculate(args: arg_namespace):
         )
     )
 
+    # associate undelivered strings with their paper_id
     undelivered_strings: dict[int, str] = {
         paper_id: undelivered_string
         for paper_id, undelivered_string in existing_strings
     }
 
+    # calculate the cost for each paper, as well as the total cost
     costs, total, undelivered_dates = calculate_cost_of_all_papers(
         undelivered_strings,
         month,
         year
     )
 
+    # format the results
     formatted = format_output(costs, total, month, year)
 
+    # unless the user specifies so, copy the results to the clipboard
     if not args.nocopy:
         copy_to_clipboard(formatted)
 
         formatted += '\nSummary copied to clipboard.'
 
+    # unless the user specifies so, log the results to the database
     if not args.nolog:
         save_results(undelivered_dates, month, year)
 
         formatted += '\nLog saved to file.'
 
+    # print the results
     status_print(True, "Success!")
     print(f"SUMMARY:\n{formatted}")
 
 
+## add undelivered strings to the database
+ # default to the current month if no month and/or no year is given
 def addudl(args: arg_namespace):
+
+    # validate the month and year
     if not validate_month_and_year(args.month, args.year):
         status_print(False, "Invalid month and/or year.")
         return
 
+    # if no month is given, default to the current month
     if args.month:
         month = args.month
 
     else:
         month = datetime.now().month
 
+    # if no year is given, default to the current year
     if args.year:
         year = args.year
 
     else:
         year = datetime.now().year
 
+    # add the undelivered strings to the database
     feedback = add_undelivered_string(
         args.key,
         str(args.undelivered).lower().strip(),
@@ -216,12 +244,15 @@ def addudl(args: arg_namespace):
     status_print(*feedback)
 
 
+## delete undelivered strings from the database
 def deludl(args: arg_namespace):
+
+    # validate the month and year
     if not validate_month_and_year(args.month, args.year):
         status_print(False, "Invalid month and/or year.")
         return
 
-
+    # delete the undelivered strings from the database
     feedback = delete_undelivered_string(
         args.key,
         args.month,
@@ -230,7 +261,13 @@ def deludl(args: arg_namespace):
 
     status_print(*feedback)
 
+
+## get undelivered strings from the database
+ # filter by whichever parameter the user provides. they as many as they want.
+ # available parameters: month, year, key, string
 def getudl(args: arg_namespace):
+
+    # validate the month and year
     if not validate_month_and_year(args.month, args.year):
         status_print(False, "Invalid month and/or year.")
         return
@@ -249,6 +286,7 @@ def getudl(args: arg_namespace):
     if args.undelivered:
         conditions['strings'] = str(args.undelivered).lower().strip()
 
+    # if the undelivered strings exist, fetch them
     undelivered_strings = query_database(
         generate_sql_query(
             'undelivered_strings',
@@ -256,6 +294,7 @@ def getudl(args: arg_namespace):
         )
     )
 
+    # if there were undelivered strings, print them
     if undelivered_strings:
         status_print(True, 'Found undelivered strings.')
 
@@ -264,6 +303,7 @@ def getudl(args: arg_namespace):
         for string in undelivered_strings:
             print('|'.join([str(item) for item in string]))
 
+    # otherwise, print that there were no undelivered strings
     else:
         status_print(False, 'No undelivered strings found.')
 
