@@ -1,4 +1,4 @@
-from npbc_core import VALIDATE_REGEX, SPLIT_REGEX, calculate_cost_of_one_paper, extract_days_and_costs, generate_sql_query, get_number_of_days_per_week, parse_undelivered_string
+from npbc_core import VALIDATE_REGEX, SPLIT_REGEX, calculate_cost_of_one_paper, extract_days_and_costs, generate_sql_query, get_number_of_days_per_week, parse_undelivered_string, validate_month_and_year
 from datetime import date as date_type
 
 
@@ -539,3 +539,23 @@ def test_extracting_days_and_costs():
         [False, False, False, True, False, False, True],
         [0, 0, 0, 7, 0, 0, 4.7]
     )
+
+
+def test_validate_month_and_year():
+    assert validate_month_and_year(1, 2020)
+    assert validate_month_and_year(12, 2020)
+    assert validate_month_and_year(1, 2021)
+    assert validate_month_and_year(12, 2021)
+    assert validate_month_and_year(1, 2022)
+    assert validate_month_and_year(12, 2022)
+    assert not validate_month_and_year(-54, 2020)
+    assert not validate_month_and_year(0, 2020)
+    assert not validate_month_and_year(13, 2020)
+    assert not validate_month_and_year(45, 2020)
+    assert not validate_month_and_year(1, -5)
+    assert not validate_month_and_year(12, -5)
+    assert not validate_month_and_year(1.6, 10)  # type: ignore
+    assert not validate_month_and_year(12.6, 10)  # type: ignore
+    assert not validate_month_and_year(1, '10')  # type: ignore
+    assert not validate_month_and_year(12, '10')  # type: ignore
+    

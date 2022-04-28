@@ -2,7 +2,7 @@ from argparse import ArgumentParser, Namespace as arg_namespace
 from datetime import datetime
 from colorama import Fore, Style
 from pyperclip import copy as copy_to_clipboard
-from npbc_core import VALIDATE_REGEX, WEEKDAY_NAMES, add_new_paper, add_undelivered_string, calculate_cost_of_all_papers, delete_existing_paper, delete_undelivered_string, edit_existing_paper, extract_days_and_costs, format_output, generate_sql_query, get_previous_month, query_database, save_results, setup_and_connect_DB
+from npbc_core import VALIDATE_REGEX, WEEKDAY_NAMES, add_new_paper, add_undelivered_string, calculate_cost_of_all_papers, delete_existing_paper, delete_undelivered_string, edit_existing_paper, extract_days_and_costs, format_output, generate_sql_query, get_previous_month, query_database, save_results, setup_and_connect_DB, validate_month_and_year, validate_undelivered_string
 
 def define_and_read_args() -> arg_namespace:
     main_parser = ArgumentParser(
@@ -130,6 +130,11 @@ def status_print(status: bool, message: str):
 
 def calculate(args: arg_namespace):
     if args.month or args.year:
+
+        if not validate_month_and_year(args.month, args.year):
+            status_print(False, "Invalid month and/or year.")
+            return
+        
         if args.month:
             month = args.month
         
@@ -185,6 +190,10 @@ def calculate(args: arg_namespace):
 
 
 def addudl(args: arg_namespace):
+    if not validate_month_and_year(args.month, args.year):
+        status_print(False, "Invalid month and/or year.")
+        return
+
     if args.month:
         month = args.month
 
@@ -208,6 +217,11 @@ def addudl(args: arg_namespace):
 
 
 def deludl(args: arg_namespace):
+    if not validate_month_and_year(args.month, args.year):
+        status_print(False, "Invalid month and/or year.")
+        return
+
+
     feedback = delete_undelivered_string(
         args.key,
         args.month,
@@ -217,6 +231,10 @@ def deludl(args: arg_namespace):
     status_print(*feedback)
 
 def getudl(args: arg_namespace):
+    if not validate_month_and_year(args.month, args.year):
+        status_print(False, "Invalid month and/or year.")
+        return
+    
     conditions = {}
 
     if args.key:
@@ -421,6 +439,10 @@ def getpapers(args: arg_namespace):
 
 
 def getlogs(args: arg_namespace):
+    if validate_month_and_year(args.month, args.year):
+        status_print(False, "Invalid month and/or year.")
+        return
+        
     conditions = {}
 
     if args.key:

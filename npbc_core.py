@@ -353,26 +353,33 @@ def format_output(costs: dict[int, float], total: float, month: int, year: int) 
     return f"{format_string}\n"
 
 
+## add a new paper
+ # do not allow if the paper already exists
 def add_new_paper(name: str, days_delivered: list[bool], days_cost: list[float]) -> tuple[bool, str]:
     with connect(DATABASE_PATH) as connection:
-        q = generate_sql_query('papers', columns=['name'], conditions={'name': f"\"{name}\""})
+
+        # get the names of all papers that already exist
         paper = connection.execute(
-            q
+            generate_sql_query('papers', columns=['name'], conditions={'name': f"\"{name}\""})
         ).fetchall()
 
+        # if the proposed paper already exists, return an error message
         if paper:
             return False, "Paper already exists. Please try editing the paper instead."
         
+        # otherwise, add the paper name to the database
         connection.execute(
             "INSERT INTO papers (name) VALUES (?);",
             (name, )
         )
 
+        # get the ID of the paper that was just added
         paper_id = connection.execute(
             "SELECT paper_id FROM papers WHERE name = ?;",
             (name, )
         ).fetchone()[0]
 
+        # add the cost and delivery data for the paper
         for day_id, (cost, delivered) in enumerate(zip(days_cost, days_delivered)):
             connection.execute(
                 "INSERT INTO papers_days_cost (paper_id, day_id, cost) VALUES (?, ?, ?);",
@@ -390,21 +397,28 @@ def add_new_paper(name: str, days_delivered: list[bool], days_cost: list[float])
     return False, "Something went wrong."
 
 
+## edit an existing paper
+ # do not allow if the paper does not exist
 def edit_existing_paper(paper_id: int, name: str | None = None, days_delivered: list[bool] | None = None, days_cost: list[float] | None = None) -> tuple[bool, str]:
     with connect(DATABASE_PATH) as connection:
+
+        # get the IDs of all papers that already exist
         paper = connection.execute(
             generate_sql_query('papers', columns=['paper_id'], conditions={'paper_id': paper_id})
         ).fetchone()
 
+        # if the proposed paper does not exist, return an error message
         if not paper:
             return False, f"Paper {paper_id} does not exist. Please try adding it instead."
 
+        # if a name is proposed, update the name of the paper
         if name is not None:
             connection.execute(
                 "UPDATE papers SET name = ? WHERE paper_id = ?;",
                 (name, paper_id)
             )
         
+        # if delivery data is proposed, update the delivery data of the paper
         if days_delivered is not None:
             for day_id, delivered in enumerate(days_delivered):
                 connection.execute(
@@ -412,6 +426,7 @@ def edit_existing_paper(paper_id: int, name: str | None = None, days_delivered: 
                     (delivered, paper_id, day_id)
                 )
 
+        # if cost data is proposed, update the cost data of the paper
         if days_cost is not None:
             for day_id, cost in enumerate(days_cost):
                 connection.execute(
@@ -426,27 +441,35 @@ def edit_existing_paper(paper_id: int, name: str | None = None, days_delivered: 
     return False, "Something went wrong."
 
 
+## delete an existing paper
+ # do not allow if the paper does not exist
 def delete_existing_paper(paper_id: int) -> tuple[bool, str]:
     with connect(DATABASE_PATH) as connection:
+
+        # get the IDs of all papers that already exist
         paper = connection.execute(
             generate_sql_query('papers', columns=['paper_id'], conditions={'paper_id': paper_id})
         ).fetchone()
 
+        # if the proposed paper does not exist, return an error message
         if not paper:
             return False, f"Paper {paper_id} does not exist. Please try adding it instead."
 
+        # delete the paper from the names table
         connection.execute(
             "DELETE FROM papers WHERE paper_id = ?;",
             (paper_id, )
         )
 
+        # delete the paper from the delivery data table
         connection.execute(
-            "DELETE FROM papers_days_cost WHERE paper_id = ?;",
+            "DELETE FROM papers_days_delivered WHERE paper_id = ?;",
             (paper_id, )
         )
 
+        # delete the paper from the cost data table
         connection.execute(
-            "DELETE FROM papers_days_delivered WHERE paper_id = ?;",
+            "DELETE FROM papers_days_cost WHERE paper_id = ?;",
             (paper_id, )
         )
 
@@ -457,45 +480,17 @@ def delete_existing_paper(paper_id: int) -> tuple[bool, str]:
     return False, "Something went wrong."
 
 
+## record strings for date(s) paper(s) were not delivered
 def add_undelivered_string(paper_id: int, undelivered_string: str, month: int, year: int) -> tuple[bool, str]:
-    if validate_undelivered_string(undelivered_string):
-        with connect(DATABASE_PATH) as connection:
-            existing_string = connection.execute(
-                generate_sql_query(
-                    'undelivered_strings',
-                    columns=['string'],
-                    conditions={
-                        'paper_id': paper_id,
-                        'month': month,
-                        'year': year
-                    }
-                )
-            ).fetchone()
-
-            if existing_string:
-                new_string = f"{existing_string[0]},{undelivered_string}"
-
-                connection.execute(
-                    "UPDATE undelivered_strings SET string = ? WHERE paper_id = ? AND month = ? AND year = ?;",
-                    (new_string, paper_id, month, year)
-                )
-
-            else:
-                connection.execute(
-                    "INSERT INTO undelivered_strings (string, paper_id, month, year) VALUES (?, ?, ?, ?);",
-                    (undelivered_string, paper_id, month, year)
-                )
-
-            connection.commit()
-
-        return True, f"Undelivered string added."
-
-    return False, f"Invalid undelivered string."
-
-
-def delete_undelivered_string(paper_id: int, month: int, year: int) -> tuple[bool, str]:
+    
+    # if the string is not valid, return an error message
+    if not validate_undelivered_string(undelivered_string):
+        return False, f"Invalid undelivered string."
+    
     with connect(DATABASE_PATH) as connection:
-        existing_string = connection.execute(
+
+        # check if a string with the same month and year, for the same paper, already exists
+        (existing_string, ) = connection.execute(
             generate_sql_query(
                 'undelivered_strings',
                 columns=['string'],
@@ -507,6 +502,46 @@ def delete_undelivered_string(paper_id: int, month: int, year: int) -> tuple[boo
             )
         ).fetchone()
 
+        # if a string with the same month and year, for the same paper, already exists, concatenate the new string to it
+        if existing_string:
+            new_string = f"{existing_string[0]},{undelivered_string}"
+
+            connection.execute(
+                "UPDATE undelivered_strings SET string = ? WHERE paper_id = ? AND month = ? AND year = ?;",
+                (new_string, paper_id, month, year)
+            )
+
+        # otherwise, add the new string to the database
+        else:
+            connection.execute(
+                "INSERT INTO undelivered_strings (string, paper_id, month, year) VALUES (?, ?, ?, ?);",
+                (undelivered_string, paper_id, month, year)
+            )
+
+        connection.commit()
+
+    return True, f"Undelivered string added."
+
+
+## delete an existing undelivered string
+ # do not allow if the string does not exist
+def delete_undelivered_string(paper_id: int, month: int, year: int) -> tuple[bool, str]:
+    with connect(DATABASE_PATH) as connection:
+    
+        # check if a string with the same month and year, for the same paper, exists
+        (existing_string, ) = connection.execute(
+            generate_sql_query(
+                'undelivered_strings',
+                columns=['string'],
+                conditions={
+                    'paper_id': paper_id,
+                    'month': month,
+                    'year': year
+                }
+            )
+        ).fetchone()
+
+        # if it does, delete it
         if existing_string:
             connection.execute(
                 "DELETE FROM undelivered_strings WHERE paper_id = ? AND month = ? AND year = ?;",
@@ -517,24 +552,49 @@ def delete_undelivered_string(paper_id: int, month: int, year: int) -> tuple[boo
 
             return True, f"Undelivered string deleted."
 
+        # if the string does not exist, return an error message
         return False, f"Undelivered string does not exist."
 
     return False, "Something went wrong."
 
 
+## get the previous month, by looking at 1 day before the first day of the current month (duh)
 def get_previous_month() -> date_type:
     return (datetime.today().replace(day=1) - timedelta(days=1)).replace(day=1)
 
 
-def extract_days_and_costs(days_delivered: str | None, prices: str | None) -> tuple[list[bool], list[float]]:
+## extract delivery days and costs from user input
+def extract_days_and_costs(days_delivered: str | None, prices: str | None, paper_id: int | None = None) -> tuple[list[bool], list[float]]:
     days = []
     costs = []
 
+    # if the user has provided delivery days, extract them
     if days_delivered is not None:
         days = [
             bool(int(day == 'Y')) for day in str(days_delivered).upper()
         ]
 
+    # if the user has not provided delivery days, fetch them from the database
+    else:
+        if isinstance(paper_id, int):
+            days = [
+                (int(day_id), bool(delivered))
+                for day_id, delivered in query_database(
+                    generate_sql_query(
+                        'papers_days_delivered',
+                        columns=['day_id', 'delivered'],
+                        conditions={
+                            'paper_id': paper_id
+                        }
+                    )
+                )
+            ]
+
+            days.sort(key=lambda x: x[0])
+
+            days = [delivered for _, delivered in days]
+
+    # if the user has provided prices, extract them
     if prices is not None:
 
         costs = []
@@ -552,3 +612,7 @@ def extract_days_and_costs(days_delivered: str | None, prices: str | None) -> tu
             costs.append(cost)
 
     return days, costs
+
+## validate month and year
+def validate_month_and_year(month: int | None = None, year: int | None = None) -> bool:
+    return ((month is None) or (isinstance(month, int) and (0 < month) and (month <= 12))) and ((year is None) or (isinstance(year, int) and (year >= 0)))
