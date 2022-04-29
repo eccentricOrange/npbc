@@ -10,6 +10,7 @@ def define_and_read_args() -> arg_namespace:
 
     # main parser for all commands
     main_parser = ArgumentParser(
+        prog="npbc",
         description="Calculates your monthly newspaper bill."
     )
     functions = main_parser.add_subparsers(required=True)
