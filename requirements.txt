@@ -1,8 +1,10 @@
-pyperclip
-Flask
-waitress
-sh
+## CLI
 colorama
+pyperclip
+
+## API
+# Flask
+# waitress
 
 # test
-pytest
+# pytest
