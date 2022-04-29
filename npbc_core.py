@@ -614,5 +614,8 @@ def extract_days_and_costs(days_delivered: str | None, prices: str | None, paper
     return days, costs
 
 ## validate month and year
-def validate_month_and_year(month: int | None = None, year: int | None = None) -> bool:
-    return ((month is None) or (isinstance(month, int) and (0 < month) and (month <= 12))) and ((year is None) or (isinstance(year, int) and (year >= 0)))
+def validate_month_and_year(month: int | None = None, year: int | None = None) -> tuple[bool, str]:
+    if ((month is None) or (isinstance(month, int) and (0 < month) and (month <= 12))) and ((year is None) or (isinstance(year, int) and (year >= 0))):
+        return True, ""
+    
+    return False, "Invalid month and/or year."

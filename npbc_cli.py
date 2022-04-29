@@ -144,10 +144,12 @@ def calculate(args: arg_namespace):
     # deal with month and year
     if args.month or args.year:
 
-        if not validate_month_and_year(args.month, args.year):
-            status_print(False, "Invalid month and/or year.")
+        feedback = validate_month_and_year(args.month, args.year)
+
+        if not feedback[0]:
+            status_print(*feedback)
             return
-        
+
         if args.month:
             month = args.month
         
@@ -215,31 +217,31 @@ def calculate(args: arg_namespace):
 def addudl(args: arg_namespace):
 
     # validate the month and year
-    if not validate_month_and_year(args.month, args.year):
-        status_print(False, "Invalid month and/or year.")
-        return
+    feedback = validate_month_and_year(args.month, args.year)
 
-    # if no month is given, default to the current month
-    if args.month:
-        month = args.month
+    if feedback[0]:
 
-    else:
-        month = datetime.now().month
+        # if no month is given, default to the current month
+        if args.month:
+            month = args.month
 
-    # if no year is given, default to the current year
-    if args.year:
-        year = args.year
+        else:
+            month = datetime.now().month
 
-    else:
-        year = datetime.now().year
+        # if no year is given, default to the current year
+        if args.year:
+            year = args.year
 
-    # add the undelivered strings to the database
-    feedback = add_undelivered_string(
-        args.key,
-        str(args.undelivered).lower().strip(),
-        month,
-        year
-    )
+        else:
+            year = datetime.now().year
+
+        # add the undelivered strings to the database
+        feedback = add_undelivered_string(
+            args.key,
+            str(args.undelivered).lower().strip(),
+            month,
+            year
+        )
 
     status_print(*feedback)
 
@@ -248,16 +250,16 @@ def addudl(args: arg_namespace):
 def deludl(args: arg_namespace):
 
     # validate the month and year
-    if not validate_month_and_year(args.month, args.year):
-        status_print(False, "Invalid month and/or year.")
-        return
+    feedback = validate_month_and_year(args.month, args.year)
 
     # delete the undelivered strings from the database
-    feedback = delete_undelivered_string(
-        args.key,
-        args.month,
-        args.year
-    )
+    if feedback[0]:
+
+        feedback = delete_undelivered_string(
+            args.key,
+            args.month,
+            args.year
+        )
 
     status_print(*feedback)
 
@@ -268,8 +270,10 @@ def deludl(args: arg_namespace):
 def getudl(args: arg_namespace):
 
     # validate the month and year
-    if not validate_month_and_year(args.month, args.year):
-        status_print(False, "Invalid month and/or year.")
+    feedback = validate_month_and_year(args.month, args.year)
+
+    if not feedback[0]:
+        status_print(*feedback)
         return
     
     conditions = {}
@@ -308,24 +312,26 @@ def getudl(args: arg_namespace):
         status_print(False, 'No undelivered strings found.')
 
 
+## edit the data for one paper
 def editpaper(args: arg_namespace):
     feedback = True, ""
-
     days, costs = "", ""
 
+    # validate the string for delivery days
     if args.days:
         days = str(args.days).lower().strip()
 
         if not VALIDATE_REGEX['delivery'].match(days):
             feedback = False, "Invalid delivery days."
 
+    # validate the string for costs
     if args.costs:
         costs = str(args.costs).lower().strip()
 
         if not VALIDATE_REGEX['prices'].match(costs):
             feedback = False, "Invalid prices."
 
-    
+    # if the string for delivery days and costs are valid, edit the paper
     if feedback[0]:
 
         feedback = edit_existing_paper(
@@ -337,24 +343,27 @@ def editpaper(args: arg_namespace):
     status_print(*feedback)
 
 
+## add a new paper to the database
 def addpaper(args: arg_namespace):
     feedback = True, ""
-
     days, costs = "", ""
 
+
+    # validate the string for delivery days
     if args.days:
         days = str(args.days).lower().strip()
 
         if not VALIDATE_REGEX['delivery'].match(days):
             feedback = False, "Invalid delivery days."
 
+    # validate the string for costs
     if args.costs:
         costs = str(args.costs).lower().strip()
 
         if not VALIDATE_REGEX['prices'].match(costs):
             feedback = False, "Invalid prices."
 
-    
+    # if the string for delivery days and costs are valid, add the paper
     if feedback[0]:
 
         feedback = add_new_paper(
@@ -365,7 +374,10 @@ def addpaper(args: arg_namespace):
     status_print(*feedback)
 
 
+## delete a paper from the database
 def delpaper(args: arg_namespace):
+
+    # attempt to delete the paper
     feedback = delete_existing_paper(
         args.key
     )
@@ -373,9 +385,14 @@ def delpaper(args: arg_namespace):
     status_print(*feedback)
 
 
+## get a list of all papers in the database
+ # filter by whichever parameter the user provides. they may use as many as they want (but keys are always printed)
+ # available parameters: name, days, costs
+ # the output is provided as a formatted table, printed to the standard output
 def getpapers(args: arg_namespace):
     headers = ['paper_id']
 
+    # fetch a list of all papers' IDs
     papers_id_list = [
         paper_id
         for paper_id, in query_database(
@@ -386,11 +403,16 @@ def getpapers(args: arg_namespace):
         )
     ]
 
+    # initialize lists for the data
     paper_name_list, paper_days_list, paper_costs_list = [], [], []
 
+    # sort the papers' IDs (for the sake of consistency)
     papers_id_list.sort()
 
+    # if the user wants names, fetch that data and add it to the list
     if args.names:
+
+        # first get a dictionary of {paper_id: paper_name}
         papers_names = {
             paper_id: paper_name
             for paper_id, paper_name in query_database(
@@ -401,6 +423,7 @@ def getpapers(args: arg_namespace):
             )
         }
 
+        # then use the sorted IDs list to create a sorted names list
         paper_name_list = [
             papers_names[paper_id]
             for paper_id in papers_id_list
@@ -408,12 +431,16 @@ def getpapers(args: arg_namespace):
 
         headers.append('name')
 
+    # if the user wants delivery days, fetch that data and add it to the list
     if args.days:
+
+        # initialize a dictionary of {paper_id: {day_id: delivery}}
         papers_days = {
             paper_id: {}
             for paper_id in papers_id_list
         }
 
+        # then get the data for each paper
         for paper_id, day_id, delivered in query_database(
             generate_sql_query(
                 'papers_days_delivered',
@@ -422,6 +449,7 @@ def getpapers(args: arg_namespace):
         ):
             papers_days[paper_id][day_id] = delivered
 
+        # format the data so that it matches the regex pattern /^[YN]{7}$/, the same way the user must input this data
         paper_days_list = [
             ''.join([
                 'Y' if int(papers_days[paper_id][day_id]) == 1 else 'N'
@@ -432,12 +460,16 @@ def getpapers(args: arg_namespace):
 
         headers.append('days')
 
+    # if the user wants costs, fetch that data and add it to the list
     if args.prices:
+
+        # initialize a dictionary of {paper_id: {day_id: price}}
         papers_costs = {
             paper_id: {}
             for paper_id in papers_id_list
         }
 
+        # then get the data for each paper
         for paper_id, day_id, cost in query_database(
             generate_sql_query(
                 'papers_days_cost',
@@ -446,6 +478,7 @@ def getpapers(args: arg_namespace):
         ):
             papers_costs[paper_id][day_id] = cost
 
+        # format the data so that it matches the regex pattern /^[x](;[x]){6}$/, where /x/ is a number that may be either a floating point or an integer, the same way the user must input this data.
         paper_costs_list = [
             ';'.join([
                 str(papers_costs[paper_id][day_id])
@@ -456,11 +489,13 @@ def getpapers(args: arg_namespace):
 
         headers.append('costs')
 
+    # print the headers
     print(' | '.join([
         f"{Fore.YELLOW}{header}{Style.RESET_ALL}"
         for header in headers
     ]))
 
+    # print the data
     for index, paper_id in enumerate(papers_id_list):
         print(f"{paper_id}: ", end='')
         
@@ -478,13 +513,21 @@ def getpapers(args: arg_namespace):
         print(', '.join(values))
 
 
+## get a log of all deliveries for a paper
+ # the user may specify parameters to filter the output by. they may use as many as they want, or none
+ # available parameters: paper_id, month, year
 def getlogs(args: arg_namespace):
-    if validate_month_and_year(args.month, args.year):
-        status_print(False, "Invalid month and/or year.")
+    
+    # validate the month and year
+    feedback = validate_month_and_year(args.month, args.year)
+
+    if not feedback[0]:
+        status_print(*feedback)
         return
         
     conditions = {}
 
+    # if the user specified a particular paper, add it to the conditions
     if args.key:
         conditions['paper_id'] = args.key
 
@@ -494,6 +537,7 @@ def getlogs(args: arg_namespace):
     if args.year:
         conditions['year'] = args.year
 
+    # fetch the data
     undelivered_dates = query_database(
         generate_sql_query(
             'undelivered_dates',
@@ -501,6 +545,7 @@ def getlogs(args: arg_namespace):
         )
     )
 
+    # if data was found, print it
     if undelivered_dates:
         status_print(True, 'Success!')
 
@@ -509,14 +554,19 @@ def getlogs(args: arg_namespace):
         for date in undelivered_dates:
             print(', '.join(date))
 
+    # if no data was found, print an error message
     else:
         status_print(False, 'No results found.')
 
 
+## update the application
+ # under normal operation, this function should never run
+ # if the update CLI argument is provided, this script will never run and the updater will be run instead
 def update(args: arg_namespace):
     status_print(False, "Update failed.")
 
 
+## run the application
 def main():
     setup_and_connect_DB()
     args = define_and_read_args()

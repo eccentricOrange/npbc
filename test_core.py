@@ -542,20 +542,19 @@ def test_extracting_days_and_costs():
 
 
 def test_validate_month_and_year():
-    assert validate_month_and_year(1, 2020)
-    assert validate_month_and_year(12, 2020)
-    assert validate_month_and_year(1, 2021)
-    assert validate_month_and_year(12, 2021)
-    assert validate_month_and_year(1, 2022)
-    assert validate_month_and_year(12, 2022)
-    assert not validate_month_and_year(-54, 2020)
-    assert not validate_month_and_year(0, 2020)
-    assert not validate_month_and_year(13, 2020)
-    assert not validate_month_and_year(45, 2020)
-    assert not validate_month_and_year(1, -5)
-    assert not validate_month_and_year(12, -5)
-    assert not validate_month_and_year(1.6, 10)  # type: ignore
-    assert not validate_month_and_year(12.6, 10)  # type: ignore
-    assert not validate_month_and_year(1, '10')  # type: ignore
-    assert not validate_month_and_year(12, '10')  # type: ignore
-    
+    assert validate_month_and_year(1, 2020)[0]
+    assert validate_month_and_year(12, 2020)[0]
+    assert validate_month_and_year(1, 2021)[0]
+    assert validate_month_and_year(12, 2021)[0]
+    assert validate_month_and_year(1, 2022)[0]
+    assert validate_month_and_year(12, 2022)[0]
+    assert not validate_month_and_year(-54, 2020)[0]
+    assert not validate_month_and_year(0, 2020)[0]
+    assert not validate_month_and_year(13, 2020)[0]
+    assert not validate_month_and_year(45, 2020)[0]
+    assert not validate_month_and_year(1, -5)[0]
+    assert not validate_month_and_year(12, -5)[0]
+    assert not validate_month_and_year(1.6, 10)[0]  # type: ignore
+    assert not validate_month_and_year(12.6, 10)[0]  # type: ignore
+    assert not validate_month_and_year(1, '10')[0]  # type: ignore
+    assert not validate_month_and_year(12, '10')[0]  # type: ignore
