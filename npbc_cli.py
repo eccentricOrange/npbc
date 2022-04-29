@@ -34,9 +34,9 @@ def define_and_read_args() -> arg_namespace:
     )
 
     addudl_parser.set_defaults(func=addudl)
-    addudl_parser.add_argument('-m', '--month', type=int, help="Month to calculate bill for. Must be between 1 and 12.")
-    addudl_parser.add_argument('-y', '--year', type=int, help="Year to calculate bill for. Must be between 1 and 9999.")
-    addudl_parser.add_argument('-k', '--key', type=str, help="Key for paper to be edited, deleted, or added.", required=True)
+    addudl_parser.add_argument('-m', '--month', type=int, help="Month to register undelivered incident(s) for. Must be between 1 and 12.")
+    addudl_parser.add_argument('-y', '--year', type=int, help="Year to register undelivered incident(s) for. Must be between 1 and 9999.")
+    addudl_parser.add_argument('-k', '--key', type=str, help="Key of paper to register undelivered incident(s) for.", required=True)
     addudl_parser.add_argument('-u', '--undelivered', type=str, help="Dates when you did not receive any papers.", required=True)
 
     # delete undelivered string subparser
@@ -46,9 +46,9 @@ def define_and_read_args() -> arg_namespace:
     )
 
     deludl_parser.set_defaults(func=deludl)
-    deludl_parser.add_argument('-k', '--key', type=str, help="Key for paper to be edited, deleted, or added.", required=True)
-    deludl_parser.add_argument('-m', '--month', type=int, help="Month to calculate bill for. Must be between 1 and 12.", required=True)
-    deludl_parser.add_argument('-y', '--year', type=int, help="Year to calculate bill for. Must be between 1 and 9999.", required=True)
+    deludl_parser.add_argument('-k', '--key', type=str, help="Key of paper to unregister undelivered incident(s) for.", required=True)
+    deludl_parser.add_argument('-m', '--month', type=int, help="Month to unregister undelivered incident(s) for. Must be between 1 and 12.", required=True)
+    deludl_parser.add_argument('-y', '--year', type=int, help="Year to unregister undelivered incident(s) for. Must be between 1 and 9999.", required=True)
 
     # get undelivered string subparser
     getudl_parser = functions.add_parser(
@@ -69,10 +69,10 @@ def define_and_read_args() -> arg_namespace:
     )
 
     editpaper_parser.set_defaults(func=editpaper)
-    editpaper_parser.add_argument('-n', '--name', type=str, help="Name for paper to be edited or added.")
-    editpaper_parser.add_argument('-d', '--days', type=str, help="Number of days the paper to be edited or added, is delivered. Monday is the first day, and all seven weekdays are required. A 'Y' means it is delivered, and an 'N' means it isn't. No separator required.")
-    editpaper_parser.add_argument('-p', '--price', type=str, help="Daywise prices of paper to be edited or added. Monday is the first day. Values must be separated by semicolons, and 0s are ignored.")
-    editpaper_parser.add_argument('-k', '--key', type=str, help="Key for paper to be edited, deleted, or added.", required=True)
+    editpaper_parser.add_argument('-n', '--name', type=str, help="Name for paper to be edited.")
+    editpaper_parser.add_argument('-d', '--days', type=str, help="Number of days the paper to be edited is delivered. Monday is the first day, and all seven weekdays are required. A 'Y' means it is delivered, and an 'N' means it isn't. No separator required.")
+    editpaper_parser.add_argument('-p', '--price', type=str, help="Daywise prices of paper to be edited. Monday is the first day. Values must be separated by semicolons, and 0s are ignored.")
+    editpaper_parser.add_argument('-k', '--key', type=str, help="Key for paper to be edited.", required=True)
 
     # add paper subparser
     addpaper_parser = functions.add_parser(
@@ -81,9 +81,9 @@ def define_and_read_args() -> arg_namespace:
     )
 
     addpaper_parser.set_defaults(func=addpaper)
-    addpaper_parser.add_argument('-n', '--name', type=str, help="Name for paper to be edited or added.", required=True)
-    addpaper_parser.add_argument('-d', '--days', type=str, help="Number of days the paper to be edited or added, is delivered. Monday is the first day, and all seven weekdays are required. A 'Y' means it is delivered, and an 'N' means it isn't. No separator required.", required=True)
-    addpaper_parser.add_argument('-p', '--price', type=str, help="Daywise prices of paper to be edited or added. Monday is the first day. Values must be separated by semicolons, and 0s are ignored.", required=True)
+    addpaper_parser.add_argument('-n', '--name', type=str, help="Name for paper to be added.", required=True)
+    addpaper_parser.add_argument('-d', '--days', type=str, help="Number of days the paper to be added is delivered. Monday is the first day, and all seven weekdays are required. A 'Y' means it is delivered, and an 'N' means it isn't. No separator required.", required=True)
+    addpaper_parser.add_argument('-p', '--price', type=str, help="Daywise prices of paper to be added. Monday is the first day. Values must be separated by semicolons, and 0s are ignored.", required=True)
 
     # delete paper subparser
     delpaper_parser = functions.add_parser(
@@ -92,18 +92,18 @@ def define_and_read_args() -> arg_namespace:
     )
 
     delpaper_parser.set_defaults(func=delpaper)
-    delpaper_parser.add_argument('-k', '--key', type=str, help="Key for paper to be edited, deleted, or added.", required=True)
+    delpaper_parser.add_argument('-k', '--key', type=str, help="Key for paper to be deleted.", required=True)
 
     # get paper subparser
     getpapers_parser = functions.add_parser(
         'getpapers',
-        help="Get all newspapers. Returns JSON if no flags are set."
+        help="Get all newspapers."
     )
 
     getpapers_parser.set_defaults(func=getpapers)
     getpapers_parser.add_argument('-n', '--names', help="Get the names of the newspapers.", action='store_true')
     getpapers_parser.add_argument('-d', '--days', help="Get the days the newspapers are delivered. Monday is the first day, and all seven weekdays are required. A 'Y' means it is delivered, and an 'N' means it isn't.", action='store_true')
-    getpapers_parser.add_argument('-p', '--prices', help="Get the daywise prices of the newspapers. Monday is the first day. Values must be separated by semicolons, and 0s are ignored.", action='store_true')
+    getpapers_parser.add_argument('-p', '--prices', help="Get the daywise prices of the newspapers. Monday is the first day. Values must be separated by semicolons.", action='store_true')
 
     # get undelivered logs subparser
     getlogs_parser = functions.add_parser(
