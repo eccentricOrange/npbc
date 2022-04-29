@@ -28,7 +28,7 @@ class NPBC_updater:
             self.current_platform_data['name'] = 'windows-x64.exe'
 
         elif self.current_platform == "Darwin":
-            self.current_platform_data['path'] = Path.home() / 'Applictaions' / 'npbc'
+            self.current_platform_data['path'] = Path.home() / 'Applications' / 'npbc'
             self.current_platform_data['name'] = 'macos-x64'
 
         else:

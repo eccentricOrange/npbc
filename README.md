@@ -27,7 +27,7 @@ This app calculates your monthly newspaper bill.
     /path/to/updater update
     ```
 
-3. You can now run `npbc -h` to begin.
+3. You can now run `path/to/updater -h` to begin.
 
 &nbsp;
 
