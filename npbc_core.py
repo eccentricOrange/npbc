@@ -488,6 +488,18 @@ def add_undelivered_string(paper_id: int, undelivered_string: str, month: int, y
         return False, f"Invalid undelivered string."
     
     with connect(DATABASE_PATH) as connection:
+        # check if given paper exists
+        paper = connection.execute(
+            generate_sql_query(
+                'papers',
+                columns=['paper_id'],
+                conditions={'paper_id': paper_id}
+            )
+        ).fetchone()
+
+        # if the paper does not exist, return an error message
+        if not paper:
+            return False, f"Paper {paper_id} does not exist. Please try adding it instead."
 
         # check if a string with the same month and year, for the same paper, already exists
         existing_string = connection.execute(
