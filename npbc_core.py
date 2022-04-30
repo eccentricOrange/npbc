@@ -10,12 +10,12 @@ from re import compile as compile_regex
  # during development, the DB and schema will both be in "data"
 
 DATABASE_DIR = Path().home() / '.npbc'  # normal use path
-DATABASE_DIR = Path('data')  # development path
+# DATABASE_DIR = Path('data')  # development path
 
 DATABASE_PATH = DATABASE_DIR / 'npbc.db'
 
 SCHEMA_PATH = Path(__file__).parent / 'schema.sql'  # normal use path
-SCHEMA_PATH = DATABASE_DIR / 'schema.sql'  # development path
+# SCHEMA_PATH = DATABASE_DIR / 'schema.sql'  # development path
 
 
 ## list constant for names of weekdays
