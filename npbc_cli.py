@@ -1,8 +1,17 @@
-from argparse import ArgumentParser, Namespace as arg_namespace
+from argparse import ArgumentParser
+from argparse import Namespace as arg_namespace
 from datetime import datetime
+
 from colorama import Fore, Style
 from pyperclip import copy as copy_to_clipboard
-from npbc_core import VALIDATE_REGEX, WEEKDAY_NAMES, add_new_paper, add_undelivered_string, calculate_cost_of_all_papers, delete_existing_paper, delete_undelivered_string, edit_existing_paper, extract_days_and_costs, format_output, generate_sql_query, get_previous_month, query_database, save_results, setup_and_connect_DB, validate_month_and_year, validate_undelivered_string
+
+from npbc_core import (VALIDATE_REGEX, WEEKDAY_NAMES, add_new_paper,
+                       add_undelivered_string, calculate_cost_of_all_papers,
+                       delete_existing_paper, delete_undelivered_string,
+                       edit_existing_paper, extract_days_and_costs,
+                       format_output, generate_sql_query, get_previous_month,
+                       query_database, save_results, setup_and_connect_DB,
+                       validate_month_and_year, validate_undelivered_string)
 
 
 ## setup parsers
@@ -130,7 +139,7 @@ def define_and_read_args() -> arg_namespace:
 
 
 ## print out a coloured status message using Colorama
-def status_print(status: bool, message: str):
+def status_print(status: bool, message: str) -> None:
     if status:
         print(f"{Fore.GREEN}{Style.BRIGHT}{message}{Style.RESET_ALL}\n")
     else:
@@ -140,7 +149,7 @@ def status_print(status: bool, message: str):
  # default to the previous month if no month and no year is given
  # default to the current month if no month is given and year is given
  # default to the current year if no year is given and month is given
-def calculate(args: arg_namespace):
+def calculate(args: arg_namespace) -> None:
 
     # deal with month and year
     if args.month or args.year:
@@ -248,7 +257,7 @@ def addudl(args: arg_namespace):
 
 
 ## delete undelivered strings from the database
-def deludl(args: arg_namespace):
+def deludl(args: arg_namespace) -> None:
 
     # validate the month and year
     feedback = validate_month_and_year(args.month, args.year)
@@ -268,7 +277,7 @@ def deludl(args: arg_namespace):
 ## get undelivered strings from the database
  # filter by whichever parameter the user provides. they as many as they want.
  # available parameters: month, year, key, string
-def getudl(args: arg_namespace):
+def getudl(args: arg_namespace) -> None:
 
     # validate the month and year
     feedback = validate_month_and_year(args.month, args.year)
@@ -290,6 +299,10 @@ def getudl(args: arg_namespace):
 
     if args.undelivered:
         conditions['strings'] = str(args.undelivered).lower().strip()
+
+        if not validate_undelivered_string(conditions['strings']):
+            status_print(False, "Invalid undelivered string.")
+            return
 
     # if the undelivered strings exist, fetch them
     undelivered_strings = query_database(
@@ -314,7 +327,7 @@ def getudl(args: arg_namespace):
 
 
 ## edit the data for one paper
-def editpaper(args: arg_namespace):
+def editpaper(args: arg_namespace) -> None:
     feedback = True, ""
     days, costs = "", ""
 
@@ -345,7 +358,7 @@ def editpaper(args: arg_namespace):
 
 
 ## add a new paper to the database
-def addpaper(args: arg_namespace):
+def addpaper(args: arg_namespace) -> None:
     feedback = True, ""
     days, costs = "", ""
 
@@ -376,7 +389,7 @@ def addpaper(args: arg_namespace):
 
 
 ## delete a paper from the database
-def delpaper(args: arg_namespace):
+def delpaper(args: arg_namespace) -> None:
 
     # attempt to delete the paper
     feedback = delete_existing_paper(
@@ -390,7 +403,7 @@ def delpaper(args: arg_namespace):
  # filter by whichever parameter the user provides. they may use as many as they want (but keys are always printed)
  # available parameters: name, days, costs
  # the output is provided as a formatted table, printed to the standard output
-def getpapers(args: arg_namespace):
+def getpapers(args: arg_namespace) -> None:
     headers = ['paper_id']
 
     # fetch a list of all papers' IDs
@@ -517,7 +530,7 @@ def getpapers(args: arg_namespace):
 ## get a log of all deliveries for a paper
  # the user may specify parameters to filter the output by. they may use as many as they want, or none
  # available parameters: paper_id, month, year
-def getlogs(args: arg_namespace):
+def getlogs(args: arg_namespace) -> None:
     
     # validate the month and year
     feedback = validate_month_and_year(args.month, args.year)
@@ -563,12 +576,12 @@ def getlogs(args: arg_namespace):
 ## update the application
  # under normal operation, this function should never run
  # if the update CLI argument is provided, this script will never run and the updater will be run instead
-def update(args: arg_namespace):
+def update(args: arg_namespace) -> None:
     status_print(False, "Update failed.")
 
 
 ## run the application
-def main():
+def main() -> None:
     setup_and_connect_DB()
     args = define_and_read_args()
     args.func(args)

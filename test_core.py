@@ -1,5 +1,9 @@
-from npbc_core import VALIDATE_REGEX, SPLIT_REGEX, calculate_cost_of_one_paper, extract_days_and_costs, generate_sql_query, get_number_of_days_per_week, parse_undelivered_string, validate_month_and_year
 from datetime import date as date_type
+
+from npbc_core import (SPLIT_REGEX, VALIDATE_REGEX,
+                       calculate_cost_of_one_paper, extract_days_and_costs,
+                       generate_sql_query, get_number_of_days_per_week,
+                       parse_undelivered_string, validate_month_and_year)
 
 
 def test_regex_number():
