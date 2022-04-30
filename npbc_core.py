@@ -343,7 +343,7 @@ def format_output(costs: dict[int, float], total: float, month: int, year: int) 
 
 
     format_string = f"For {date_type(year=year, month=month, day=1).strftime(r'%B %Y')}\n\n"
-    format_string += f"**TOTAL**: {total}\n"
+    format_string += f"*TOTAL*: {total}\n"
 
     format_string += '\n'.join([
         f"{papers[paper_id]}: {cost}"  # type: ignore
