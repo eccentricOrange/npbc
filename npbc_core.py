@@ -10,12 +10,12 @@ from re import compile as compile_regex
  # during development, the DB and schema will both be in "data"
 
 DATABASE_DIR = Path().home() / '.npbc'  # normal use path
-# DATABASE_DIR = Path('data')  # development path
+DATABASE_DIR = Path('data')  # development path
 
 DATABASE_PATH = DATABASE_DIR / 'npbc.db'
 
 SCHEMA_PATH = Path(__file__).parent / 'schema.sql'  # normal use path
-# SCHEMA_PATH = DATABASE_DIR / 'schema.sql'  # development path
+SCHEMA_PATH = DATABASE_DIR / 'schema.sql'  # development path
 
 
 ## list constant for names of weekdays
@@ -490,7 +490,7 @@ def add_undelivered_string(paper_id: int, undelivered_string: str, month: int, y
     with connect(DATABASE_PATH) as connection:
 
         # check if a string with the same month and year, for the same paper, already exists
-        (existing_string, ) = connection.execute(
+        existing_string = connection.execute(
             generate_sql_query(
                 'undelivered_strings',
                 columns=['string'],
@@ -529,7 +529,7 @@ def delete_undelivered_string(paper_id: int, month: int, year: int) -> tuple[boo
     with connect(DATABASE_PATH) as connection:
     
         # check if a string with the same month and year, for the same paper, exists
-        (existing_string, ) = connection.execute(
+        existing_string = connection.execute(
             generate_sql_query(
                 'undelivered_strings',
                 columns=['string'],
