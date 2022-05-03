@@ -10,3 +10,4 @@ npbc.db
 pyenv-install
 bin
 .vscode
+.pytest_cache
