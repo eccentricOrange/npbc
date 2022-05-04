@@ -23,6 +23,34 @@ SCHEMA_PATH = Path(__file__).parent / 'schema.sql'  # normal use path
 WEEKDAY_NAMES = list(weekday_names_iterable)
 
 
+## ensure DB exists and it's set up with the schema
+def setup_and_connect_DB() -> None:
+    DATABASE_DIR.mkdir(parents=True, exist_ok=True)
+    DATABASE_PATH.touch(exist_ok=True)
+
+    with connect(DATABASE_PATH) as connection:
+        connection.executescript(SCHEMA_PATH.read_text())
+        connection.commit()
+
+
+## generate a list of number of times each weekday occurs in a given month (return a generator)
+ # the list will be in the same order as WEEKDAY_NAMES (so the first day should be Monday)
+def get_number_of_each_weekday(month: int, year: int) -> Generator[int, None, None]:
+    main_calendar = monthcalendar(year, month)
+    number_of_weeks = len(main_calendar)
+
+    for i, _ in enumerate(WEEKDAY_NAMES):
+        number_of_weekday: int = number_of_weeks
+
+        if main_calendar[0][i] == 0:
+            number_of_weekday -= 1
+        
+        if main_calendar[-1][i] == 0:
+            number_of_weekday -= 1
+
+        yield number_of_weekday
+
+
 ## validate a string that specifies when a given paper was not delivered
 # first check to see that it meets the comma-separated requirements
 # then check against each of the other acceptable patterns in the regex dictionary
@@ -93,8 +121,8 @@ def extract_all(month: int, year: int) -> Generator[date_type, None, None]:
 
 
 ## parse a section of the strings
-    # each section is a string that specifies a set of dates
-    # this function will return a set of dates that uniquely identifies each date mentioned across the string
+ # each section is a string that specifies a set of dates
+ # this function will return a set of dates that uniquely identifies each date mentioned across the string
 def parse_undelivered_string(month: int, year: int, string: str) -> set[date_type]:
     # initialize the set of dates
     dates = set()
@@ -149,31 +177,3 @@ def parse_undelivered_strings(month: int, year: int, *strings: str) -> set[date_
             )
 
     return dates
-
-
-## ensure DB exists and it's set up with the schema
-def setup_and_connect_DB() -> None:
-    DATABASE_DIR.mkdir(parents=True, exist_ok=True)
-    DATABASE_PATH.touch(exist_ok=True)
-
-    with connect(DATABASE_PATH) as connection:
-        connection.executescript(SCHEMA_PATH.read_text())
-        connection.commit()
-
-
-## generate a list of number of times each weekday occurs in a given month (return a generator)
- # the list will be in the same order as WEEKDAY_NAMES (so the first day should be Monday)
-def get_number_of_each_weekday(month: int, year: int) -> Generator[int, None, None]:
-    main_calendar = monthcalendar(year, month)
-    number_of_weeks = len(main_calendar)
-
-    for i, _ in enumerate(WEEKDAY_NAMES):
-        number_of_weekday: int = number_of_weeks
-
-        if main_calendar[0][i] == 0:
-            number_of_weekday -= 1
-        
-        if main_calendar[-1][i] == 0:
-            number_of_weekday -= 1
-
-        yield number_of_weekday
