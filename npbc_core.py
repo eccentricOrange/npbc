@@ -395,29 +395,30 @@ def edit_existing_paper(paper_id: int, name: str | None = None, days_delivered: 
             )
 
         # get the days for the paper
-        paper_days = {
-            row[0]: row[1]
-            for row in connection.execute(
-                "SELECT paper_day_id, day_id FROM papers_days WHERE paper_id = ?;",
-                (paper_id,)
-            )
-        }
-
-        # update the delivered data for the paper
-        if days_delivered is not None:
-            for day_id, delivered in enumerate(days_delivered):
-                connection.execute(
-                    "UPDATE papers_days_delivered SET delivered = ? WHERE paper_day_id = ?;",
-                    (delivered, paper_days[day_id])
+        if (days_delivered is not None) or (days_cost is not None):
+            paper_days = {
+                row[0]: row[1]
+                for row in connection.execute(
+                    "SELECT paper_day_id, day_id FROM papers_days WHERE paper_id = ?;",
+                    (paper_id,)
                 )
+            }
 
-        # update the days for the paper
-        if days_cost is not None:
-            for day_id, cost in enumerate(days_cost):
-                connection.execute(
-                    "UPDATE papers_days_cost SET cost = ? WHERE paper_day_id = ?;",
-                    (cost, paper_days[day_id])
-                )
+            # update the delivered data for the paper
+            if days_delivered is not None:
+                for day_id, delivered in enumerate(days_delivered):
+                    connection.execute(
+                        "UPDATE papers_days_delivered SET delivered = ? WHERE paper_day_id = ?;",
+                        (delivered, paper_days[day_id])
+                    )
+
+            # update the days for the paper
+            if days_cost is not None:
+                for day_id, cost in enumerate(days_cost):
+                    connection.execute(
+                        "UPDATE papers_days_cost SET cost = ? WHERE paper_day_id = ?;",
+                        (cost, paper_days[day_id])
+                    )
 
 
 ## delete an existing paper
@@ -464,4 +465,95 @@ def delete_existing_paper(paper_id: int) -> None:
             (paper_id,)
         )
 
+
+## record strings for date(s) paper(s) were not delivered
+ # if no paper ID is specified, all papers are assumed
+def add_undelivered_string(month: int, year: int, paper_id: int | None = None, *undelivered_strings: str):
+
+    # validate the strings
+    if not validate_undelivered_string(*undelivered_strings):
+        raise ValueError("Invalid string(s).")
+
+    # if a paper ID is given
+    if paper_id:
+
+        # check that specified paper exists in the database
+        with connect(DATABASE_PATH) as connection:
+            if not connection.execute(
+                "SELECT EXISTS (SELECT 1 FROM papers WHERE paper_id = ?);",
+                (paper_id,)).fetchone()[0]:
+                raise ValueError(f"Paper with ID {paper_id} does not exist.")
         
+            # add the string(s)
+            params = [
+                (month, year, paper_id, string)
+                for string in undelivered_strings
+            ]
+
+            connection.executemany("INSERT INTO undelivered_strings (month, year, paper_id, string) VALUES (?, ?, ?, ?);", params)
+
+    # if no paper ID is given
+    else:
+
+        # get the IDs of all papers
+        with connect(DATABASE_PATH) as connection:
+            paper_ids = [
+                row[0]
+                for row in connection.execute(
+                    "SELECT paper_id FROM papers;"
+                )
+            ]
+
+            # add the string(s)
+            params = [
+                (month, year, paper_id, string)
+                for paper_id in paper_ids
+                for string in undelivered_strings
+            ]
+
+            connection.executemany("INSERT INTO undelivered_strings (month, year, paper_id, string) VALUES (?, ?, ?, ?);", params)
+
+
+## delete an existing undelivered string
+ # do not allow if the string does not exist
+def delete_undelivered_string(string_id: int | None = None, string: str | None = None, paper_id: int | None = None, month: int | None = None, year: int | None = None) -> None:
+    parameters = []
+    values = ()
+
+    if month:
+        parameters.append("month")
+        values += (month,)
+
+    if year:
+        parameters.append("year")
+        values += (year,)
+
+    if paper_id:
+        parameters.append("paper_id")
+        values += (paper_id,)
+
+    if string:
+        parameters.append("string")
+        values += (string,)
+
+    if string_id:
+        parameters.append("string_id")
+        values += (string_id,)
+
+    if not parameters:
+        raise ValueError("No parameters given.")
+
+    with connect(DATABASE_PATH) as connection:
+        check_query = "SELECT EXISTS (SELECT 1 FROM undelivered_strings WHERE "
+
+        conditions = ' AND '.join(
+            f"{parameter} = \"?\""
+            for parameter in parameters
+        ) + ");"
+
+        if not connection.execute(check_query + conditions, values).fetchall()[0]:
+            raise ValueError("String with given parameters does not exist.")
+
+        delete_query = "DELETE FROM undelivered_strings WHERE "
+
+        connection.execute(delete_query + conditions, values)
