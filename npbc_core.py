@@ -24,8 +24,10 @@ SCHEMA_PATH = DATABASE_DIR / 'schema.sql'  # development path
 WEEKDAY_NAMES = list(weekday_names_iterable)
 
 
-## ensure DB exists and it's set up with the schema
+
 def setup_and_connect_DB() -> None:
+    """ensure DB exists and it's set up with the schema"""
+
     DATABASE_DIR.mkdir(parents=True, exist_ok=True)
     DATABASE_PATH.touch(exist_ok=True)
 
@@ -35,9 +37,10 @@ def setup_and_connect_DB() -> None:
     connection.close()
 
 
-## generate a list of number of times each weekday occurs in a given month (return a generator)
- # the list will be in the same order as WEEKDAY_NAMES (so the first day should be Monday)
 def get_number_of_each_weekday(month: int, year: int) -> Generator[int, None, None]:
+    """generate a list of number of times each weekday occurs in a given month (return a generator)
+    - the list will be in the same order as WEEKDAY_NAMES (so the first day should be Monday)"""
+
     main_calendar = monthcalendar(year, month)
     number_of_weeks = len(main_calendar)
 
@@ -53,10 +56,11 @@ def get_number_of_each_weekday(month: int, year: int) -> Generator[int, None, No
         yield number_of_weekday
 
 
-## validate a string that specifies when a given paper was not delivered
-# first check to see that it meets the comma-separated requirements
-# then check against each of the other acceptable patterns in the regex dictionary
 def validate_undelivered_string(*strings: str) -> None:
+    """validate a string that specifies when a given paper was not delivered
+    - first check to see that it meets the comma-separated requirements
+    - then check against each of the other acceptable patterns in the regex dictionary"""
+
     # check that the string matches one of the acceptable patterns
     for string in strings:
         if string and not (
@@ -71,16 +75,18 @@ def validate_undelivered_string(*strings: str) -> None:
 
     # if we get here, all strings passed the regex check
 
-## if the date is simply a number, it's a single day. so we just identify that date
 def extract_number(string: str, month: int, year: int) -> date_type | None:
+    """if the date is simply a number, it's a single day. so we just identify that date"""
+
     date = int(string)
 
     if date > 0 and date <= monthrange(year, month)[1]:
         return date_type(year, month, date)
 
 
-## if the date is a range of numbers, it's a range of days. we identify all the dates in that range, bounds inclusive
 def extract_range(string: str, month: int, year: int) -> Generator[date_type, None, None]:
+    """if the date is a range of numbers, it's a range of days. we identify all the dates in that range, bounds inclusive"""
+
     start, end = [int(date) for date in npbc_regex.HYPHEN_SPLIT_REGEX.split(string)]
 
     if 0 < start <= end <= monthrange(year, month)[1]:
@@ -88,8 +94,9 @@ def extract_range(string: str, month: int, year: int) -> Generator[date_type, No
             yield date_type(year, month, date)
 
 
-## if the date is the plural of a weekday name, we identify all dates in that month which are the given weekday
 def extract_weekday(string: str, month: int, year: int) -> Generator[date_type, None, None]:
+    """if the date is the plural of a weekday name, we identify all dates in that month which are the given weekday"""
+
     weekday = WEEKDAY_NAMES.index(string.capitalize().rstrip('s'))
 
     for day in range(1, monthrange(year, month)[1] + 1):
@@ -97,8 +104,9 @@ def extract_weekday(string: str, month: int, year: int) -> Generator[date_type, 
             yield date_type(year, month, day)
 
 
-## if the date is a number and a weekday name (singular), we identify the date that is the nth occurrence of the given weekday in the month
 def extract_nth_weekday(string: str, month: int, year: int) -> date_type | None:
+    """if the date is a number and a weekday name (singular), we identify the date that is the nth occurrence of the given weekday in the month"""
+
     n, weekday_name = npbc_regex.HYPHEN_SPLIT_REGEX.split(string)
 
     n = int(n)
@@ -115,16 +123,18 @@ def extract_nth_weekday(string: str, month: int, year: int) -> date_type | None:
         return valid_dates[n - 1]
 
 
-## if the text is "all", we identify all the dates in the month
 def extract_all(month: int, year: int) -> Generator[date_type, None, None]:
+    """if the text is "all", we identify all the dates in the month"""
+
     for day in range(1, monthrange(year, month)[1] + 1):
         yield date_type(year, month, day)
 
 
-## parse a section of the strings
- # each section is a string that specifies a set of dates
- # this function will return a set of dates that uniquely identifies each date mentioned across the string
 def parse_undelivered_string(month: int, year: int, string: str) -> set[date_type]:
+    """parse a section of the strings
+    - each section is a string that specifies a set of dates
+    - this function will return a set of dates that uniquely identifies each date mentioned across the string"""
+
     # initialize the set of dates
     dates = set()
 
@@ -156,10 +166,11 @@ def parse_undelivered_string(month: int, year: int, string: str) -> set[date_typ
     return dates
 
     
-## parse a string that specifies when a given paper was not delivered
- # each section states some set of dates
- # this function will return a set of dates that uniquely identifies each date mentioned across all the strings
 def parse_undelivered_strings(month: int, year: int, *strings: str) -> set[date_type]:
+    """parse a string that specifies when a given paper was not delivered
+    - each section states some set of dates
+    - this function will return a set of dates that uniquely identifies each date mentioned across all the strings"""
+    
     # initialize the set of dates
     dates = set()
 
@@ -180,10 +191,11 @@ def parse_undelivered_strings(month: int, year: int, *strings: str) -> set[date_
     return dates
 
 
-## get the cost and delivery data for a given paper from the DB
- # each of them are converted to a dictionary, whose index is the day_id
- # the two dictionaries are then returned as a tuple
 def get_cost_and_delivery_data(paper_id: int, connection: Connection) -> tuple[dict[int, float], dict[int, bool]]:
+    """get the cost and delivery data for a given paper from the DB
+    - each of them are converted to a dictionary, whose index is the day_id
+    - the two dictionaries are then returned as a tuple"""
+    
     query = """
         SELECT papers_days.day_id, papers_days_delivered.delivered, papers_days_cost.cost
         FROM papers_days
@@ -209,9 +221,14 @@ def get_cost_and_delivery_data(paper_id: int, connection: Connection) -> tuple[d
     return cost_dict, delivered_dict
 
 
-## calculate the cost of one paper for the full month
- # any dates when it was not delivered will be removed
-def calculate_cost_of_one_paper(number_of_each_weekday: list[int], undelivered_dates: set[date_type], cost_and_delivered_data: tuple[dict[int, float], dict[int, bool]]) -> float:
+def calculate_cost_of_one_paper(
+        number_of_each_weekday: list[int],
+        undelivered_dates: set[date_type],
+        cost_and_delivered_data: tuple[dict[int, float], dict[int, bool]]
+    ) -> float:
+    """calculate the cost of one paper for the full month
+    - any dates when it was not delivered will be removed"""
+    
     cost_data, delivered_data = cost_and_delivered_data
     
     # initialize counters corresponding to each weekday when the paper was not delivered
@@ -234,9 +251,14 @@ def calculate_cost_of_one_paper(number_of_each_weekday: list[int], undelivered_d
     )
 
 
-## calculate the cost of all papers for the full month
- # return data about the cost of each paper, the total cost, and dates when each paper was not delivered
-def calculate_cost_of_all_papers(undelivered_strings: dict[int, list[str]], month: int, year: int) -> tuple[dict[int, float], float, dict[int, set[date_type]]]:
+def calculate_cost_of_all_papers(undelivered_strings: dict[int, list[str]], month: int, year: int) -> tuple[
+    dict[int, float],
+    float,
+    dict[int, set[date_type]]
+]:
+    """calculate the cost of all papers for the full month
+    - return data about the cost of each paper, the total cost, and dates when each paper was not delivered"""
+
     NUMBER_OF_EACH_WEEKDAY = list(get_number_of_each_weekday(month, year))
     cost_and_delivery_data = []
 
@@ -280,9 +302,16 @@ def calculate_cost_of_all_papers(undelivered_strings: dict[int, list[str]], mont
     return costs, total, undelivered_dates
 
 
-## save the results of undelivered dates to the DB
- # save the dates any paper was not delivered
-def save_results(costs: dict[int, float], undelivered_dates: dict[int, set[date_type]], month: int, year: int) -> None:
+def save_results(
+    costs: dict[int, float],
+    undelivered_dates: dict[int, set[date_type]],
+    month: int,
+    year: int
+) -> None:
+    """save the results of undelivered dates to the DB
+    - save the dates any paper was not delivered
+    - save the final cost of each paper"""
+
     timestamp = datetime.now().strftime(r'%d/%m/%Y %I:%M:%S %p')
 
     with connect(DATABASE_PATH) as connection:
@@ -324,8 +353,9 @@ def save_results(costs: dict[int, float], undelivered_dates: dict[int, set[date_
     connection.close()
 
 
-## format the output of calculating the cost of all papers
 def format_output(costs: dict[int, float], total: float, month: int, year: int) -> Generator[str, None, None]:
+    """format the output of calculating the cost of all papers"""
+    
     yield f"For {date_type(year=year, month=month, day=1).strftime(r'%B %Y')}\n"
     yield f"*TOTAL*: {total}\n"
 
@@ -341,9 +371,10 @@ def format_output(costs: dict[int, float], total: float, month: int, year: int) 
     connection.close()
 
 
-## add a new paper
- # do not allow if the paper already exists
 def add_new_paper(name: str, days_delivered: list[bool], days_cost: list[float]) -> None:
+    """add a new paper
+    - do not allow if the paper already exists"""
+
     with connect(DATABASE_PATH) as connection:
         
         # check if the paper already exists
@@ -384,9 +415,15 @@ def add_new_paper(name: str, days_delivered: list[bool], days_cost: list[float])
     connection.close()
 
 
-## edit an existing paper
- # do not allow if the paper does not exist
-def edit_existing_paper(paper_id: int, name: str | None = None, days_delivered: list[bool] | None = None, days_cost: list[float] | None = None) -> None:
+def edit_existing_paper(
+    paper_id: int,
+    name: str | None = None,
+    days_delivered: list[bool] | None = None,
+    days_cost: list[float] | None = None
+) -> None:
+    """edit an existing paper
+    do not allow if the paper does not exist"""
+
     with connect(DATABASE_PATH) as connection:
         
         # check if the paper exists
@@ -431,9 +468,10 @@ def edit_existing_paper(paper_id: int, name: str | None = None, days_delivered: 
     connection.close()
 
 
-## delete an existing paper
- # do not allow if the paper does not exist
 def delete_existing_paper(paper_id: int) -> None:
+    """delete an existing paper
+    - do not allow if the paper does not exist"""
+
     with connect(DATABASE_PATH) as connection:
         
         # check if the paper exists
@@ -478,9 +516,9 @@ def delete_existing_paper(paper_id: int) -> None:
     connection.close()
 
 
-## record strings for date(s) paper(s) were not delivered
- # if no paper ID is specified, all papers are assumed
 def add_undelivered_string(month: int, year: int, paper_id: int | None = None, *undelivered_strings: str):
+    """record strings for date(s) paper(s) were not delivered
+    - if no paper ID is specified, all papers are assumed"""
 
     # validate the strings
     validate_undelivered_string(*undelivered_strings)
@@ -529,9 +567,16 @@ def add_undelivered_string(month: int, year: int, paper_id: int | None = None, *
         connection.close()
 
 
-## delete an existing undelivered string
- # do not allow if the string does not exist
-def delete_undelivered_string(string_id: int | None = None, string: str | None = None, paper_id: int | None = None, month: int | None = None, year: int | None = None) -> None:
+def delete_undelivered_string(
+    string_id: int | None = None,
+    string: str | None = None,
+    paper_id: int | None = None,
+    month: int | None = None,
+    year: int | None = None
+) -> None:
+    """delete an existing undelivered string
+    - do not allow if the string does not exist"""
+
     parameters = []
     values = ()
 
@@ -576,11 +621,12 @@ def delete_undelivered_string(string_id: int | None = None, string: str | None =
     connection.close()
 
 
-## get all papers
- # the user may specify parameters, either none or as many as they want
- # available parameters: name, days_delivered, days_cost
- # paper_id is always returned
 def get_papers(name = None, days_delivered = None, days_cost = None) -> list[tuple[int, str]]:
+    """get all papers
+    - the user may specify parameters, either none or as many as they want
+    - available parameters: name, days_delivered, days_cost
+    - paper_id is always returned"""
+
     parameters = []
     data = []
 
@@ -603,11 +649,18 @@ def get_papers(name = None, days_delivered = None, days_cost = None) -> list[tup
     return data
 
 
-## get undelivered strings
- # the user may specify as many as they want parameters, but at least one
- # available parameters: string_id, month, year, paper_id, string
- # if no parameters are given, an error is raised
-def get_undelivered_strings(string_id: int | None = None, month: int | None = None, year: int | None = None, paper_id: int | None = None, string: str | None = None) -> list[tuple[int, int, int, str]]:
+def get_undelivered_strings(
+    string_id: int | None = None,
+    month: int | None = None,
+    year: int | None = None,
+    paper_id: int | None = None,
+    string: str | None = None
+) -> list[tuple[int, int, int, str]]:
+    """get undelivered strings
+    - the user may specify as many as they want parameters, but at least one
+    - available parameters: string_id, month, year, paper_id, string
+    - if no parameters are given, an error is raised"""
+
     parameters = []
     values = ()
     data = []
@@ -650,15 +703,19 @@ def get_undelivered_strings(string_id: int | None = None, month: int | None = No
     return data
 
 
-## get the previous month, by looking at 1 day before the first day of the current month (duh)
 def get_previous_month() -> date_type:
+    """get the previous month, by looking at 1 day before the first day of the current month (duh)"""
+
     return (datetime.today().replace(day=1) - timedelta(days=1)).replace(day=1)
 
 
-## validate month and year
 def validate_month_and_year(month: int | None = None, year: int | None = None):
-    if (month is not None) and not (1 <= month <= 12):
+    """validate month and year
+    - month must be an integer between 1 and 12 inclusive
+    - year must be an integer greater than 0"""
+    
+    if isinstance(month, int) and not (1 <= month <= 12):
         raise npbc_exceptions.InvalidMonthYear("Month must be between 1 and 12.")
 
-    if (year is not None) and (year <= 0):
+    if isinstance(year, int) and (year <= 0):
         raise npbc_exceptions.InvalidMonthYear("Year must be greater than 0.")
