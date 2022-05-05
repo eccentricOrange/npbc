@@ -4,6 +4,7 @@ from calendar import day_name as weekday_names_iterable, monthcalendar, monthran
 from sqlite3 import Connection, connect
 from typing import Generator
 import npbc_regex
+import npbc_exceptions
 
 
 ## paths for the folder containing schema and database files
@@ -66,7 +67,7 @@ def validate_undelivered_string(*strings: str) -> None:
             npbc_regex.ALL_MATCH_REGEX.match(string)
         ):
 
-            raise ValueError(f'{string} is not a valid undelivered string.')
+            raise npbc_exceptions.InvalidUndeliveredString(f'{string} is not a valid undelivered string.')
 
     # if we get here, all strings passed the regex check
 
@@ -150,7 +151,7 @@ def parse_undelivered_string(month: int, year: int, string: str) -> set[date_typ
         dates.update(extract_all(month, year))
 
     else:
-        raise ValueError
+        raise npbc_exceptions.InvalidUndeliveredString(f'{string} is not a valid undelivered string.')
 
     return dates
 
@@ -167,7 +168,7 @@ def parse_undelivered_strings(month: int, year: int, *strings: str) -> set[date_
         try:
             dates.update(parse_undelivered_string(month, year, string))
 
-        except ValueError:
+        except npbc_exceptions.InvalidUndeliveredString:
             print(
                 f"""Congratulations! You broke the program!
                 You managed to write a string that the program considers valid, but isn't actually.
@@ -349,7 +350,7 @@ def add_new_paper(name: str, days_delivered: list[bool], days_cost: list[float])
         if connection.execute(
             "SELECT EXISTS (SELECT 1 FROM papers WHERE name = ?);",
             (name,)).fetchone()[0]:
-            raise ValueError(f"Paper \"{name}\" already exists.")
+            raise npbc_exceptions.PaperAlreadyExists(f"Paper \"{name}\" already exists.")
 
         # insert the paper
         paper_id = connection.execute(
@@ -392,7 +393,7 @@ def edit_existing_paper(paper_id: int, name: str | None = None, days_delivered: 
         if not connection.execute(
             "SELECT EXISTS (SELECT 1 FROM papers WHERE paper_id = ?);",
             (paper_id,)).fetchone()[0]:
-            raise ValueError(f"Paper with ID {paper_id} does not exist.")
+            raise npbc_exceptions.PaperNotExists(f"Paper with ID {paper_id} does not exist.")
 
         # update the paper name
         if name is not None:
@@ -439,7 +440,7 @@ def delete_existing_paper(paper_id: int) -> None:
         if not connection.execute(
             "SELECT EXISTS (SELECT 1 FROM papers WHERE paper_id = ?);",
             (paper_id,)).fetchone()[0]:
-            raise ValueError(f"Paper with ID {paper_id} does not exist.")
+            raise npbc_exceptions.PaperNotExists(f"Paper with ID {paper_id} does not exist.")
 
         # delete the paper
         connection.execute(
@@ -492,7 +493,7 @@ def add_undelivered_string(month: int, year: int, paper_id: int | None = None, *
             if not connection.execute(
                 "SELECT EXISTS (SELECT 1 FROM papers WHERE paper_id = ?);",
                 (paper_id,)).fetchone()[0]:
-                raise ValueError(f"Paper with ID {paper_id} does not exist.")
+                raise npbc_exceptions.PaperNotExists(f"Paper with ID {paper_id} does not exist.")
         
             # add the string(s)
             params = [
@@ -555,7 +556,7 @@ def delete_undelivered_string(string_id: int | None = None, string: str | None =
         values += (string_id,)
 
     if not parameters:
-        raise ValueError("No parameters given.")
+        raise npbc_exceptions.NoParameters("No parameters given.")
 
     with connect(DATABASE_PATH) as connection:
         check_query = "SELECT EXISTS (SELECT 1 FROM undelivered_strings WHERE "
@@ -566,7 +567,7 @@ def delete_undelivered_string(string_id: int | None = None, string: str | None =
         ) + ");"
 
         if not connection.execute(check_query + conditions, values).fetchall()[0]:
-            raise ValueError("String with given parameters does not exist.")
+            raise npbc_exceptions.StringNotExists("String with given parameters does not exist.")
 
         delete_query = "DELETE FROM undelivered_strings WHERE "
 
@@ -632,7 +633,7 @@ def get_undelivered_strings(string_id: int | None = None, month: int | None = No
         values += (string,)
 
     if not parameters:
-        raise ValueError("No parameters given.")
+        raise npbc_exceptions.NoParameters("No parameters given.")
 
     with connect(DATABASE_PATH) as connection:
         query = f"SELECT {', '.join(parameters)} FROM undelivered_strings WHERE "
@@ -657,7 +658,7 @@ def get_previous_month() -> date_type:
 ## validate month and year
 def validate_month_and_year(month: int | None = None, year: int | None = None):
     if (month is not None) and not (1 <= month <= 12):
-        raise ValueError("Month must be between 1 and 12.")
+        raise npbc_exceptions.InvalidMonthYear("Month must be between 1 and 12.")
 
     if (year is not None) and (year <= 0):
-        raise ValueError("Year must be greater than 0.")
+        raise npbc_exceptions.InvalidMonthYear("Year must be greater than 0.")
