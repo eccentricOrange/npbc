@@ -621,7 +621,7 @@ def delete_undelivered_string(
     connection.close()
 
 
-def get_papers(name = None, days_delivered = None, days_cost = None) -> list[tuple[int, str]]:
+def get_papers(name = None, days_delivered = None, days_cost = None) -> list[tuple[int | str]]:
     """get all papers
     - the user may specify parameters, either none or as many as they want
     - available parameters: name, days_delivered, days_cost
@@ -640,7 +640,7 @@ def get_papers(name = None, days_delivered = None, days_cost = None) -> list[tup
         parameters.append("days_cost")
 
     with connect(DATABASE_PATH) as connection:
-        query = f"SELECT paper_id, {', '.join(parameters)} FROM papers;"
+        query = f"SELECT paper_id{',' if parameters else ''} {', '.join(parameters)} FROM papers;"
 
         data = connection.execute(query).fetchall()
 
@@ -655,7 +655,7 @@ def get_undelivered_strings(
     year: int | None = None,
     paper_id: int | None = None,
     string: str | None = None
-) -> list[tuple[int, int, int, str]]:
+) -> list[tuple[int, int, int, int, str]]:
     """get undelivered strings
     - the user may specify as many as they want parameters, but at least one
     - available parameters: string_id, month, year, paper_id, string
@@ -689,7 +689,7 @@ def get_undelivered_strings(
         raise npbc_exceptions.NoParameters("No parameters given.")
 
     with connect(DATABASE_PATH) as connection:
-        query = f"SELECT {', '.join(parameters)} FROM undelivered_strings WHERE "
+        query = f"SELECT string_id, paper_id, year, month, string FROM undelivered_strings WHERE "
 
         conditions = ' AND '.join(
             f"{parameter} = \"?\""
@@ -699,6 +699,9 @@ def get_undelivered_strings(
         data = connection.execute(query + conditions, values).fetchall()
 
     connection.close()
+
+    if not data:
+        raise npbc_exceptions.StringNotExists("String with given parameters does not exist.")
 
     return data
 
@@ -719,3 +722,7 @@ def validate_month_and_year(month: int | None = None, year: int | None = None) -
 
     if isinstance(year, int) and (year <= 0):
         raise npbc_exceptions.InvalidMonthYear("Year must be greater than 0.")
+
+
+if __name__ == "__main__":
+    print(get_papers())

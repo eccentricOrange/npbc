@@ -2,6 +2,7 @@ from argparse import ArgumentParser, Namespace as ArgNamespace
 from datetime import datetime
 from colorama import Fore, Style
 import npbc_core
+import npbc_exceptions
 
 
 def define_and_read_args() -> ArgNamespace:
@@ -34,13 +35,14 @@ def define_and_read_args() -> ArgNamespace:
     # add undelivered string subparser
     addudl_parser = functions.add_parser(
         'addudl',
-        help="Store a date when paper(s) were not delivered. Current month will be used if month or year flags are not set."
+        help="Store a date when paper(s) were not delivered. Current month will be used if month or year flags are not set. Either paper ID must be provided, or the all flag must be set."
     )
 
     addudl_parser.set_defaults(func=addudl)
     addudl_parser.add_argument('-m', '--month', type=int, help="Month to register undelivered incident(s) for. Must be between 1 and 12.")
     addudl_parser.add_argument('-y', '--year', type=int, help="Year to register undelivered incident(s) for. Must be greater than 0.")
-    addudl_parser.add_argument('-i', '--id', type=str, help="ID of paper to register undelivered incident(s) for.", required=True)
+    addudl_parser.add_argument('-i', '--id', type=str, help="ID of paper to register undelivered incident(s) for.")
+    addudl_parser.add_argument('-a', '--all', help="Register undelivered incidents for all papers.", action='store_true')
     addudl_parser.add_argument('-u', '--undelivered', type=str, help="Dates when you did not receive any papers.", required=True, nargs='+')
 
 
@@ -52,8 +54,10 @@ def define_and_read_args() -> ArgNamespace:
 
     deludl_parser.set_defaults(func=deludl)
     deludl_parser.add_argument('-i', '--id', type=str, help="ID of paper to unregister undelivered incident(s) for.")
+    deludl_parser.add_argument('-s', '--strid', type=str, help="String ID of paper to unregister undelivered incident(s) for.")
     deludl_parser.add_argument('-m', '--month', type=int, help="Month to unregister undelivered incident(s) for. Must be between 1 and 12.")
     deludl_parser.add_argument('-y', '--year', type=int, help="Year to unregister undelivered incident(s) for. Must be greater than 0.")
+    deludl_parser.add_argument('-u', '--undelivered', type=str, help="Dates when you did not receive any papers.")
 
 
     # get undelivered string subparser
@@ -64,6 +68,7 @@ def define_and_read_args() -> ArgNamespace:
 
     getudl_parser.set_defaults(func=getudl)
     getudl_parser.add_argument('-i', '--id', type=str, help="ID for paper.")
+    deludl_parser.add_argument('-s', '--strid', type=str, help="String ID of paper to unregister undelivered incident(s) for.")
     getudl_parser.add_argument('-m', '--month', type=int, help="Month. Must be between 1 and 12.")
     getudl_parser.add_argument('-y', '--year', type=int, help="Year. Must be greater than 0.")
     getudl_parser.add_argument('-u', '--undelivered', type=str, help="Dates when you did not receive any papers.")
@@ -148,3 +153,162 @@ def status_print(status: bool, message: str) -> None:
         print(f"{Fore.RED}", end="")
 
     print(f"{Style.BRIGHT}{message}{Style.RESET_ALL}\n")
+
+
+def calculate(args: ArgNamespace) -> None:
+    """calculate the cost for a given month and year
+    - default to the previous month if no month and no year is given
+    - default to the current month if no month is given and year is given
+    - default to the current year if no year is given and month is given"""
+
+    # deal with month and year
+    if args.month or args.year:
+
+        try:
+            npbc_core.validate_month_and_year(args.month, args.year)
+        
+        except npbc_exceptions.InvalidMonthYear:
+            status_print(False, "Invalid month and/or year.")
+            return
+
+        month = args.month or datetime.now().month
+        year = args.year or datetime.now().year
+
+    else:
+        previous_month = npbc_core.get_previous_month()
+        month = previous_month.month
+        year = previous_month.year
+
+    undelivered_strings = {
+        int(paper_id[0]): []
+        for paper_id in npbc_core.get_papers()
+    }
+
+    try:
+        raw_undelivered_strings = npbc_core.get_undelivered_strings(month=month, year=year)
+
+        for _, paper_id, _, _, string in raw_undelivered_strings:
+            undelivered_strings[paper_id].append(string)
+
+    except npbc_exceptions.StringNotExists:
+        pass
+
+    costs, total, undelivered_dates = npbc_core.calculate_cost_of_all_papers(
+        undelivered_strings,
+        month,
+        year
+    )
+
+    # format the results
+    formatted = '\n'.join(npbc_core.format_output(costs, total, month, year))
+
+    # unless the user specifies so, log the results to the database
+    if not args.nolog:
+        npbc_core.save_results(costs, undelivered_dates, month, year)
+
+        formatted += '\nLog saved to file.'
+
+    # print the results
+    status_print(True, "Success!")
+    print(f"SUMMARY:\n{formatted}")
+
+
+def addudl(args: ArgNamespace) -> None:
+    """add undelivered strings to the database
+    - default to the current month if no month and/or no year is given"""
+
+    try:
+        npbc_core.validate_month_and_year(args.month, args.year)
+
+    except npbc_exceptions.InvalidMonthYear:
+        status_print(False, "Invalid month and/or year.")
+        return
+
+    month = args.month or datetime.now().month
+    year = args.year or datetime.now().year
+
+    if args.id or args.all:
+
+        try:
+            npbc_core.add_undelivered_string(month, year, paper_id=args.id, *args.undelivered)
+
+        except npbc_exceptions.PaperNotExists:
+            status_print(False, f"Paper with ID {args.id} does not exist.")
+            return
+
+        except npbc_exceptions.InvalidUndeliveredString:
+            status_print(False, "Invalid undelivered string(s).")
+            return
+
+    else:
+        status_print(False, "No paper(s) specified.")
+
+    status_print(True, "Success!")
+
+
+def deludl(args: ArgNamespace) -> None:
+    """delete undelivered strings from the database"""
+
+    try:
+        npbc_core.validate_month_and_year(args.month, args.year)
+
+    except npbc_exceptions.InvalidMonthYear:
+        status_print(False, "Invalid month and/or year.")
+        return
+
+    try:
+        npbc_core.delete_undelivered_string(
+            month=args.month,
+            year=args.year,
+            paper_id=args.id,
+            string=args.string
+            string_id=args.string_id
+        )
+
+    except npbc_exceptions.NoParameters:
+        status_print(False, "No parameters specified.")
+        return
+
+    except npbc_exceptions.StringNotExists:
+        status_print(False, "String does not exist.")
+        return
+        
+    status_print(True, "Success!")
+
+
+def getudl(args: ArgNamespace) -> None:
+    """get undelivered strings from the database
+    filter by whichever parameter the user provides. they as many as they want.
+    available parameters: month, year, paper_id, string_id, string"""
+
+    try:
+        npbc_core.validate_month_and_year(args.month, args.year)
+
+    except npbc_exceptions.InvalidMonthYear:
+        status_print(False, "Invalid month and/or year.")
+        return
+
+    try:
+        undelivered_strings = npbc_core.get_undelivered_strings(
+            month=args.month,
+            year=args.year,
+            paper_id=args.id,
+            string_id=args.strid,
+            string=args.string
+        )
+
+    except npbc_exceptions.NoParameters:
+        status_print(False, "No parameters specified.")
+        return
+
+    except npbc_exceptions.StringNotExists:
+        status_print(False, "No strings found for the given parameters.")
+        return
+
+    # format the results
+    status_print(True, "Success!")
+
+    print(f"{Fore.YELLOW}string_id{Style.RESET_ALL} | {Fore.YELLOW}paper_id{Style.RESET_ALL} | {Fore.YELLOW}year{Style.RESET_ALL} | {Fore.YELLOW}month{Style.RESET_ALL} | {Fore.YELLOW}string{Style.RESET_ALL}")
+
+    for items in undelivered_strings:
+        print('|'.join([str(item) for item in items]))
