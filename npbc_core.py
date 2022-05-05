@@ -321,3 +321,18 @@ def save_results(costs: dict[int, float], undelivered_dates: dict[int, set[date_
                 )
 
 
+## format the output of calculating the cost of all papers
+def format_output(costs: dict[int, float], total: float, month: int, year: int) -> Generator[str, None, None]:
+    yield f"For {date_type(year=year, month=month, day=1).strftime(r'%B %Y')}\n"
+    yield f"*TOTAL*: {total}\n"
+
+    with connect(DATABASE_PATH) as connection:
+        papers = {
+            row[0]: row[1]
+            for row in connection.execute("SELECT paper_id, name FROM papers;").fetchall()
+        }
+
+        for paper_id, cost in costs.items():
+            yield f"{papers[paper_id]}: {cost}"
+
+
