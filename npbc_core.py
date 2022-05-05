@@ -2,10 +2,8 @@ from datetime import date as date_type, datetime, timedelta
 from pathlib import Path
 from calendar import day_name as weekday_names_iterable, monthcalendar, monthrange
 from sqlite3 import Connection, connect
-from textwrap import indent
 from typing import Generator
 import npbc_regex
-from json import dumps
 
 
 ## paths for the folder containing schema and database files
@@ -32,6 +30,8 @@ def setup_and_connect_DB() -> None:
 
     with connect(DATABASE_PATH) as connection:
         connection.executescript(SCHEMA_PATH.read_text())
+
+    connection.close()
 
 
 ## generate a list of number of times each weekday occurs in a given month (return a generator)
@@ -250,6 +250,8 @@ def calculate_cost_of_all_papers(undelivered_strings: dict[int, list[str]], mont
             for paper_id, in papers # type: ignore
         ]
 
+    connection.close()
+
     # initialize a "blank" dictionary that will eventually contain any dates when a paper was not delivered
     undelivered_dates: dict[int, set[date_type]] = {
         paper_id: set()
@@ -319,6 +321,8 @@ def save_results(costs: dict[int, float], undelivered_dates: dict[int, set[date_
                     (log_ids[paper_id], date.strftime("%Y-%m-%d"))
                 )
 
+    connection.close()
+
 
 ## format the output of calculating the cost of all papers
 def format_output(costs: dict[int, float], total: float, month: int, year: int) -> Generator[str, None, None]:
@@ -333,6 +337,8 @@ def format_output(costs: dict[int, float], total: float, month: int, year: int) 
 
         for paper_id, cost in costs.items():
             yield f"{papers[paper_id]}: {cost}"
+
+    connection.close()
 
 
 ## add a new paper
@@ -374,6 +380,8 @@ def add_new_paper(name: str, days_delivered: list[bool], days_cost: list[float])
                 "INSERT INTO papers_days_delivered (paper_day_id, delivered) VALUES (?, ?);",
                 (paper_days[day_id], delivered)
             )
+
+    connection.close()
 
 
 ## edit an existing paper
@@ -420,6 +428,8 @@ def edit_existing_paper(paper_id: int, name: str | None = None, days_delivered: 
                         (cost, paper_days[day_id])
                     )
 
+    connection.close()
+
 
 ## delete an existing paper
  # do not allow if the paper does not exist
@@ -465,6 +475,8 @@ def delete_existing_paper(paper_id: int) -> None:
             (paper_id,)
         )
 
+    connection.close()
+
 
 ## record strings for date(s) paper(s) were not delivered
  # if no paper ID is specified, all papers are assumed
@@ -492,6 +504,8 @@ def add_undelivered_string(month: int, year: int, paper_id: int | None = None, *
 
             connection.executemany("INSERT INTO undelivered_strings (month, year, paper_id, string) VALUES (?, ?, ?, ?);", params)
 
+        connection.close()
+
     # if no paper ID is given
     else:
 
@@ -512,6 +526,8 @@ def add_undelivered_string(month: int, year: int, paper_id: int | None = None, *
             ]
 
             connection.executemany("INSERT INTO undelivered_strings (month, year, paper_id, string) VALUES (?, ?, ?, ?);", params)
+
+        connection.close()
 
 
 ## delete an existing undelivered string
@@ -557,3 +573,5 @@ def delete_undelivered_string(string_id: int | None = None, string: str | None =
         delete_query = "DELETE FROM undelivered_strings WHERE "
 
         connection.execute(delete_query + conditions, values)
+
+    connection.close()
