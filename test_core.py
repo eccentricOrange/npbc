@@ -1,6 +1,7 @@
 from datetime import date as date_type
 import npbc_core
 from pytest import raises
+from npbc_exceptions import InvalidMonthYear, InvalidUndeliveredString
 
 def test_get_number_of_each_weekday():
     test_function = npbc_core.get_number_of_each_weekday
@@ -15,7 +16,7 @@ def test_get_number_of_each_weekday():
 def test_validate_undelivered_string():
     test_function = npbc_core.validate_undelivered_string
 
-    with raises(ValueError):
+    with raises(InvalidUndeliveredString):
         test_function("a")
         test_function("monday")
         test_function("1-mondays")
@@ -334,7 +335,7 @@ def test_validate_month_and_year():
     test_function(1, 2022)
     test_function(12, 2022)
 
-    with raises(ValueError):
+    with raises(InvalidMonthYear):
         test_function(-54, 2020)
         test_function(0, 2020)
         test_function(13, 2020)
