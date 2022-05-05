@@ -516,7 +516,7 @@ def delete_existing_paper(paper_id: int) -> None:
     connection.close()
 
 
-def add_undelivered_string(month: int, year: int, paper_id: int | None = None, *undelivered_strings: str):
+def add_undelivered_string(month: int, year: int, paper_id: int | None = None, *undelivered_strings: str) -> None:
     """record strings for date(s) paper(s) were not delivered
     - if no paper ID is specified, all papers are assumed"""
 
@@ -709,7 +709,7 @@ def get_previous_month() -> date_type:
     return (datetime.today().replace(day=1) - timedelta(days=1)).replace(day=1)
 
 
-def validate_month_and_year(month: int | None = None, year: int | None = None):
+def validate_month_and_year(month: int | None = None, year: int | None = None) -> None:
     """validate month and year
     - month must be an integer between 1 and 12 inclusive
     - year must be an integer greater than 0"""
