@@ -6,8 +6,7 @@ __pycache__
 .vs
 exp*
 *legacy*
-npbc.db
-pyenv-install
 bin
 .vscode
 .pytest_cache
+data/*.db

@@ -1,9 +1,11 @@
 from datetime import date as date_type, datetime, timedelta
 from pathlib import Path
 from calendar import day_name as weekday_names_iterable, monthcalendar, monthrange
-from sqlite3 import connect
+from sqlite3 import Connection, connect
+from textwrap import indent
 from typing import Generator
 import npbc_regex
+from json import dumps
 
 
 ## paths for the folder containing schema and database files
@@ -11,12 +13,12 @@ import npbc_regex
  # during development, the DB and schema will both be in "data"
 
 DATABASE_DIR = Path().home() / '.npbc'  # normal use path
-# DATABASE_DIR = Path('data')  # development path
+DATABASE_DIR = Path('data')  # development path
 
 DATABASE_PATH = DATABASE_DIR / 'npbc.db'
 
 SCHEMA_PATH = Path(__file__).parent / 'schema.sql'  # normal use path
-# SCHEMA_PATH = DATABASE_DIR / 'schema.sql'  # development path
+SCHEMA_PATH = DATABASE_DIR / 'schema.sql'  # development path
 
 
 ## list constant for names of weekdays
@@ -177,3 +179,101 @@ def parse_undelivered_strings(month: int, year: int, *strings: str) -> set[date_
             )
 
     return dates
+
+
+## get the cost and delivery data for a given paper from the DB
+ # each of them are converted to a dictionary, whose index is the day_id
+ # the two dictionaries are then returned as a tuple
+def get_cost_and_delivery_data(paper_id: int, connection: Connection) -> tuple[dict[int, float], dict[int, bool]]:
+    query = """
+        SELECT papers_days.day_id, papers_days_delivered.delivered, papers_days_cost.cost
+        FROM papers_days
+        LEFT JOIN papers_days_delivered
+        ON papers_days.paper_day_id = papers_days_delivered.paper_day_id
+        LEFT JOIN papers_days_cost
+        ON papers_days.paper_day_id = papers_days_cost.paper_day_id
+        WHERE papers_days.paper_id = ?
+    """
+
+    retrieved_data = connection.execute(query, (paper_id, )).fetchall()
+    
+    cost_dict = {
+        row[0]: row[2]
+        for row in retrieved_data
+    }
+
+    delivered_dict = {
+        row[0]: bool(row[1])
+        for row in retrieved_data
+    }
+
+    return cost_dict, delivered_dict
+
+
+## calculate the cost of one paper for the full month
+ # any dates when it was not delivered will be removed
+def calculate_cost_of_one_paper(number_of_each_weekday: list[int], undelivered_dates: set[date_type], cost_and_delivered_data: tuple[dict[int, float], dict[int, bool]]) -> float:
+    cost_data, delivered_data = cost_and_delivered_data
+    
+    # initialize counters corresponding to each weekday when the paper was not delivered
+    number_of_days_per_weekday_not_received = [0] * len(number_of_each_weekday)
+
+    # for each date that the paper was not delivered, we increment the counter for the corresponding weekday
+    for date in undelivered_dates:
+        number_of_days_per_weekday_not_received[date.weekday()] += 1
+    
+    # calculate the total number of each weekday the paper was delivered (if it is supposed to be delivered)
+    number_of_days_delivered = [
+        number_of_each_weekday[day_id] - number_of_days_per_weekday_not_received[day_id] if delivered else 0
+        for day_id, delivered in delivered_data.items()
+    ]
+
+    # calculate the total cost of the paper for the month
+    return sum(
+        cost * number_of_days_delivered[day_id]
+        for day_id, cost in cost_data.items()
+    )
+
+
+## calculate the cost of all papers for the full month
+ # return data about the cost of each paper, the total cost, and dates when each paper was not delivered
+def calculate_cost_of_all_papers(undelivered_strings: dict[int, list[str]], month: int, year: int) -> tuple[dict[int, float], float, dict[int, set[date_type]]]:
+    NUMBER_OF_EACH_WEEKDAY = list(get_number_of_each_weekday(month, year))
+    cost_and_delivery_data = []
+
+    # get the IDs of papers that exist
+    with connect(DATABASE_PATH) as connection:
+        papers = connection.execute("SELECT paper_id FROM papers;").fetchall()
+
+        # get the data about cost and delivery for each paper
+        cost_and_delivery_data = [
+            get_cost_and_delivery_data(paper_id, connection)
+            for paper_id, in papers # type: ignore
+        ]
+
+    # initialize a "blank" dictionary that will eventually contain any dates when a paper was not delivered
+    undelivered_dates: dict[int, set[date_type]] = {
+        paper_id: set()
+        for paper_id, in papers # type: ignore
+    }
+
+    # calculate the undelivered dates for each paper
+    for paper_id, strings in undelivered_strings.items():
+        undelivered_dates[paper_id].update(
+            parse_undelivered_strings(month, year, *strings)
+        )
+
+    # calculate the cost of each paper
+    costs = {
+        paper_id: calculate_cost_of_one_paper(
+            NUMBER_OF_EACH_WEEKDAY,
+            undelivered_dates[paper_id],
+            cost_and_delivery_data[index]
+        )
+        for index, (paper_id,) in enumerate(papers) # type: ignore
+    }
+
+    # calculate the total cost of all papers
+    total = sum(costs.values())
+
+    return costs, total, undelivered_dates
