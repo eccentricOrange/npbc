@@ -1,5 +1,6 @@
 from datetime import date as date_type
 import npbc_core
+from pytest import raises
 
 def test_get_number_of_each_weekday():
     test_function = npbc_core.get_number_of_each_weekday
@@ -14,41 +15,43 @@ def test_get_number_of_each_weekday():
 def test_validate_undelivered_string():
     test_function = npbc_core.validate_undelivered_string
 
-    assert test_function("")
-    assert not test_function("a")
-    assert not test_function("monday")
-    assert not test_function("1-mondays")
-    assert not test_function("1monday")
-    assert not test_function("1 monday")
-    assert not test_function("monday-1")
-    assert not test_function("monday-1")
-    assert test_function("1")
-    assert test_function("6")
-    assert test_function("31")
-    assert test_function("31","")
-    assert test_function("3","1")
-    assert test_function("3","1","")
-    assert test_function("3","1")
-    assert test_function("3","1")
-    assert test_function("3","1")
-    assert test_function("1","2","3-9")
-    assert test_function("1","2","3-9","11","12","13-19")
-    assert test_function("1","2","3-9","11","12","13-19","21","22","23-29")
-    assert test_function("1","2","3-9","11","12","13-19","21","22","23-29","31")
-    assert test_function("1","2","3","4","5","6","7","8","9")
-    assert test_function("mondays")
-    assert test_function("mondays,tuesdays")
-    assert test_function("mondays","tuesdays","wednesdays")
-    assert test_function("mondays","5-21")
-    assert test_function("mondays","5-21","tuesdays","5-21")
-    assert test_function("1-monday")
-    assert test_function("2-monday")
-    assert test_function("all")
-    assert test_function("All")
-    assert test_function("aLl")
-    assert test_function("alL")
-    assert test_function("aLL")
-    assert test_function("ALL")
+    with raises(ValueError):
+        test_function("a")
+        test_function("monday")
+        test_function("1-mondays")
+        test_function("1monday")
+        test_function("1 monday")
+        test_function("monday-1")
+        test_function("monday-1")
+
+    test_function("")
+    test_function("1")
+    test_function("6")
+    test_function("31")
+    test_function("31","")
+    test_function("3","1")
+    test_function("3","1","")
+    test_function("3","1")
+    test_function("3","1")
+    test_function("3","1")
+    test_function("1","2","3-9")
+    test_function("1","2","3-9","11","12","13-19")
+    test_function("1","2","3-9","11","12","13-19","21","22","23-29")
+    test_function("1","2","3-9","11","12","13-19","21","22","23-29","31")
+    test_function("1","2","3","4","5","6","7","8","9")
+    test_function("mondays")
+    test_function("mondays,tuesdays")
+    test_function("mondays","tuesdays","wednesdays")
+    test_function("mondays","5-21")
+    test_function("mondays","5-21","tuesdays","5-21")
+    test_function("1-monday")
+    test_function("2-monday")
+    test_function("all")
+    test_function("All")
+    test_function("aLl")
+    test_function("alL")
+    test_function("aLL")
+    test_function("ALL")
 
 
 def test_undelivered_string_parsing():
@@ -319,3 +322,26 @@ def test_calculating_cost_of_one_paper():
             DELIVERY_DATA
         )
     ) == 34
+
+
+def test_validate_month_and_year():
+    test_function = npbc_core.validate_month_and_year
+
+    test_function(1, 2020)
+    test_function(12, 2020)
+    test_function(1, 2021)
+    test_function(12, 2021)
+    test_function(1, 2022)
+    test_function(12, 2022)
+
+    with raises(ValueError):
+        test_function(-54, 2020)
+        test_function(0, 2020)
+        test_function(13, 2020)
+        test_function(45, 2020)
+        test_function(1, -5)
+        test_function(12, -5)
+        test_function(1.6, 10) # type: ignore
+        test_function(12.6, 10) # type: ignore
+        test_function(1, '10') # type: ignore
+        test_function(12, '10') # type: ignore

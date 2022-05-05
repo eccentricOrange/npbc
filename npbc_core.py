@@ -55,7 +55,7 @@ def get_number_of_each_weekday(month: int, year: int) -> Generator[int, None, No
 ## validate a string that specifies when a given paper was not delivered
 # first check to see that it meets the comma-separated requirements
 # then check against each of the other acceptable patterns in the regex dictionary
-def validate_undelivered_string(*strings: str) -> bool:
+def validate_undelivered_string(*strings: str) -> None:
     # check that the string matches one of the acceptable patterns
     for string in strings:
         if string and not (
@@ -66,10 +66,9 @@ def validate_undelivered_string(*strings: str) -> bool:
             npbc_regex.ALL_MATCH_REGEX.match(string)
         ):
 
-            return False
+            raise ValueError(f'{string} is not a valid undelivered string.')
 
     # if we get here, all strings passed the regex check
-    return True
 
 ## if the date is simply a number, it's a single day. so we just identify that date
 def extract_number(string: str, month: int, year: int) -> date_type | None:
@@ -483,8 +482,7 @@ def delete_existing_paper(paper_id: int) -> None:
 def add_undelivered_string(month: int, year: int, paper_id: int | None = None, *undelivered_strings: str):
 
     # validate the strings
-    if not validate_undelivered_string(*undelivered_strings):
-        raise ValueError("Invalid string(s).")
+    validate_undelivered_string(*undelivered_strings)
 
     # if a paper ID is given
     if paper_id:
@@ -575,3 +573,17 @@ def delete_undelivered_string(string_id: int | None = None, string: str | None =
         connection.execute(delete_query + conditions, values)
 
     connection.close()
+
+
+## get the previous month, by looking at 1 day before the first day of the current month (duh)
+def get_previous_month() -> date_type:
+    return (datetime.today().replace(day=1) - timedelta(days=1)).replace(day=1)
+
+
+## validate month and year
+def validate_month_and_year(month: int | None = None, year: int | None = None):
+    if (month is not None) and not (1 <= month <= 12):
+        raise ValueError("Month must be between 1 and 12.")
+
+    if (year is not None) and (year <= 0):
+        raise ValueError("Year must be greater than 0.")
