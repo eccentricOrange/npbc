@@ -137,3 +137,14 @@ def define_and_read_args() -> ArgNamespace:
 
 
     return main_parser.parse_args()
+
+
+def status_print(status: bool, message: str) -> None:
+    """print out a coloured status message using Colorama"""
+
+    if status:
+        print(f"{Fore.GREEN}", end="")
+    else:
+        print(f"{Fore.RED}", end="")
+
+    print(f"{Style.BRIGHT}{message}{Style.RESET_ALL}\n")
