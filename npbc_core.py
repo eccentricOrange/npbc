@@ -277,3 +277,47 @@ def calculate_cost_of_all_papers(undelivered_strings: dict[int, list[str]], mont
     total = sum(costs.values())
 
     return costs, total, undelivered_dates
+
+
+## save the results of undelivered dates to the DB
+ # save the dates any paper was not delivered
+def save_results(costs: dict[int, float], undelivered_dates: dict[int, set[date_type]], month: int, year: int) -> None:
+    timestamp = datetime.now().strftime(r'%d/%m/%Y %I:%M:%S %p')
+
+    with connect(DATABASE_PATH) as connection:
+
+        # create log entries for each paper
+        log_ids = {
+            paper_id: connection.execute(
+                """
+                INSERT INTO logs (paper_id, month, year, timestamp)
+                VALUES (?, ?, ?, ?)
+                RETURNING log_id;
+                """,
+                (paper_id, month, year, timestamp)
+            ).fetchone()
+            for paper_id in costs.keys()
+        }
+
+        # create cost entries for each paper
+        for paper_id, log_id in log_ids.items():
+            connection.execute(
+                """
+                INSERT INTO cost_logs (log_id, cost)
+                VALUES (?, ?);
+                """,
+                (log_id, costs[paper_id])
+            )
+
+        # create undelivered entries for each paper
+        for paper_id, dates in undelivered_dates.items():
+            for date in dates:
+                connection.execute(
+                    """
+                    INSERT INTO undelivered_logs (log_id, day_id)
+                    VALUES (?, ?);
+                    """,
+                    (log_ids[paper_id], date.strftime("%Y-%m-%d"))
+                )
+
+
