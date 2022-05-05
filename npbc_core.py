@@ -575,6 +575,80 @@ def delete_undelivered_string(string_id: int | None = None, string: str | None =
     connection.close()
 
 
+## get all papers
+ # the user may specify parameters, either none or as many as they want
+ # available parameters: name, days_delivered, days_cost
+ # paper_id is always returned
+def get_papers(name = None, days_delivered = None, days_cost = None) -> list[tuple[int, str]]:
+    parameters = []
+    data = []
+
+    if name:
+        parameters.append("name")
+
+    if days_delivered:
+        parameters.append("days_delivered")
+
+    if days_cost:
+        parameters.append("days_cost")
+
+    with connect(DATABASE_PATH) as connection:
+        query = f"SELECT paper_id, {', '.join(parameters)} FROM papers;"
+
+        data = connection.execute(query).fetchall()
+
+    connection.close()
+
+    return data
+
+
+## get undelivered strings
+ # the user may specify as many as they want parameters, but at least one
+ # available parameters: string_id, month, year, paper_id, string
+ # if no parameters are given, an error is raised
+def get_undelivered_strings(string_id: int | None = None, month: int | None = None, year: int | None = None, paper_id: int | None = None, string: str | None = None) -> list[tuple[int, int, int, str]]:
+    parameters = []
+    values = ()
+    data = []
+
+    if string_id:
+        parameters.append("string_id")
+        values += (string_id,)
+
+    if month:
+        parameters.append("month")
+        values += (month,)
+
+    if year:
+        parameters.append("year")
+        values += (year,)
+
+    if paper_id:
+        parameters.append("paper_id")
+        values += (paper_id,)
+
+    if string:
+        parameters.append("string")
+        values += (string,)
+
+    if not parameters:
+        raise ValueError("No parameters given.")
+
+    with connect(DATABASE_PATH) as connection:
+        query = f"SELECT {', '.join(parameters)} FROM undelivered_strings WHERE "
+
+        conditions = ' AND '.join(
+            f"{parameter} = \"?\""
+            for parameter in parameters
+        ) + ";"
+
+        data = connection.execute(query + conditions, values).fetchall()
+
+    connection.close()
+
+    return data
+
+
 ## get the previous month, by looking at 1 day before the first day of the current month (duh)
 def get_previous_month() -> date_type:
     return (datetime.today().replace(day=1) - timedelta(days=1)).replace(day=1)
