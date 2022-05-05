@@ -32,7 +32,6 @@ def setup_and_connect_DB() -> None:
 
     with connect(DATABASE_PATH) as connection:
         connection.executescript(SCHEMA_PATH.read_text())
-        connection.commit()
 
 
 ## generate a list of number of times each weekday occurs in a given month (return a generator)
@@ -336,3 +335,133 @@ def format_output(costs: dict[int, float], total: float, month: int, year: int) 
             yield f"{papers[paper_id]}: {cost}"
 
 
+## add a new paper
+ # do not allow if the paper already exists
+def add_new_paper(name: str, days_delivered: list[bool], days_cost: list[float]) -> None:
+    with connect(DATABASE_PATH) as connection:
+        
+        # check if the paper already exists
+        if connection.execute(
+            "SELECT EXISTS (SELECT 1 FROM papers WHERE name = ?);",
+            (name,)).fetchone()[0]:
+            raise ValueError(f"Paper \"{name}\" already exists.")
+
+        # insert the paper
+        paper_id = connection.execute(
+            "INSERT INTO papers (name) VALUES (?) RETURNING paper_id;",
+            (name,)
+        ).fetchone()[0]
+
+        # create days for the paper
+        paper_days = {
+            day_id: connection.execute(
+                "INSERT INTO days (paper_id, day_id) VALUES (?, ?) RETURNING paper_day_id;",
+                (paper_id, day_id)
+            ).fetchone()[0]
+            for day_id, _ in enumerate(days_delivered)
+        }
+
+        # create cost entries for each day
+        for day_id, cost in enumerate(days_cost):
+            connection.execute(
+                "INSERT INTO papers_days_cost (paper_day_id, cost) VALUES (?, ?);",
+                (paper_days[day_id], cost)
+            )
+
+        # create delivered entries for each day
+        for day_id, delivered in enumerate(days_delivered):
+            connection.execute(
+                "INSERT INTO papers_days_delivered (paper_day_id, delivered) VALUES (?, ?);",
+                (paper_days[day_id], delivered)
+            )
+
+
+## edit an existing paper
+ # do not allow if the paper does not exist
+def edit_existing_paper(paper_id: int, name: str | None = None, days_delivered: list[bool] | None = None, days_cost: list[float] | None = None) -> None:
+    with connect(DATABASE_PATH) as connection:
+        
+        # check if the paper exists
+        if not connection.execute(
+            "SELECT EXISTS (SELECT 1 FROM papers WHERE paper_id = ?);",
+            (paper_id,)).fetchone()[0]:
+            raise ValueError(f"Paper with ID {paper_id} does not exist.")
+
+        # update the paper name
+        if name is not None:
+            connection.execute(
+                "UPDATE papers SET name = ? WHERE paper_id = ?;",
+                (name, paper_id)
+            )
+
+        # get the days for the paper
+        paper_days = {
+            row[0]: row[1]
+            for row in connection.execute(
+                "SELECT paper_day_id, day_id FROM papers_days WHERE paper_id = ?;",
+                (paper_id,)
+            )
+        }
+
+        # update the delivered data for the paper
+        if days_delivered is not None:
+            for day_id, delivered in enumerate(days_delivered):
+                connection.execute(
+                    "UPDATE papers_days_delivered SET delivered = ? WHERE paper_day_id = ?;",
+                    (delivered, paper_days[day_id])
+                )
+
+        # update the days for the paper
+        if days_cost is not None:
+            for day_id, cost in enumerate(days_cost):
+                connection.execute(
+                    "UPDATE papers_days_cost SET cost = ? WHERE paper_day_id = ?;",
+                    (cost, paper_days[day_id])
+                )
+
+
+## delete an existing paper
+ # do not allow if the paper does not exist
+def delete_existing_paper(paper_id: int) -> None:
+    with connect(DATABASE_PATH) as connection:
+        
+        # check if the paper exists
+        if not connection.execute(
+            "SELECT EXISTS (SELECT 1 FROM papers WHERE paper_id = ?);",
+            (paper_id,)).fetchone()[0]:
+            raise ValueError(f"Paper with ID {paper_id} does not exist.")
+
+        # delete the paper
+        connection.execute(
+            "DELETE FROM papers WHERE paper_id = ?;",
+            (paper_id,)
+        )
+
+        # get the days for the paper
+        paper_days = {
+            row[0]: row[1]
+            for row in connection.execute(
+                "SELECT paper_day_id, day_id FROM papers_days WHERE paper_id = ?;",
+                (paper_id,)
+            )
+        }
+
+        # delete the costs and delivery data for the paper
+        for paper_day_id in paper_days.values():
+            connection.execute(
+                "DELETE FROM papers_days_cost WHERE paper_day_id = ?;",
+                (paper_day_id,)
+            )
+
+            connection.execute(
+                "DELETE FROM papers_days_delivered WHERE paper_day_id = ?;",
+                (paper_day_id,)
+            )
+
+        # delete the days for the paper
+        connection.execute(
+            "DELETE FROM days WHERE paper_id = ?;",
+            (paper_id,)
+        )
+
+        
