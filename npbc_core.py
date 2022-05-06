@@ -621,32 +621,27 @@ def delete_undelivered_string(
     connection.close()
 
 
-def get_papers(name = None, days_delivered = None, days_cost = None) -> list[tuple[int | str]]:
+def get_papers() -> list[tuple[int, str, int, int, int]]:
     """get all papers
-    - the user may specify parameters, either none or as many as they want
-    - available parameters: name, days_delivered, days_cost
-    - paper_id is always returned"""
+    - returns a list of tuples containing the following fields:
+      paper_id, paper_name, day_id, paper_delivered, paper_cost"""
 
-    parameters = []
-    data = []
+    raw_data = []
 
-    if name:
-        parameters.append("name")
-
-    if days_delivered:
-        parameters.append("days_delivered")
-
-    if days_cost:
-        parameters.append("days_cost")
+    query = """
+        SELECT papers.paper_id, papers.name, papers_days.day_id, papers_days_delivered.delivered, papers_days_cost.cost
+        FROM papers
+        LEFT JOIN papers_days ON papers.paper_id = papers_days.paper_id
+        LEFT JOIN papers_days_delivered ON papers_days.paper_day_id = papers_days_delivered.paper_day_id
+        LEFT JOIN papers_days_cost ON papers_days.paper_day_id = papers_days_cost.paper_day_id;
+    """
 
     with connect(DATABASE_PATH) as connection:
-        query = f"SELECT paper_id{',' if parameters else ''} {', '.join(parameters)} FROM papers;"
-
-        data = connection.execute(query).fetchall()
+        raw_data = connection.execute(query).fetchall()
 
     connection.close()
 
-    return data
+    return raw_data
 
 
 def get_undelivered_strings(
@@ -722,7 +717,3 @@ def validate_month_and_year(month: int | None = None, year: int | None = None) -
 
     if isinstance(year, int) and (year <= 0):
         raise npbc_exceptions.InvalidMonthYear("Year must be greater than 0.")
-
-
-if __name__ == "__main__":
-    print(get_papers())

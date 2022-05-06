@@ -3,6 +3,7 @@ from datetime import datetime
 from colorama import Fore, Style
 import npbc_core
 import npbc_exceptions
+from npbc_regex import DAYS_MATCH_REGEX
 
 
 def define_and_read_args() -> ArgNamespace:
@@ -83,7 +84,7 @@ def define_and_read_args() -> ArgNamespace:
     editpaper_parser.set_defaults(func=editpaper)
     editpaper_parser.add_argument('-n', '--name', type=str, help="Name for paper to be edited.")
     editpaper_parser.add_argument('-d', '--days', type=str, help="Number of days the paper to be edited is delivered. All seven weekdays are required. A 'Y' means it is delivered, and an 'N' means it isn't. No separator required.")
-    editpaper_parser.add_argument('-p', '--price', type=str, help="Daywise prices of paper to be edited. Values must be separated by semicolons, and 0s are ignored.")
+    editpaper_parser.add_argument('-p', '--price', type=str, help="Daywise prices of paper to be edited. 0s are ignored.", nargs='*')
     editpaper_parser.add_argument('-i', '--id', type=str, help="ID for paper to be edited.", required=True)
 
 
@@ -96,7 +97,7 @@ def define_and_read_args() -> ArgNamespace:
     addpaper_parser.set_defaults(func=addpaper)
     addpaper_parser.add_argument('-n', '--name', type=str, help="Name for paper to be added.", required=True)
     addpaper_parser.add_argument('-d', '--days', type=str, help="Number of days the paper to be added is delivered. All seven weekdays are required. A 'Y' means it is delivered, and an 'N' means it isn't. No separator required.", required=True)
-    addpaper_parser.add_argument('-p', '--price', type=str, help="Daywise prices of paper to be added. Values must be separated by semicolons, and 0s are ignored.", required=True)
+    addpaper_parser.add_argument('-p', '--price', type=str, help="Daywise prices of paper to be added. 0s are ignored.", required=True, nargs=7)
 
 
     # delete paper subparser
@@ -180,8 +181,8 @@ def calculate(args: ArgNamespace) -> None:
         year = previous_month.year
 
     undelivered_strings = {
-        int(paper_id[0]): []
-        for paper_id in npbc_core.get_papers()
+        int(paper_id): []
+        for paper_id, _, _, _, _ in npbc_core.get_papers()
     }
 
     try:
@@ -312,3 +313,110 @@ def getudl(args: ArgNamespace) -> None:
 
     for items in undelivered_strings:
         print('|'.join([str(item) for item in items]))
+
+
+def extract_delivery_from_user_input(input_delivery: str) -> list[bool]:
+    """convert the /[YN]{7}/ user input to a Boolean list"""
+
+    if not DAYS_MATCH_REGEX.match(input_delivery):
+        raise npbc_exceptions.InvalidInput
+
+    return [
+        day == 'Y'
+        for day in input_delivery
+    ]
+
+
+def extract_costs_from_user_input(*input_costs: float) -> list[float]:
+    """convert the user input to a float list"""
+
+    return [
+        cost
+        for cost in input_costs
+        if cost != 0
+    ]
+
+
+def editpaper(args: ArgNamespace) -> None:
+    """edit a paper's information"""
+    try:
+        npbc_core.edit_existing_paper(
+            paper_id=args.id,
+            name=args.name,
+            days_delivered=extract_delivery_from_user_input(args.days_delivered),
+            days_cost=extract_costs_from_user_input(args.days_cost)
+        )
+
+    except npbc_exceptions.PaperNotExists:
+        status_print(False, "Paper does not exist.")
+        return
+
+    except npbc_exceptions.InvalidInput as e:
+        status_print(False, f"Invalid input: {e}")
+        return
+
+    status_print(True, "Success!")
+
+
+def addpaper(args: ArgNamespace) -> None:
+    """add a new paper to the database"""
+
+    try:
+        npbc_core.add_new_paper(
+            name=args.name,
+            days_delivered=extract_delivery_from_user_input(args.days_delivered),
+            days_cost=extract_costs_from_user_input(args.days_cost)
+        )
+
+    except npbc_exceptions.InvalidInput as e:
+        status_print(False, f"Invalid input: {e}")
+        return
+
+    except npbc_exceptions.PaperAlreadyExists:
+        status_print(False, "Paper already exists.")
+        return
+
+    status_print(True, "Success!")
+
+
+def delpaper(args: ArgNamespace) -> None:
+    """delete a paper from the database"""
+
+    try:
+        npbc_core.delete_existing_paper(args.id)
+
+    except npbc_exceptions.PaperNotExists:
+        status_print(False, "Paper does not exist.")
+        return
+
+    status_print(True, "Success!")
+
+
+def getpapers(args: ArgNamespace) -> None:
+    """get a list of all papers in the database
+    - filter by whichever parameter the user provides. they may use as many as they want (but keys are always printed)
+    - available parameters: name, days, costs
+    - the output is provided as a formatted table, printed to the standard output"""
+
+    try:
+        papers = npbc_core.get_papers()
+
+    except npbc_exceptions.DatabaseError as e:
+        status_print(False, f"Database error: {e}\nPlease report this to the developer.")
+        return
+
+    headers = ['paper_id']
+
+    # format the results
+    status_print(True, "Success!")
+
+    if args.name:
+        headers.append('name')
+
+    if args.days:
+        headers.append('days')
+
+    if args.price:
+        headers.append('price')
+
+    
