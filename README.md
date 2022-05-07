@@ -9,7 +9,7 @@ This app calculates your monthly newspaper bill.
 2. Each newspaper may or may not be delivered on a given day
 3. Each newspaper has a name, and a number called a key
 4. You may register any dates when you didn't receive a paper in advance using the `addudl` command
-5. Once you calculate, the results are displayed and copied to your clipboard
+5. Once you calculate, the results are displayed and logged.
 
 ## Installation
 1. From [the latest release](https://github.com/eccentricOrange/npbc/releases/latest), download the "updater" file for your operating system in any folder, and make it executable.

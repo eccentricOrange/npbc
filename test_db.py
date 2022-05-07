@@ -1,3 +1,4 @@
+from datetime import date, datetime
 from sqlite3 import connect
 from pathlib import Path
 from typing import Counter
@@ -6,7 +7,7 @@ from pytest import raises
 
 DATABASE_PATH = Path("data") / "npbc.db"
 SCHEMA_PATH = Path("data") / "schema.sql"
-TEST_SQL = Path("test.sql")
+TEST_SQL = Path("data") / "test.sql"
 
 
 def setup_db(database_path: Path, schema_path: Path, test_sql: Path):
@@ -264,5 +265,27 @@ def test_add_string():
     assert Counter(npbc_core.get_undelivered_strings()) == Counter(known_data)
 
 
-if __name__ == '__main__':
-    test_delete_string()
+def test_save_results():
+    setup_db(DATABASE_PATH, SCHEMA_PATH, TEST_SQL)
+
+    known_data = [
+        (1, 1, 1, 2020, '04/01/2022 01:05:42 AM', '2020-01-01', 105.0),
+        (1, 1, 1, 2020, '04/01/2022 01:05:42 AM', '2020-01-02', 105.0),
+        (2, 2, 1, 2020, '04/01/2022 01:05:42 AM', '2020-01-03', 51.0),
+        (2, 2, 1, 2020, '04/01/2022 01:05:42 AM', '2020-01-01', 51.0),
+        (2, 2, 1, 2020, '04/01/2022 01:05:42 AM', '2020-01-05', 51.0)
+    ]
+
+    npbc_core.save_results(
+        {1: 105, 2: 51, 3: 647},
+        {
+            1: set([date(month=1, day=1, year=2020), date(month=1, day=2, year=2020)]),
+            2: set([date(month=1, day=1, year=2020), date(month=1, day=5, year=2020), date(month=1, day=3, year=2020)]),
+            3: set()
+        },
+        1,
+        2020,
+        datetime(year=2022, month=1, day=4, hour=1, minute=5, second=42)
+    )
+
+    assert Counter(npbc_core.get_logged_data()) == Counter(known_data)

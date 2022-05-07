@@ -1,8 +1,6 @@
 from argparse import ArgumentParser, Namespace as ArgNamespace
-from datetime import datetime, date as date_type
-from json import dumps
+from datetime import datetime
 import sqlite3
-from unicodedata import name
 from colorama import Fore, Style
 import npbc_core
 import npbc_exceptions
@@ -32,7 +30,6 @@ def define_and_read_args() -> ArgNamespace:
     calculate_parser.set_defaults(func=calculate)
     calculate_parser.add_argument('-m', '--month', type=int, help="Month to calculate bill for. Must be between 1 and 12.")
     calculate_parser.add_argument('-y', '--year', type=int, help="Year to calculate bill for. Must be greater than 0.")
-    calculate_parser.add_argument('-c', '--nocopy', help="Don't copy the result of the calculation to the clipboard.", action='store_true')
     calculate_parser.add_argument('-l', '--nolog', help="Don't log the result of the calculation.", action='store_true')
 
 
@@ -45,9 +42,9 @@ def define_and_read_args() -> ArgNamespace:
     addudl_parser.set_defaults(func=addudl)
     addudl_parser.add_argument('-m', '--month', type=int, help="Month to register undelivered incident(s) for. Must be between 1 and 12.")
     addudl_parser.add_argument('-y', '--year', type=int, help="Year to register undelivered incident(s) for. Must be greater than 0.")
-    addudl_parser.add_argument('-i', '--id', type=str, help="ID of paper to register undelivered incident(s) for.")
+    addudl_parser.add_argument('-p', '--paperid', type=str, help="ID of paper to register undelivered incident(s) for.")
     addudl_parser.add_argument('-a', '--all', help="Register undelivered incidents for all papers.", action='store_true')
-    addudl_parser.add_argument('-u', '--undelivered', type=str, help="Dates when you did not receive any papers.", required=True, nargs='+')
+    addudl_parser.add_argument('-s', '--strings', type=str, help="Dates when you did not receive any papers.", required=True, nargs='+')
 
 
     # delete undelivered string subparser
@@ -57,11 +54,11 @@ def define_and_read_args() -> ArgNamespace:
     )
 
     deludl_parser.set_defaults(func=deludl)
-    deludl_parser.add_argument('-i', '--id', type=str, help="ID of paper to unregister undelivered incident(s) for.")
-    deludl_parser.add_argument('-s', '--strid', type=str, help="String ID of paper to unregister undelivered incident(s) for.")
+    deludl_parser.add_argument('-p', '--paperid', type=str, help="ID of paper to unregister undelivered incident(s) for.")
+    deludl_parser.add_argument('-i', '--stringid', type=str, help="String ID of paper to unregister undelivered incident(s) for.")
     deludl_parser.add_argument('-m', '--month', type=int, help="Month to unregister undelivered incident(s) for. Must be between 1 and 12.")
     deludl_parser.add_argument('-y', '--year', type=int, help="Year to unregister undelivered incident(s) for. Must be greater than 0.")
-    deludl_parser.add_argument('-u', '--undelivered', type=str, help="Dates when you did not receive any papers.")
+    deludl_parser.add_argument('-s', '--string', type=str, help="Dates when you did not receive any papers.")
 
 
     # get undelivered string subparser
@@ -71,11 +68,11 @@ def define_and_read_args() -> ArgNamespace:
     )
 
     getudl_parser.set_defaults(func=getudl)
-    getudl_parser.add_argument('-i', '--id', type=str, help="ID for paper.")
-    deludl_parser.add_argument('-s', '--strid', type=str, help="String ID of paper to unregister undelivered incident(s) for.")
+    getudl_parser.add_argument('-p', '--paperid', type=str, help="ID for paper.")
+    getudl_parser.add_argument('-i', '--stringid', type=str, help="String ID of paper to unregister undelivered incident(s) for.")
     getudl_parser.add_argument('-m', '--month', type=int, help="Month. Must be between 1 and 12.")
     getudl_parser.add_argument('-y', '--year', type=int, help="Year. Must be greater than 0.")
-    getudl_parser.add_argument('-u', '--undelivered', type=str, help="Dates when you did not receive any papers.")
+    getudl_parser.add_argument('-s', '--string', type=str, help="Dates when you did not receive any papers.")
 
 
     # edit paper subparser
@@ -86,9 +83,9 @@ def define_and_read_args() -> ArgNamespace:
 
     editpaper_parser.set_defaults(func=editpaper)
     editpaper_parser.add_argument('-n', '--name', type=str, help="Name for paper to be edited.")
-    editpaper_parser.add_argument('-d', '--days', type=str, help="Number of days the paper to be edited is delivered. All seven weekdays are required. A 'Y' means it is delivered, and an 'N' means it isn't. No separator required.")
-    editpaper_parser.add_argument('-p', '--price', type=str, help="Daywise prices of paper to be edited. 0s are ignored.", nargs='*')
-    editpaper_parser.add_argument('-i', '--id', type=str, help="ID for paper to be edited.", required=True)
+    editpaper_parser.add_argument('-d', '--delivered', type=str, help="Number of days the paper to be edited is delivered. All seven weekdays are required. A 'Y' means it is delivered, and an 'N' means it isn't. No separator required.")
+    editpaper_parser.add_argument('-c', '--costs', type=str, help="Daywise prices of paper to be edited. 0s are ignored.", nargs='*')
+    editpaper_parser.add_argument('-p', '--paperid', type=str, help="ID for paper to be edited.", required=True)
 
 
     # add paper subparser
@@ -99,8 +96,8 @@ def define_and_read_args() -> ArgNamespace:
 
     addpaper_parser.set_defaults(func=addpaper)
     addpaper_parser.add_argument('-n', '--name', type=str, help="Name for paper to be added.", required=True)
-    addpaper_parser.add_argument('-d', '--days', type=str, help="Number of days the paper to be added is delivered. All seven weekdays are required. A 'Y' means it is delivered, and an 'N' means it isn't. No separator required.", required=True)
-    addpaper_parser.add_argument('-p', '--price', type=str, help="Daywise prices of paper to be added. 0s are ignored.", required=True, nargs=7)
+    addpaper_parser.add_argument('-d', '--delivered', type=str, help="Number of days the paper to be added is delivered. All seven weekdays are required. A 'Y' means it is delivered, and an 'N' means it isn't. No separator required.", required=True)
+    addpaper_parser.add_argument('-c', '--costs', type=str, help="Daywise prices of paper to be added. 0s are ignored.", required=True, nargs=7)
 
 
     # delete paper subparser
@@ -110,7 +107,7 @@ def define_and_read_args() -> ArgNamespace:
     )
 
     delpaper_parser.set_defaults(func=delpaper)
-    delpaper_parser.add_argument('-i', '--id', type=str, help="ID for paper to be deleted.", required=True)
+    delpaper_parser.add_argument('-p', '--paperid', type=str, help="ID for paper to be deleted.", required=True)
 
     # get paper subparser
     getpapers_parser = functions.add_parser(
@@ -120,8 +117,8 @@ def define_and_read_args() -> ArgNamespace:
 
     getpapers_parser.set_defaults(func=getpapers)
     getpapers_parser.add_argument('-n', '--names', help="Get the names of the newspapers.", action='store_true')
-    getpapers_parser.add_argument('-d', '--days', help="Get the days the newspapers are delivered. All seven weekdays are required. A 'Y' means it is delivered, and an 'N' means it isn't.", action='store_true')
-    getpapers_parser.add_argument('-p', '--price', help="Get the daywise prices of the newspapers. Values must be separated by semicolons.", action='store_true')
+    getpapers_parser.add_argument('-d', '--delivered', help="Get the days the newspapers are delivered. All seven weekdays are required. A 'Y' means it is delivered, and an 'N' means it isn't.", action='store_true')
+    getpapers_parser.add_argument('-c', '--cost', help="Get the daywise prices of the newspapers. Values must be separated by semicolons.", action='store_true')
 
     # get undelivered logs subparser
     getlogs_parser = functions.add_parser(
@@ -130,7 +127,8 @@ def define_and_read_args() -> ArgNamespace:
     )
 
     getlogs_parser.set_defaults(func=getlogs)
-    getlogs_parser.add_argument('-i', '--id', type=str, help="ID for paper.", required=True)
+    getlogs_parser.add_argument('-i', '--logid', type=int, help="ID for log to be retrieved.")
+    getlogs_parser.add_argument('-p', '--paperid', type=str, help="ID for paper.")
     getlogs_parser.add_argument('-m', '--month', type=int, help="Month. Must be between 1 and 12.")
     getlogs_parser.add_argument('-y', '--year', type=int, help="Year. Must be greater than 0.")
     getlogs_parser.add_argument('-t' , '--timestamp', type=str, help="Timestamp. Must be in the format dd/mm/yyyy hh:mm:ss AM/PM.")
@@ -165,9 +163,12 @@ def calculate(args: ArgNamespace) -> None:
     - default to the current month if no month is given and year is given
     - default to the current year if no year is given and month is given"""
 
-    # deal with month and year
+    ## deal with month and year
+
+    # if either of them are given
     if args.month or args.year:
 
+        # validate them
         try:
             npbc_core.validate_month_and_year(args.month, args.year)
         
@@ -175,28 +176,37 @@ def calculate(args: ArgNamespace) -> None:
             status_print(False, "Invalid month and/or year.")
             return
 
+        # for each, if it is not given, set it to the current month and/or year
         month = args.month or datetime.now().month
         year = args.year or datetime.now().year
 
+    # if neither are given
     else:
+
+        # set them to the previous month and year
         previous_month = npbc_core.get_previous_month()
         month = previous_month.month
         year = previous_month.year
 
+    # prepare a dictionary for undelivered strings
     undelivered_strings = {
         int(paper_id): []
         for paper_id, _, _, _, _ in npbc_core.get_papers()
     }
 
+    # get the undelivered strings from the database
     try:
         raw_undelivered_strings = npbc_core.get_undelivered_strings(month=month, year=year)
 
+        # add them to the dictionary
         for _, paper_id, _, _, string in raw_undelivered_strings:
             undelivered_strings[paper_id].append(string)
 
+    # ignore if none exist
     except npbc_exceptions.StringNotExists:
         pass
 
+    # calculate the cost for each paper
     costs, total, undelivered_dates = npbc_core.calculate_cost_of_all_papers(
         undelivered_strings,
         month,
@@ -210,11 +220,11 @@ def calculate(args: ArgNamespace) -> None:
     if not args.nolog:
         npbc_core.save_results(costs, undelivered_dates, month, year)
 
-        formatted += '\nLog saved to file.'
+        formatted += '\n\nLog saved to file.'
 
     # print the results
     status_print(True, "Success!")
-    print(f"SUMMARY:\n{formatted}")
+    print(f"SUMMARY:\n\n{formatted}")
 
 
 def addudl(args: ArgNamespace) -> None:
@@ -231,13 +241,14 @@ def addudl(args: ArgNamespace) -> None:
     month = args.month or datetime.now().month
     year = args.year or datetime.now().year
 
-    if args.id or args.all:
+    if args.paperid or args.all:
 
         try:
-            npbc_core.add_undelivered_string(month, year, paper_id=args.id, *args.undelivered)
+            print(f"{month=} {year=} {args.paperid=} {args.strings=}")
+            npbc_core.add_undelivered_string(month, year, args.paperid, *args.strings)
 
         except npbc_exceptions.PaperNotExists:
-            status_print(False, f"Paper with ID {args.id} does not exist.")
+            status_print(False, f"Paper with ID {args.paperid} does not exist.")
             return
 
         except npbc_exceptions.InvalidUndeliveredString:
@@ -246,6 +257,7 @@ def addudl(args: ArgNamespace) -> None:
 
     else:
         status_print(False, "No paper(s) specified.")
+        return
 
     status_print(True, "Success!")
 
@@ -264,9 +276,9 @@ def deludl(args: ArgNamespace) -> None:
         npbc_core.delete_undelivered_string(
             month=args.month,
             year=args.year,
-            paper_id=args.id,
+            paper_id=args.paperid,
             string=args.string,
-            string_id=args.string_id
+            string_id=args.stringid
         )
 
     except npbc_exceptions.NoParameters:
@@ -296,8 +308,8 @@ def getudl(args: ArgNamespace) -> None:
         undelivered_strings = npbc_core.get_undelivered_strings(
             month=args.month,
             year=args.year,
-            paper_id=args.id,
-            string_id=args.strid,
+            paper_id=args.paperid,
+            string_id=args.stringid,
             string=args.string
         )
 
@@ -344,10 +356,10 @@ def editpaper(args: ArgNamespace) -> None:
     """edit a paper's information"""
     try:
         npbc_core.edit_existing_paper(
-            paper_id=args.id,
+            paper_id=args.paperid,
             name=args.name,
-            days_delivered=extract_delivery_from_user_input(args.days_delivered),
-            days_cost=extract_costs_from_user_input(args.days_cost)
+            days_delivered=extract_delivery_from_user_input(args.delivered),
+            days_cost=extract_costs_from_user_input(args.costs)
         )
 
     except npbc_exceptions.PaperNotExists:
@@ -367,8 +379,8 @@ def addpaper(args: ArgNamespace) -> None:
     try:
         npbc_core.add_new_paper(
             name=args.name,
-            days_delivered=extract_delivery_from_user_input(args.days_delivered),
-            days_cost=extract_costs_from_user_input(args.days_cost)
+            days_delivered=extract_delivery_from_user_input(args.delivered),
+            days_cost=extract_costs_from_user_input(args.costs)
         )
 
     except npbc_exceptions.InvalidInput as e:
@@ -386,7 +398,7 @@ def delpaper(args: ArgNamespace) -> None:
     """delete a paper from the database"""
 
     try:
-        npbc_core.delete_existing_paper(args.id)
+        npbc_core.delete_existing_paper(args.paperid)
 
     except npbc_exceptions.PaperNotExists:
         status_print(False, "Paper does not exist.")
@@ -395,7 +407,7 @@ def delpaper(args: ArgNamespace) -> None:
     status_print(True, "Success!")
 
 
-def getpapers(args: ArgNamespace):
+def getpapers(args: ArgNamespace) -> None:
     """get a list of all papers in the database
     - filter by whichever parameter the user provides. they may use as many as they want (but keys are always printed)
     - available parameters: name, days, costs
@@ -428,7 +440,7 @@ def getpapers(args: ArgNamespace):
         names.sort(key=lambda item: item[0])
         names = [name for _, name in names]
 
-    if args.days or args.price:
+    if args.delivered or args.costs:
         days = {
             paper_id: {}
             for paper_id in ids
@@ -441,7 +453,7 @@ def getpapers(args: ArgNamespace):
             days[paper_id][day_id]['delivery'] = day_delivery
             days[paper_id][day_id]['cost'] = day_cost
 
-        if args.days:
+        if args.delivered:
             headers.append('days')
 
             delivery = [
@@ -452,7 +464,7 @@ def getpapers(args: ArgNamespace):
                 for paper_id in ids
             ]
 
-        if args.price:
+        if args.costs:
             headers.append('costs')
 
             costs = [
@@ -485,22 +497,23 @@ def getpapers(args: ArgNamespace):
         print()
 
 
-def getlogs(args: ArgNamespace):
+def getlogs(args: ArgNamespace) -> None:
     """get a list of all logs in the database
     - filter by whichever parameter the user provides. they may use as many as they want (but log IDs are always printed)
-    - available parameters: paper_id, month, year, timestamp
+    - available parameters: log_id, paper_id, month, year, timestamp
     - will return both date logs and cost logs"""
 
     try:
         data = npbc_core.get_logged_data(
-            paper_id=args.paper_id,
+            log_id = args.logid,
+            paper_id=args.paperid,
             month=args.month,
             year=args.year,
-            timestamp=datetime.strptime(args.timestamp, r'%d/%m/%Y %I:%M:%S %p')
+            timestamp= datetime.strptime(args.timestamp, r'%d/%m/%Y %I:%M:%S %p') if args.timestamp else None
         )
 
-    except sqlite3.DatabaseError:
-        status_print(False, "Database error. Please report this to the developer.")
+    except sqlite3.DatabaseError as e:
+        status_print(False, f"Database error. Please report this to the developer.\n{e}")
         return
 
     except ValueError:
@@ -517,9 +530,24 @@ def getlogs(args: ArgNamespace):
         print(', '.join(str(item) for item in row))
 
 
-def update(args: ArgNamespace):
+def update(args: ArgNamespace) -> None:
     """update the application
     - under normal operation, this function should never run
     - if the update CLI argument is provided, this script will never run and the updater will be run instead"""
 
     status_print(False, "Update failed.")
+
+
+def main() -> None:
+    """main function
+    - initialize the database
+    - parses the command line arguments
+    - calls the appropriate function based on the arguments"""
+
+    npbc_core.setup_and_connect_DB()
+    parsed = define_and_read_args()
+    parsed.func(parsed)
+
+
+if __name__ == "__main__":
+    main()

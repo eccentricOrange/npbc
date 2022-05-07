@@ -201,9 +201,9 @@ def get_cost_and_delivery_data(paper_id: int, connection: Connection) -> tuple[d
     query = """
         SELECT papers_days.day_id, papers_days_delivered.delivered, papers_days_cost.cost
         FROM papers_days
-        LEFT JOIN papers_days_delivered
+        INNER JOIN papers_days_delivered
         ON papers_days.paper_day_id = papers_days_delivered.paper_day_id
-        LEFT JOIN papers_days_cost
+        INNER JOIN papers_days_cost
         ON papers_days.paper_day_id = papers_days_cost.paper_day_id
         WHERE papers_days.paper_id = ?
     """
@@ -284,6 +284,7 @@ def calculate_cost_of_all_papers(undelivered_strings: dict[int, list[str]], mont
         for paper_id, in papers # type: ignore
     }
 
+
     # calculate the undelivered dates for each paper
     for paper_id, strings in undelivered_strings.items():
         undelivered_dates[paper_id].update(
@@ -310,7 +311,8 @@ def save_results(
     costs: dict[int, float],
     undelivered_dates: dict[int, set[date_type]],
     month: int,
-    year: int
+    year: int,
+    custom_timestamp: datetime | None = None
 ) -> None:
     """save the results of undelivered dates to the DB
     - save the dates any paper was not delivered
@@ -318,7 +320,7 @@ def save_results(
 
     global DATABASE_PATH
 
-    timestamp = datetime.now().strftime(r'%d/%m/%Y %I:%M:%S %p')
+    timestamp = (custom_timestamp if custom_timestamp else datetime.now()).strftime(r'%d/%m/%Y %I:%M:%S %p')
 
     with connect(DATABASE_PATH) as connection:
 
@@ -331,7 +333,7 @@ def save_results(
                 RETURNING log_id;
                 """,
                 (paper_id, month, year, timestamp)
-            ).fetchone()
+            ).fetchone()[0]
             for paper_id in costs.keys()
         }
 
@@ -350,7 +352,7 @@ def save_results(
             for date in dates:
                 connection.execute(
                     """
-                    INSERT INTO undelivered_logs (log_id, day_id)
+                    INSERT INTO undelivered_dates_logs (log_id, date_not_delivered)
                     VALUES (?, ?);
                     """,
                     (log_ids[paper_id], date.strftime("%Y-%m-%d"))
@@ -364,8 +366,8 @@ def format_output(costs: dict[int, float], total: float, month: int, year: int) 
     
     global DATABASE_PATH
 
-    yield f"For {date_type(year=year, month=month, day=1).strftime(r'%B %Y')}\n"
-    yield f"*TOTAL*: {total}\n"
+    yield f"For {date_type(year=year, month=month, day=1).strftime(r'%B %Y')},\n"
+    yield f"*TOTAL*: {total}"
 
     with connect(DATABASE_PATH) as connection:
         papers = {
@@ -648,9 +650,9 @@ def get_papers() -> list[tuple[int, str, int, int, float]]:
     query = """
         SELECT papers.paper_id, papers.name, papers_days.day_id, papers_days_delivered.delivered, papers_days_cost.cost
         FROM papers
-        LEFT JOIN papers_days ON papers.paper_id = papers_days.paper_id
-        LEFT JOIN papers_days_delivered ON papers_days.paper_day_id = papers_days_delivered.paper_day_id
-        LEFT JOIN papers_days_cost ON papers_days.paper_day_id = papers_days_cost.paper_day_id;
+        INNER JOIN papers_days ON papers.paper_id = papers_days.paper_id
+        INNER JOIN papers_days_delivered ON papers_days.paper_day_id = papers_days_delivered.paper_day_id
+        INNER JOIN papers_days_cost ON papers_days.paper_day_id = papers_days_cost.paper_day_id;
     """
 
     with connect(DATABASE_PATH) as connection:
@@ -763,20 +765,26 @@ def get_logged_data(
         parameters.append("timestamp")
         values += (timestamp.strftime(r'%d/%m/%Y %I:%M:%S %p'),)
 
-    query = """
+    columns_only_query = """
         SELECT logs.log_id, logs.paper_id, logs.month, logs.year, logs.timestamp, undelivered_dates_logs.date_not_delivered, cost_logs.cost
         FROM logs
-        LEFT JOIN undelivered_dates_logs ON logs.log_id = undelivered_dates_logs.log_id
-        LEFT JOIN cost_logs ON logs.log_id = cost_logs.log_id
-        WHERE """
+        INNER JOIN undelivered_dates_logs ON logs.log_id = undelivered_dates_logs.log_id
+        INNER JOIN cost_logs ON logs.log_id = cost_logs.log_id"""
 
-    conditions = ' AND '.join(
-        f"{parameter} = ?"
-        for parameter in parameters
-    ) + ";"
+    if parameters:
+        conditions = ' AND '.join(
+            f"logs.{parameter} = ?"
+            for parameter in parameters
+        )
+
+        final_query = f"{columns_only_query} WHERE {conditions};"
+
+    else:
+        final_query = f"{columns_only_query};"
+
 
     with connect(DATABASE_PATH) as connection:
-        data = connection.execute(query + conditions, values).fetchall()
+        data = connection.execute(final_query, values).fetchall()
 
     connection.close()
 

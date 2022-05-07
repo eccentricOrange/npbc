@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS papers_days_delivered (
 CREATE TABLE IF NOT EXISTS papers_days_cost (
     papers_days_cost_id INTEGER PRIMARY KEY AUTOINCREMENT,
     paper_day_id INTEGER NOT NULL REFERENCES papers_days(paper_day_id),
-    cost INTEGER
+    cost REAL
 );
 
 CREATE TABLE IF NOT EXISTS undelivered_strings (
@@ -34,10 +34,10 @@ CREATE TABLE IF NOT EXISTS undelivered_strings (
 CREATE TABLE IF NOT EXISTS logs (
     log_id INTEGER PRIMARY KEY AUTOINCREMENT,
     paper_id INTEGER NOT NULL REFERENCES papers(paper_id),
-    entry_timestamp TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
     month INTEGER NOT NULL CHECK (month >= 0 AND month <= 12),
     year INTEGER NOT NULL CHECK (year >= 0),
-    CONSTRAINT unique_log UNIQUE (entry_timestamp, paper_id, month, year)
+    CONSTRAINT unique_log UNIQUE (timestamp, paper_id, month, year)
 );
 
 CREATE TABLE IF NOT EXISTS undelivered_dates_logs (
@@ -49,5 +49,5 @@ CREATE TABLE IF NOT EXISTS undelivered_dates_logs (
 CREATE TABLE IF NOT EXISTS cost_logs (
     cost_log_id INTEGER PRIMARY KEY AUTOINCREMENT,
     log_id INTEGER NOT NULL REFERENCES logs(log_id),
-    cost INTEGER NOT NULL
+    cost REAL NOT NULL
 );
