@@ -10,11 +10,12 @@ wraps a CLI around the core functionality (argparse)
 
 from argparse import ArgumentParser, Namespace as ArgNamespace
 from datetime import datetime
+from typing import Generator
 import sqlite3
 from colorama import Fore, Style
 import npbc_core
 import npbc_exceptions
-from npbc_regex import DAYS_MATCH_REGEX
+from npbc_regex import DELIVERY_MATCH_REGEX
 
 
 def define_and_read_args() -> ArgNamespace:
@@ -107,7 +108,7 @@ def define_and_read_args() -> ArgNamespace:
     addpaper_parser.set_defaults(func=addpaper)
     addpaper_parser.add_argument('-n', '--name', type=str, help="Name for paper to be added.", required=True)
     addpaper_parser.add_argument('-d', '--delivered', type=str, help="Number of days the paper to be added is delivered. All seven weekdays are required. A 'Y' means it is delivered, and an 'N' means it isn't. No separator required.", required=True)
-    addpaper_parser.add_argument('-c', '--costs', type=str, help="Daywise prices of paper to be added. 0s are ignored.", required=True, nargs=7)
+    addpaper_parser.add_argument('-c', '--costs', type=str, help="Daywise prices of paper to be added. 0s are ignored.", required=True, nargs='+')
 
 
     # delete paper subparser
@@ -343,8 +344,8 @@ def getudl(args: ArgNamespace) -> None:
 def extract_delivery_from_user_input(input_delivery: str) -> list[bool]:
     """convert the /[YN]{7}/ user input to a Boolean list"""
 
-    if not DAYS_MATCH_REGEX.match(input_delivery):
-        raise npbc_exceptions.InvalidInput
+    if not DELIVERY_MATCH_REGEX.match(input_delivery):
+        raise npbc_exceptions.InvalidInput("Invalid delivery days.")
 
     return [
         day == 'Y'
@@ -352,24 +353,51 @@ def extract_delivery_from_user_input(input_delivery: str) -> list[bool]:
     ]
 
 
-def extract_costs_from_user_input(*input_costs: float) -> list[float]:
+def extract_costs_from_user_input(paper_id: int | None, delivery_data: list[bool] | None, *input_costs: float) -> Generator[float, None, None]:
     """convert the user input to a float list"""
 
-    return [
+    suspected_data = [
         cost
         for cost in input_costs
         if cost != 0
     ]
+    suspected_data.reverse()
+
+    if delivery_data:
+        if (len(suspected_data) != delivery_data.count(True)):
+            raise npbc_exceptions.InvalidInput("Number of costs don't match number of days delivered.")
+
+        for day in delivery_data:
+            yield suspected_data.pop() if day else 0
+
+    elif paper_id:
+        raw_data = [paper for paper in npbc_core.get_papers() if paper[0] == int(paper_id)]
+
+        delivered = [
+            bool(delivered)
+            for _, _, day_id, delivered, _ in raw_data
+        ]
+
+        if len(suspected_data) != delivered.count(True):
+            raise npbc_exceptions.InvalidInput("Number of costs don't match number of days delivered.")
+
+        for day in delivered:
+            yield suspected_data.pop() if day else 0
+
+    else:
+        raise npbc_exceptions.InvalidInput("Something went wrong.")
 
 
 def editpaper(args: ArgNamespace) -> None:
     """edit a paper's information"""
     try:
+        delivery_data = extract_delivery_from_user_input(args.delivered) if args.delivered else None
+
         npbc_core.edit_existing_paper(
             paper_id=args.paperid,
             name=args.name,
-            days_delivered=extract_delivery_from_user_input(args.delivered),
-            days_cost=extract_costs_from_user_input(args.costs)
+            days_delivered=delivery_data,
+            days_cost=list(extract_costs_from_user_input(args.paperid, delivery_data, *args.costs)) if args.costs else None
         )
 
     except npbc_exceptions.PaperNotExists:
@@ -387,10 +415,12 @@ def addpaper(args: ArgNamespace) -> None:
     """add a new paper to the database"""
 
     try:
+        delivery_data = extract_delivery_from_user_input(args.delivered)
+
         npbc_core.add_new_paper(
             name=args.name,
-            days_delivered=extract_delivery_from_user_input(args.delivered),
-            days_cost=extract_costs_from_user_input(args.costs)
+            days_delivered=delivery_data,
+            days_cost=list(extract_costs_from_user_input(None, delivery_data, *args.costs))
         )
 
     except npbc_exceptions.InvalidInput as e:
@@ -432,25 +462,26 @@ def getpapers(args: ArgNamespace) -> None:
 
     headers = ['paper_id']
     ids = []
-    delivery = {}
-    costs = {}
-    names = {}
 
     ids = list(set(paper[0] for paper in raw_data))
     ids.sort()
+    
+    delivery = [None for _ in ids]
+    costs = [None for _ in ids]
+    names = [None for _ in ids]
 
-    if args.name:
+    if args.names:
         headers.append('name')
 
-        names = [
+        names = list(set(
             (paper_id, name)
             for paper_id, name, _, _, _ in raw_data
-        ]
+        ))
 
         names.sort(key=lambda item: item[0])
         names = [name for _, name in names]
 
-    if args.delivered or args.costs:
+    if args.delivered or args.cost:
         days = {
             paper_id: {}
             for paper_id in ids
@@ -469,18 +500,18 @@ def getpapers(args: ArgNamespace) -> None:
             delivery = [
                 ''.join([
                     'Y' if days[paper_id][day_id]['delivery'] else 'N'
-                    for day_id in enumerate(npbc_core.WEEKDAY_NAMES)
+                    for day_id, _ in enumerate(npbc_core.WEEKDAY_NAMES)
                 ])
                 for paper_id in ids
             ]
 
-        if args.costs:
+        if args.cost:
             headers.append('costs')
 
             costs = [
                 ';'.join([
                     str(days[paper_id][day_id]['cost'])
-                    for day_id, cost in enumerate(npbc_core.WEEKDAY_NAMES)
+                    for day_id, _ in enumerate(npbc_core.WEEKDAY_NAMES)
                     if days[paper_id][day_id]['cost'] != 0
                 ])
                 for paper_id in ids
@@ -493,15 +524,15 @@ def getpapers(args: ArgNamespace) -> None:
 
     # print the data
     for paper_id, name, delivered, cost in zip(ids, names, delivery, costs):
-        print(paper_id)
+        print(paper_id, end='')
 
-        if names:
+        if args.names:
             print(f", {name}", end='')
 
-        if delivery:
+        if args.delivered:
             print(f", {delivered}", end='')
 
-        if costs:
+        if args.cost:
             print(f", {cost}", end='')
 
         print()
