@@ -241,5 +241,28 @@ def test_delete_string():
     with raises(npbc_exceptions.NoParameters):
         npbc_core.delete_undelivered_string()
 
+
+def test_add_string():
+    setup_db(DATABASE_PATH, SCHEMA_PATH, TEST_SQL)
+
+    known_data = [
+        (1, 1, 2020, 11, '5'),
+        (2, 1, 2020, 11, '6-12'),
+        (3, 2, 2020, 11, 'sundays'),
+        (4, 3, 2020, 11, '2-tuesday'),
+        (5, 3, 2020, 10, 'all')
+    ]
+
+    npbc_core.add_undelivered_string(4, 2017, 3, 'sundays')
+    known_data.append((6, 3, 2017, 4, 'sundays'))
+    assert Counter(npbc_core.get_undelivered_strings()) == Counter(known_data)
+
+    npbc_core.add_undelivered_string(9, 2017, None, '11')
+    known_data.append((7, 1, 2017, 9, '11'))
+    known_data.append((8, 2, 2017, 9, '11'))
+    known_data.append((9, 3, 2017, 9, '11'))
+    assert Counter(npbc_core.get_undelivered_strings()) == Counter(known_data)
+
+
 if __name__ == '__main__':
     test_delete_string()
