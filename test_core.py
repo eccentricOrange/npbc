@@ -4,9 +4,12 @@ test data-independent functions from the core
 """
 
 from datetime import date as date_type
-import npbc_core
+
 from pytest import raises
+
+import npbc_core
 from npbc_exceptions import InvalidMonthYear, InvalidUndeliveredString
+
 
 def test_get_number_of_each_weekday():
     test_function = npbc_core.get_number_of_each_weekday

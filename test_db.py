@@ -8,11 +8,14 @@ test data-dependent functions from the core
 
 
 from datetime import date, datetime
-from sqlite3 import connect
 from pathlib import Path
+from sqlite3 import connect
 from typing import Counter
-import npbc_core, npbc_exceptions
+
 from pytest import raises
+
+import npbc_core
+import npbc_exceptions
 
 DATABASE_PATH = Path("data") / "npbc.db"
 SCHEMA_PATH = Path("data") / "schema.sql"

@@ -8,11 +8,14 @@ wraps a CLI around the core functionality (argparse)
 """
 
 
-from argparse import ArgumentParser, Namespace as ArgNamespace
+import sqlite3
+from argparse import ArgumentParser
+from argparse import Namespace as ArgNamespace
 from datetime import datetime
 from typing import Generator
-import sqlite3
+
 from colorama import Fore, Style
+
 import npbc_core
 import npbc_exceptions
 from npbc_regex import DELIVERY_MATCH_REGEX
