@@ -1,3 +1,10 @@
+"""
+provide exceptions for other modules
+- these are custom exceptions used to make error handling easier
+- none of them inherit from BaseException
+"""
+
+
 from sqlite3 import OperationalError
 
 class InvalidInput(ValueError): ...

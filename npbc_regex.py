@@ -1,5 +1,11 @@
+"""
+regex used by other files
+- MATCH regex are used to validate (usually user input)
+- SPLIT regex are used to split strings (usually user input)
+"""
+
 from calendar import day_name as WEEKDAY_NAMES_ITERABLE
-from re import compile as compile_regex, match
+from re import compile as compile_regex
 
 
 ## regex used to match against strings
@@ -30,9 +36,3 @@ DELIVERY_MATCH_REGEX = compile_regex(r'^[YN]{7}$')
 
 # split on hyphens. spaces are allowed between hyphens and values.
 HYPHEN_SPLIT_REGEX = compile_regex(r' *- *')
-
-# split on semicolons. spaces are allowed between hyphens and values.
-SEMICOLON_SPLIT_REGEX = compile_regex(r' *; *')
-
-# split on commas. spaces are allowed between commas and values.
-COMMA_SPLIT_REGEX = compile_regex(r' *, *')

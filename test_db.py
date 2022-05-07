@@ -1,3 +1,12 @@
+"""
+test data-dependent functions from the core
+- all of these depend on the DB
+- for consistency, the DB will always be initialised with the same data
+- the test data is contained in `data/test.sql`
+- the schema is the same as the core (`data/schema.sql` during development)
+"""
+
+
 from datetime import date, datetime
 from sqlite3 import connect
 from pathlib import Path

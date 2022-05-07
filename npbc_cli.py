@@ -1,3 +1,13 @@
+"""
+wraps a CLI around the core functionality (argparse)
+- inherits functionality from `npbc_core.py`
+- inherits regex from `npbc_regex.py`, used for validation
+- inherits exceptions from `npbc_exceptions.py`, used for error handling
+- performs some additional validation
+- formats data retrieved from the core for the user
+"""
+
+
 from argparse import ArgumentParser, Namespace as ArgNamespace
 from datetime import datetime
 import sqlite3

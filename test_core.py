@@ -1,3 +1,8 @@
+"""
+test data-independent functions from the core
+- none of these depend on data in the database
+"""
+
 from datetime import date as date_type
 import npbc_core
 from pytest import raises

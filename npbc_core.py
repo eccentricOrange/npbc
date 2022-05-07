@@ -1,11 +1,22 @@
-from datetime import date as date_type, datetime, timedelta
+"""
+provides the core functionality
+- sets up and communicates with the DB
+- adds, deletes, edits, or retrieves data from the DB (such as undelivered strings, paper data, logs)
+- performs the main calculations
+- handles validation and parsing of many values (such as undelivered strings)
+"""
+
+from calendar import day_name as weekday_names_iterable
+from calendar import monthcalendar, monthrange
+from datetime import date as date_type
+from datetime import datetime, timedelta
+from os import environ
 from pathlib import Path
-from calendar import day_name as weekday_names_iterable, monthcalendar, monthrange
 from sqlite3 import Connection, connect
 from typing import Generator
-import npbc_regex
+
 import npbc_exceptions
-from os import environ
+import npbc_regex
 
 ## paths for the folder containing schema and database files
 # during normal use, the DB will be in ~/.npbc (where ~ is the user's home directory) and the schema will be bundled with the executable
