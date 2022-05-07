@@ -5,28 +5,30 @@ from sqlite3 import Connection, connect
 from typing import Generator
 import npbc_regex
 import npbc_exceptions
-
+from os import environ
 
 ## paths for the folder containing schema and database files
- # during normal use, the DB will be in ~/.npbc (where ~ is the user's home directory) and the schema will be bundled with the executable
- # during development, the DB and schema will both be in "data"
+# during normal use, the DB will be in ~/.npbc (where ~ is the user's home directory) and the schema will be bundled with the executable
+# during development, the DB and schema will both be in "data"
 
-DATABASE_DIR = Path().home() / '.npbc'  # normal use path
-DATABASE_DIR = Path('data')  # development path
+# default to PRODUCTION
+DATABASE_DIR = Path.home() / '.npbc'
+SCHEMA_PATH = Path(__file__).parent / 'schema.sql'
+
+# if in a development environment, set the paths to the data folder
+if str(environ.get('NPBC_DEVELOPMENT')) == "1" or str(environ.get('CI')) == "true":
+    DATABASE_DIR = Path(__file__).parent / 'data'
+    SCHEMA_PATH = Path('data') / 'schema.sql'
 
 DATABASE_PATH = DATABASE_DIR / 'npbc.db'
-
-SCHEMA_PATH = Path(__file__).parent / 'schema.sql'  # normal use path
-SCHEMA_PATH = DATABASE_DIR / 'schema.sql'  # development path
-
 
 ## list constant for names of weekdays
 WEEKDAY_NAMES = list(weekday_names_iterable)
 
-
-
 def setup_and_connect_DB() -> None:
     """ensure DB exists and it's set up with the schema"""
+
+    global DATABASE_DIR, DATABASE_PATH, SCHEMA_PATH
 
     DATABASE_DIR.mkdir(parents=True, exist_ok=True)
     DATABASE_PATH.touch(exist_ok=True)
@@ -259,6 +261,8 @@ def calculate_cost_of_all_papers(undelivered_strings: dict[int, list[str]], mont
     """calculate the cost of all papers for the full month
     - return data about the cost of each paper, the total cost, and dates when each paper was not delivered"""
 
+    global DATABASE_PATH
+
     NUMBER_OF_EACH_WEEKDAY = list(get_number_of_each_weekday(month, year))
     cost_and_delivery_data = []
 
@@ -312,6 +316,8 @@ def save_results(
     - save the dates any paper was not delivered
     - save the final cost of each paper"""
 
+    global DATABASE_PATH
+
     timestamp = datetime.now().strftime(r'%d/%m/%Y %I:%M:%S %p')
 
     with connect(DATABASE_PATH) as connection:
@@ -356,6 +362,8 @@ def save_results(
 def format_output(costs: dict[int, float], total: float, month: int, year: int) -> Generator[str, None, None]:
     """format the output of calculating the cost of all papers"""
     
+    global DATABASE_PATH
+
     yield f"For {date_type(year=year, month=month, day=1).strftime(r'%B %Y')}\n"
     yield f"*TOTAL*: {total}\n"
 
@@ -375,6 +383,8 @@ def add_new_paper(name: str, days_delivered: list[bool], days_cost: list[float])
     """add a new paper
     - do not allow if the paper already exists"""
 
+    global DATABASE_PATH
+
     with connect(DATABASE_PATH) as connection:
         
         # check if the paper already exists
@@ -392,7 +402,7 @@ def add_new_paper(name: str, days_delivered: list[bool], days_cost: list[float])
         # create days for the paper
         paper_days = {
             day_id: connection.execute(
-                "INSERT INTO days (paper_id, day_id) VALUES (?, ?) RETURNING paper_day_id;",
+                "INSERT INTO papers_days (paper_id, day_id) VALUES (?, ?) RETURNING paper_day_id;",
                 (paper_id, day_id)
             ).fetchone()[0]
             for day_id, _ in enumerate(days_delivered)
@@ -424,6 +434,8 @@ def edit_existing_paper(
     """edit an existing paper
     do not allow if the paper does not exist"""
 
+    global DATABASE_PATH
+
     with connect(DATABASE_PATH) as connection:
         
         # check if the paper exists
@@ -444,7 +456,7 @@ def edit_existing_paper(
             paper_days = {
                 row[0]: row[1]
                 for row in connection.execute(
-                    "SELECT paper_day_id, day_id FROM papers_days WHERE paper_id = ?;",
+                    "SELECT day_id, paper_day_id FROM papers_days WHERE paper_id = ?;",
                     (paper_id,)
                 )
             }
@@ -472,6 +484,8 @@ def delete_existing_paper(paper_id: int) -> None:
     """delete an existing paper
     - do not allow if the paper does not exist"""
 
+    global DATABASE_PATH
+
     with connect(DATABASE_PATH) as connection:
         
         # check if the paper exists
@@ -487,16 +501,13 @@ def delete_existing_paper(paper_id: int) -> None:
         )
 
         # get the days for the paper
-        paper_days = {
-            row[0]: row[1]
-            for row in connection.execute(
-                "SELECT paper_day_id, day_id FROM papers_days WHERE paper_id = ?;",
-                (paper_id,)
-            )
-        }
+        paper_days = [
+            row[0]
+            for row in connection.execute("SELECT paper_day_id FROM papers_days WHERE paper_id = ?;", (paper_id,))
+        ]
 
         # delete the costs and delivery data for the paper
-        for paper_day_id in paper_days.values():
+        for paper_day_id in paper_days:
             connection.execute(
                 "DELETE FROM papers_days_cost WHERE paper_day_id = ?;",
                 (paper_day_id,)
@@ -509,7 +520,7 @@ def delete_existing_paper(paper_id: int) -> None:
 
         # delete the days for the paper
         connection.execute(
-            "DELETE FROM days WHERE paper_id = ?;",
+            "DELETE FROM papers_days WHERE paper_id = ?;",
             (paper_id,)
         )
 
@@ -519,6 +530,8 @@ def delete_existing_paper(paper_id: int) -> None:
 def add_undelivered_string(month: int, year: int, paper_id: int | None = None, *undelivered_strings: str) -> None:
     """record strings for date(s) paper(s) were not delivered
     - if no paper ID is specified, all papers are assumed"""
+
+    global DATABASE_PATH
 
     # validate the strings
     validate_undelivered_string(*undelivered_strings)
@@ -577,46 +590,48 @@ def delete_undelivered_string(
     """delete an existing undelivered string
     - do not allow if the string does not exist"""
 
+    global DATABASE_PATH
+
     parameters = []
-    values = ()
-
-    if month:
-        parameters.append("month")
-        values += (month,)
-
-    if year:
-        parameters.append("year")
-        values += (year,)
-
-    if paper_id:
-        parameters.append("paper_id")
-        values += (paper_id,)
-
-    if string:
-        parameters.append("string")
-        values += (string,)
+    values = []
 
     if string_id:
         parameters.append("string_id")
-        values += (string_id,)
+        values.append(string_id)
+
+    if string:
+        parameters.append("string")
+        values.append(string)
+
+    if paper_id:
+        parameters.append("paper_id")
+        values.append(paper_id)
+
+    if month:
+        parameters.append("month")
+        values.append(month)
+
+    if year:
+        parameters.append("year")
+        values.append(year)
 
     if not parameters:
         raise npbc_exceptions.NoParameters("No parameters given.")
 
     with connect(DATABASE_PATH) as connection:
-        check_query = "SELECT EXISTS (SELECT 1 FROM undelivered_strings WHERE "
+        check_query = "SELECT EXISTS (SELECT 1 FROM undelivered_strings"
 
         conditions = ' AND '.join(
-            f"{parameter} = \"?\""
+            f"{parameter} = ?"
             for parameter in parameters
-        ) + ");"
+        )
 
-        if not connection.execute(check_query + conditions, values).fetchall()[0]:
+        if (1,) not in connection.execute(f"{check_query} WHERE {conditions});", values).fetchall():
             raise npbc_exceptions.StringNotExists("String with given parameters does not exist.")
 
-        delete_query = "DELETE FROM undelivered_strings WHERE "
+        delete_query = "DELETE FROM undelivered_strings"
 
-        connection.execute(delete_query + conditions, values)
+        connection.execute(f"{delete_query} WHERE {conditions};", values)
 
     connection.close()
 
@@ -625,6 +640,8 @@ def get_papers() -> list[tuple[int, str, int, int, float]]:
     """get all papers
     - returns a list of tuples containing the following fields:
       paper_id, paper_name, day_id, paper_delivered, paper_cost"""
+
+    global DATABASE_PATH
 
     raw_data = []
 
@@ -652,47 +669,53 @@ def get_undelivered_strings(
     string: str | None = None
 ) -> list[tuple[int, int, int, int, str]]:
     """get undelivered strings
-    - the user may specify as many as they want parameters, but at least one
+    - the user may specify as many as they want parameters
     - available parameters: string_id, month, year, paper_id, string
-    - if no parameters are given, an error is raised"""
+    - returns a list of tuples containing the following fields:
+      string_id, paper_id, year, month, string"""
+
+    global DATABASE_PATH
 
     parameters = []
-    values = ()
+    values = []
     data = []
 
     if string_id:
         parameters.append("string_id")
-        values += (string_id,)
+        values.append(string_id)
 
     if month:
         parameters.append("month")
-        values += (month,)
+        values.append(month)
 
     if year:
         parameters.append("year")
-        values += (year,)
+        values.append(year)
 
     if paper_id:
         parameters.append("paper_id")
-        values += (paper_id,)
+        values.append(paper_id)
 
     if string:
         parameters.append("string")
-        values += (string,)
+        values.append(string)
 
-    if not parameters:
-        raise npbc_exceptions.NoParameters("No parameters given.")
 
     with connect(DATABASE_PATH) as connection:
-        query = f"SELECT string_id, paper_id, year, month, string FROM undelivered_strings WHERE "
+        main_query = "SELECT string_id, paper_id, year, month, string FROM undelivered_strings"
+        
+        if not parameters:
+            query = f"{main_query};"
 
-        conditions = ' AND '.join(
-            f"{parameter} = \"?\""
-            for parameter in parameters
-        ) + ";"
+        else:
+            conditions = ' AND '.join(
+                f"{parameter} = ?"
+                for parameter in parameters
+            )
 
-        data = connection.execute(query + conditions, values).fetchall()
+            query = f"{main_query} WHERE {conditions};"
 
+        data = connection.execute(query, values).fetchall()
     connection.close()
 
     if not data:
@@ -713,6 +736,8 @@ def get_logged_data(
     - available parameters: paper_id, log_id, month, year, timestamp
     - returns: a list of tuples containing the following fields:
       log_id, paper_id, month, year, timestamp, date, cost."""
+
+    global DATABASE_PATH
 
     data = []
     parameters = []
@@ -746,7 +771,7 @@ def get_logged_data(
         WHERE """
 
     conditions = ' AND '.join(
-        f"{parameter} = \"?\""
+        f"{parameter} = ?"
         for parameter in parameters
     ) + ";"
 

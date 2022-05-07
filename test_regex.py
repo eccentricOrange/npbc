@@ -112,33 +112,6 @@ def test_regex_all_text():
     assert npbc_regex.ALL_MATCH_REGEX.match('AlL') is not None
     assert npbc_regex.ALL_MATCH_REGEX.match('ALL') is not None
 
-
-def test_regex_costs():
-    assert npbc_regex.COSTS_MATCH_REGEX.match('') is None
-    assert npbc_regex.COSTS_MATCH_REGEX.match('a') is None
-    assert npbc_regex.COSTS_MATCH_REGEX.match('1') is not None
-    assert npbc_regex.COSTS_MATCH_REGEX.match('1.') is None
-    assert npbc_regex.COSTS_MATCH_REGEX.match('1.5') is not None
-    assert npbc_regex.COSTS_MATCH_REGEX.match('1.0') is not None
-    assert npbc_regex.COSTS_MATCH_REGEX.match('16.0') is not None
-    assert npbc_regex.COSTS_MATCH_REGEX.match('16.06') is not None
-    assert npbc_regex.COSTS_MATCH_REGEX.match('1;2') is not None
-    assert npbc_regex.COSTS_MATCH_REGEX.match('1 ;2') is not None
-    assert npbc_regex.COSTS_MATCH_REGEX.match('1; 2') is not None
-    assert npbc_regex.COSTS_MATCH_REGEX.match('1 ; 2') is not None
-    assert npbc_regex.COSTS_MATCH_REGEX.match('1;2;') is not None
-    assert npbc_regex.COSTS_MATCH_REGEX.match('1;2 ;') is not None
-    assert npbc_regex.COSTS_MATCH_REGEX.match('1:2') is None
-    assert npbc_regex.COSTS_MATCH_REGEX.match('1,2') is None
-    assert npbc_regex.COSTS_MATCH_REGEX.match('1-2') is None
-    assert npbc_regex.COSTS_MATCH_REGEX.match('1;2;3') is not None
-    assert npbc_regex.COSTS_MATCH_REGEX.match('1;2;3;4') is not None
-    assert npbc_regex.COSTS_MATCH_REGEX.match('1;2;3;4;5') is not None
-    assert npbc_regex.COSTS_MATCH_REGEX.match('1;2;3;4;5;6') is not None
-    assert npbc_regex.COSTS_MATCH_REGEX.match('1;2;3;4;5;6;7;') is not None
-    assert npbc_regex.COSTS_MATCH_REGEX.match('1;2;3;4;5;6;7') is not None
-    assert npbc_regex.COSTS_MATCH_REGEX.match('1;2;3;4;5;6;7;8') is None
-
 def test_delivery_regex():
     assert npbc_regex.DELIVERY_MATCH_REGEX.match('') is None
     assert npbc_regex.DELIVERY_MATCH_REGEX.match('a') is None
