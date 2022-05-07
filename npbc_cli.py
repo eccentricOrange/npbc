@@ -1,5 +1,8 @@
 from argparse import ArgumentParser, Namespace as ArgNamespace
-from datetime import datetime
+from datetime import datetime, date as date_type
+from json import dumps
+import sqlite3
+from unicodedata import name
 from colorama import Fore, Style
 import npbc_core
 import npbc_exceptions
@@ -127,11 +130,11 @@ def define_and_read_args() -> ArgNamespace:
     )
 
     getlogs_parser.set_defaults(func=getlogs)
+    getlogs_parser.add_argument('-i', '--id', type=str, help="ID for paper.", required=True)
     getlogs_parser.add_argument('-m', '--month', type=int, help="Month. Must be between 1 and 12.")
     getlogs_parser.add_argument('-y', '--year', type=int, help="Year. Must be greater than 0.")
-    getlogs_parser.add_argument('-i', '--id', type=str, help="ID for paper.", required=True)
-    getlogs_parser.add_argument('-u', '--undelivered', action='store_true', help="Get the undelivered dates.")
-    getlogs_parser.add_argument('-p', '--price', action='store_true', help="Get the daywise prices.")
+    getlogs_parser.add_argument('-t' , '--timestamp', type=str, help="Timestamp. Must be in the format dd/mm/yyyy hh:mm:ss AM/PM.")
+
 
     # update application subparser
     update_parser = functions.add_parser(
@@ -262,7 +265,7 @@ def deludl(args: ArgNamespace) -> None:
             month=args.month,
             year=args.year,
             paper_id=args.id,
-            string=args.string
+            string=args.string,
             string_id=args.string_id
         )
 
@@ -392,31 +395,131 @@ def delpaper(args: ArgNamespace) -> None:
     status_print(True, "Success!")
 
 
-def getpapers(args: ArgNamespace) -> None:
+def getpapers(args: ArgNamespace):
     """get a list of all papers in the database
     - filter by whichever parameter the user provides. they may use as many as they want (but keys are always printed)
     - available parameters: name, days, costs
     - the output is provided as a formatted table, printed to the standard output"""
 
     try:
-        papers = npbc_core.get_papers()
+        raw_data = npbc_core.get_papers()
 
-    except npbc_exceptions.DatabaseError as e:
+    except sqlite3.DatabaseError as e:
         status_print(False, f"Database error: {e}\nPlease report this to the developer.")
         return
 
     headers = ['paper_id']
+    ids = []
+    delivery = {}
+    costs = {}
+    names = {}
 
-    # format the results
-    status_print(True, "Success!")
+    ids = list(set(paper[0] for paper in raw_data))
+    ids.sort()
 
     if args.name:
         headers.append('name')
 
-    if args.days:
-        headers.append('days')
+        names = [
+            (paper_id, name)
+            for paper_id, name, _, _, _ in raw_data
+        ]
 
-    if args.price:
-        headers.append('price')
+        names.sort(key=lambda item: item[0])
+        names = [name for _, name in names]
 
-    
+    if args.days or args.price:
+        days = {
+            paper_id: {}
+            for paper_id in ids
+        }
+
+        for paper_id, _, day_id, _, _ in raw_data:
+            days[paper_id][day_id] = {}
+        
+        for paper_id, _, day_id, day_delivery, day_cost in raw_data:
+            days[paper_id][day_id]['delivery'] = day_delivery
+            days[paper_id][day_id]['cost'] = day_cost
+
+        if args.days:
+            headers.append('days')
+
+            delivery = [
+                ''.join([
+                    'Y' if days[paper_id][day_id]['delivery'] else 'N'
+                    for day_id in enumerate(npbc_core.WEEKDAY_NAMES)
+                ])
+                for paper_id in ids
+            ]
+
+        if args.price:
+            headers.append('costs')
+
+            costs = [
+                ';'.join([
+                    str(days[paper_id][day_id]['cost'])
+                    for day_id, cost in enumerate(npbc_core.WEEKDAY_NAMES)
+                    if days[paper_id][day_id]['cost'] != 0
+                ])
+                for paper_id in ids
+            ]
+
+    print(' | '.join([
+        f"{Fore.YELLOW}{header}{Style.RESET_ALL}"
+        for header in headers
+    ]))
+
+    # print the data
+    for paper_id, name, delivered, cost in zip(ids, names, delivery, costs):
+        print(paper_id)
+
+        if names:
+            print(f", {name}", end='')
+
+        if delivery:
+            print(f", {delivered}", end='')
+
+        if costs:
+            print(f", {cost}", end='')
+
+        print()
+
+
+def getlogs(args: ArgNamespace):
+    """get a list of all logs in the database
+    - filter by whichever parameter the user provides. they may use as many as they want (but log IDs are always printed)
+    - available parameters: paper_id, month, year, timestamp
+    - will return both date logs and cost logs"""
+
+    try:
+        data = npbc_core.get_logged_data(
+            paper_id=args.paper_id,
+            month=args.month,
+            year=args.year,
+            timestamp=datetime.strptime(args.timestamp, r'%d/%m/%Y %I:%M:%S %p')
+        )
+
+    except sqlite3.DatabaseError:
+        status_print(False, "Database error. Please report this to the developer.")
+        return
+
+    except ValueError:
+        status_print(False, "Invalid date format. Please use the following format: dd/mm/yyyy hh:mm:ss AM/PM")
+        return
+
+    print(' | '.join(
+        f"{Fore.YELLOW}{header}{Style.RESET_ALL}"
+        for header in ['log_id', 'paper_id', 'month', 'year', 'timestamp', 'date', 'cost']
+    ))
+
+    # print the data
+    for row in data:
+        print(', '.join(str(item) for item in row))
+
+
+def update(args: ArgNamespace):
+    """update the application
+    - under normal operation, this function should never run
+    - if the update CLI argument is provided, this script will never run and the updater will be run instead"""
+
+    status_print(False, "Update failed.")

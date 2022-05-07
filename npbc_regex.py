@@ -22,9 +22,6 @@ N_DAY_MATCH_REGEX = compile_regex(f"^\\d *- *({'|'.join([day_name.lower() for da
 # match for the text "all" in any case.
 ALL_MATCH_REGEX = compile_regex(r'^[aA][lL]{2}$')
 
-# match for real values, delimited by semicolons. each value must be either an integer or a float with a decimal point. spaces are allowed between values and semicolons, and up to 7 (but at least 1) values are allowed.
-COSTS_MATCH_REGEX = compile_regex(r'^\d+(\.\d+)?( *; *\d+(\.\d+)?){0,6} *;?$')
-
 # match for seven values, each of which must be a 'Y' or an 'N'. there are no delimiters.
 DELIVERY_MATCH_REGEX = compile_regex(r'^[YN]{7}$')
 

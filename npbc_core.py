@@ -621,7 +621,7 @@ def delete_undelivered_string(
     connection.close()
 
 
-def get_papers() -> list[tuple[int, str, int, int, int]]:
+def get_papers() -> list[tuple[int, str, int, int, float]]:
     """get all papers
     - returns a list of tuples containing the following fields:
       paper_id, paper_name, day_id, paper_delivered, paper_cost"""
@@ -699,6 +699,64 @@ def get_undelivered_strings(
         raise npbc_exceptions.StringNotExists("String with given parameters does not exist.")
 
     return data
+
+
+def get_logged_data(
+    paper_id: int | None = None,
+    log_id: int | None = None,
+    month: int | None = None,
+    year: int | None = None,
+    timestamp: date_type | None = None
+):
+    """get logged data
+    - the user may specify as parameters many as they want
+    - available parameters: paper_id, log_id, month, year, timestamp
+    - returns: a list of tuples containing the following fields:
+      log_id, paper_id, month, year, timestamp, date, cost."""
+
+    data = []
+    parameters = []
+    values = ()
+
+    if paper_id:
+        parameters.append("paper_id")
+        values += (paper_id,)
+
+    if log_id:
+        parameters.append("log_id")
+        values += (log_id,)
+
+    if month:
+        parameters.append("month")
+        values += (month,)
+
+    if year:
+        parameters.append("year")
+        values += (year,)
+
+    if timestamp:
+        parameters.append("timestamp")
+        values += (timestamp.strftime(r'%d/%m/%Y %I:%M:%S %p'),)
+
+    query = """
+        SELECT logs.log_id, logs.paper_id, logs.month, logs.year, logs.timestamp, undelivered_dates_logs.date_not_delivered, cost_logs.cost
+        FROM logs
+        LEFT JOIN undelivered_dates_logs ON logs.log_id = undelivered_dates_logs.log_id
+        LEFT JOIN cost_logs ON logs.log_id = cost_logs.log_id
+        WHERE """
+
+    conditions = ' AND '.join(
+        f"{parameter} = \"?\""
+        for parameter in parameters
+    ) + ";"
+
+    with connect(DATABASE_PATH) as connection:
+        data = connection.execute(query + conditions, values).fetchall()
+
+    connection.close()
+
+    return data
+
 
 
 def get_previous_month() -> date_type:
