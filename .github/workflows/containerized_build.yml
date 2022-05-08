@@ -1,0 +1,28 @@
+name: Test, build and release
+
+# whenever a branch or commit is pushed
+on: push
+
+
+jobs:
+
+  # use pytest
+  test:
+
+    # used to ensure testing is done right
+    env:
+      DEVELOPMENT: '1'
+    runs-on: ubuntu-latest
+
+    # to avoid using old sqlite version
+    container:
+      image: ubuntu:latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.10
+      - run: pip install -r requirements.txt pytest
+      - uses: cclauss/GitHub-Action-for-pytest@0.5.0
+      - run: pytest
