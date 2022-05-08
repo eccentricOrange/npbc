@@ -27,9 +27,9 @@ jobs:
       - run: curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash
       - run: exec $SHELL
       - run: ~/.pyenv/bin/pyenv update
-      - run: ~/.pyenv/bin/pyenv install 3.10.4
-      - run: ~/.pyenv/bin/pyenv virtualenv 3.10.4 npbc
-      - run: ~/.pyenv/bin/pyenv local 3.10.4/envs/npbc
+      - run: ~/.pyenv/bin/pyenv install 3.10.2
+      - run: ~/.pyenv/bin/pyenv virtualenv 3.10.2 npbc
+      - run: ~/.pyenv/bin/pyenv local 3.10.2/envs/npbc
       - run: ~/.pyenv/shims/python -V
       - run: ~/.pyenv/shims/python -c "import sqlite3; print(sqlite3.version)"
       - run: ~/.pyenv/shims/pip install -r requirements.txt pytest
