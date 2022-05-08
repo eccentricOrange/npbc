@@ -16,6 +16,7 @@ jobs:
     # to avoid using old sqlite version
     container:
       image: debian:latest
+      options: --user root
 
     steps:
       - run: export DEBIAN_FRONTEND=noninteractive
