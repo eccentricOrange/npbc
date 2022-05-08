@@ -1,8 +1,7 @@
 name: Test, build and release
 
 # whenever a branch or commit is pushed
-on: push
-
+on: [push]
 
 jobs:
 
