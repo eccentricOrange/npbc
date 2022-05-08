@@ -15,7 +15,7 @@ jobs:
 
     # to avoid using old sqlite version
     container:
-      image: ubuntu-latest
+      image: ubuntu:latest
 
     steps:
       - run: sudo apt-get update
