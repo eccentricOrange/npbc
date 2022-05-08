@@ -15,7 +15,7 @@ jobs:
 
     # to avoid using old sqlite version
     container:
-      image: ubuntu:latest
+      image: python:3.10.4-bullseye
 
     steps:
       - uses: actions/checkout@v2
