@@ -1,5 +1,11 @@
+"""
+regex used by other files
+- MATCH regex are used to validate (usually user input)
+- SPLIT regex are used to split strings (usually user input)
+"""
+
 from calendar import day_name as WEEKDAY_NAMES_ITERABLE
-from re import compile as compile_regex, match
+from re import compile as compile_regex
 
 
 ## regex used to match against strings
@@ -22,9 +28,6 @@ N_DAY_MATCH_REGEX = compile_regex(f"^\\d *- *({'|'.join([day_name.lower() for da
 # match for the text "all" in any case.
 ALL_MATCH_REGEX = compile_regex(r'^[aA][lL]{2}$')
 
-# match for real values, delimited by semicolons. each value must be either an integer or a float with a decimal point. spaces are allowed between values and semicolons, and up to 7 (but at least 1) values are allowed.
-COSTS_MATCH_REGEX = compile_regex(r'^\d+(\.\d+)?( *; *\d+(\.\d+)?){0,6} *;?$')
-
 # match for seven values, each of which must be a 'Y' or an 'N'. there are no delimiters.
 DELIVERY_MATCH_REGEX = compile_regex(r'^[YN]{7}$')
 
@@ -33,9 +36,3 @@ DELIVERY_MATCH_REGEX = compile_regex(r'^[YN]{7}$')
 
 # split on hyphens. spaces are allowed between hyphens and values.
 HYPHEN_SPLIT_REGEX = compile_regex(r' *- *')
-
-# split on semicolons. spaces are allowed between hyphens and values.
-SEMICOLON_SPLIT_REGEX = compile_regex(r' *; *')
-
-# split on commas. spaces are allowed between commas and values.
-COMMA_SPLIT_REGEX = compile_regex(r' *, *')

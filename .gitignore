@@ -10,3 +10,4 @@ bin
 .vscode
 .pytest_cache
 data/*.db
+.env

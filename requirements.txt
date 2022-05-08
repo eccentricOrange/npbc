@@ -1,6 +1,5 @@
 ## CLI
 colorama
-pyperclip
 
 ## API
 # Flask
