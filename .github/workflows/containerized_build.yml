@@ -30,5 +30,7 @@ jobs:
       - run: ~/.pyenv/bin/pyenv install 3.10.4
       - run: ~/.pyenv/bin/pyenv virtualenv 3.10.4 npbc
       - run: ~/.pyenv/bin/pyenv local 3.10.4/envs/npbc
+      - run: ~/.pyenv/shims/python -V
+      - run: ~/.pyenv/shims/python -c "import sqlite3; print(sqlite3.version)"
       - run: ~/.pyenv/shims/pip install -r requirements.txt pytest
       - run: ~/.pyenv/shims/pytest
