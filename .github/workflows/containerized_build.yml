@@ -33,4 +33,4 @@ jobs:
       - run: ~/.pyenv/shims/python -V
       - run: ~/.pyenv/shims/python -c "import sqlite3; print(sqlite3.version)"
       - run: ~/.pyenv/shims/pip install -r requirements.txt pytest
-      - run: ~/.pyenv/shims/pytest
+      - run: ~/.pyenv/shims/pytest -vv
