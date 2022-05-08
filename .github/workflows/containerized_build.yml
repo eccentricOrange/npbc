@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v2
       - run: export DEBIAN_FRONTEND=noninteractive
       - run: apt -q update
-      - run: apt -q install make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev git -y
+      - run: apt -q install make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev git sqlite3 -y
       - run: apt -q upgrade -y
       - run: curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash
       - run: exec $SHELL
