@@ -18,7 +18,6 @@ jobs:
       image: debian:latest
 
     steps:
-      - run: actions/checkout@v2
       - run: export DEBIAN_FRONTEND=noninteractive
       - run: apt -q update
       - run: apt -q install make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev git -y
@@ -28,5 +27,6 @@ jobs:
       - run: ~/.pyenv/bin/pyenv install 3.10.4
       - run: ~/.pyenv/bin/pyenv virtualenv 3.10.4 npbc
       - run: ~/.pyenv/bin/pyenv local 3.10.4/envs/npbc
+      - run: actions/checkout@v2
       - run: ~/.pyenv/shims/pip install -r requirements.txt pytest
       - run: ~/.pyenv/shims/pytest
