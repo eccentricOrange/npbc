@@ -23,9 +23,9 @@ jobs:
       - run: apt -q install make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev git -y
       - run: curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash
       - run: exec $SHELL
-      - run: pyenv update
-      - run: pyenv install 3.10.4
-      - run: pyenv virtualenv 3.10.4 npbc
-      - run: pyenv local 3.10.4/envs/npbc
-      - run: pip install -r requirements.txt pytest
-      - run: pytest
+      - run: ~/.pyenv/bin/pyenv update
+      - run: ~/.pyenv/bin/pyenv install 3.10.4
+      - run: ~/.pyenv/bin/pyenv virtualenv 3.10.4 npbc
+      - run: ~/.pyenv/bin/pyenv local 3.10.4/envs/npbc
+      - run: ~/.pyenv/shims/pip install -r requirements.txt pytest
+      - run: ~/.pyenv/shims/pytest
