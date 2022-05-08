@@ -15,10 +15,16 @@ jobs:
 
     # to avoid using old sqlite version
     container:
-      image: python:3.10.4-bullseye
+      image: ubuntu-latest
 
     steps:
-      - run: python -c "import sqlite; print(sqlite3.sqlite_version)"
-      - uses: actions/checkout@v2
-      - run: python -m pip install -r requirements.txt pytest
+      - run: sudo apt-get update
+      - run: sudo apt-get install make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
+      - run: curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash
+      - run: exec $SHELL
+      - run: pyenv update
+      - run: pyenv install 3.10.4
+      - run: pyenv virtualenv 3.10.4 npbc
+      - run: pyenv local 3.10.4/envs/npbc
+      - run: pip install -r requirements.txt pytest
       - run: pytest
