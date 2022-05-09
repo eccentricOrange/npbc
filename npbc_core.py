@@ -28,7 +28,7 @@ SCHEMA_PATH = Path(__file__).parent / 'schema.sql'
 
 # if in a development environment, set the paths to the data folder
 if str(environ.get('NPBC_DEVELOPMENT')) == "1" or str(environ.get('CI')) == "true":
-    DATABASE_DIR = Path(__file__).parent / 'data'
+    DATABASE_DIR = Path('data')
     SCHEMA_PATH = Path('data') / 'schema.sql'
 
 DATABASE_PATH = DATABASE_DIR / 'npbc.db'
@@ -93,6 +93,7 @@ def extract_number(string: str, month: int, year: int) -> date_type | None:
 
     date = int(string)
 
+    # if the date is valid for the given month
     if date > 0 and date <= monthrange(year, month)[1]:
         return date_type(year, month, date)
 
@@ -102,6 +103,7 @@ def extract_range(string: str, month: int, year: int) -> Generator[date_type, No
 
     start, end = [int(date) for date in npbc_regex.HYPHEN_SPLIT_REGEX.split(string)]
 
+    # if the range is valid for the given month
     if 0 < start <= end <= monthrange(year, month)[1]:
         for date in range(start, end + 1):
             yield date_type(year, month, date)
@@ -124,15 +126,20 @@ def extract_nth_weekday(string: str, month: int, year: int) -> date_type | None:
 
     n = int(n)
 
+    # if the day is valid for the given month
     if n > 0 and n <= list(get_number_of_each_weekday(month, year))[WEEKDAY_NAMES.index(weekday_name.capitalize())]:
+        
+        # record the "day_id" corresponding to the given weekday name
         weekday = WEEKDAY_NAMES.index(weekday_name.capitalize())
 
+        # store all dates when the given weekday occurs in the given month
         valid_dates = [
             date_type(year, month, day)
             for day in range(1, monthrange(year, month)[1] + 1)
             if date_type(year, month, day).weekday() == weekday
         ]
 
+        # return the date that is the nth occurrence of the given weekday in the month
         return valid_dates[n - 1]
 
 
@@ -221,11 +228,13 @@ def get_cost_and_delivery_data(paper_id: int, connection: Connection) -> tuple[d
 
     retrieved_data = connection.execute(query, (paper_id, )).fetchall()
     
+    # extract the cost data for each day_id
     cost_dict = {
         row[0]: row[2]
         for row in retrieved_data
     }
 
+    # extract the delivery data for each day_id
     delivered_dict = {
         row[0]: bool(row[1])
         for row in retrieved_data
@@ -273,7 +282,6 @@ def calculate_cost_of_all_papers(undelivered_strings: dict[int, list[str]], mont
     - return data about the cost of each paper, the total cost, and dates when each paper was not delivered"""
 
     global DATABASE_PATH
-
     NUMBER_OF_EACH_WEEKDAY = list(get_number_of_each_weekday(month, year))
     cost_and_delivery_data = []
 
@@ -330,7 +338,6 @@ def save_results(
     - save the final cost of each paper"""
 
     global DATABASE_PATH
-
     timestamp = (custom_timestamp if custom_timestamp else datetime.now()).strftime(r'%d/%m/%Y %I:%M:%S %p')
 
     with connect(DATABASE_PATH) as connection:
@@ -358,7 +365,7 @@ def save_results(
                 (log_id, costs[paper_id])
             )
 
-        # create undelivered entries for each paper
+        # create undelivered date entries for each paper
         for paper_id, dates in undelivered_dates.items():
             for date in dates:
                 connection.execute(
@@ -377,9 +384,13 @@ def format_output(costs: dict[int, float], total: float, month: int, year: int) 
     
     global DATABASE_PATH
 
+    # output the name of the month for which the total cost was calculated
     yield f"For {date_type(year=year, month=month, day=1).strftime(r'%B %Y')},\n"
+
+    # output the total cost of all papers
     yield f"*TOTAL*: {total}"
 
+    # output the cost of each paper with its name
     with connect(DATABASE_PATH) as connection:
         papers = {
             row[0]: row[1]
@@ -605,9 +616,11 @@ def delete_undelivered_string(
 
     global DATABASE_PATH
 
+    # initialize parameters for the WHERE clause of the SQL query
     parameters = []
     values = []
 
+    # check each parameter and add it to the WHERE clause if it is given
     if string_id:
         parameters.append("string_id")
         values.append(string_id)
@@ -628,10 +641,13 @@ def delete_undelivered_string(
         parameters.append("year")
         values.append(year)
 
+    # if no parameters are given, raise an error
     if not parameters:
         raise npbc_exceptions.NoParameters("No parameters given.")
 
     with connect(DATABASE_PATH) as connection:
+
+        # check if the string exists
         check_query = "SELECT EXISTS (SELECT 1 FROM undelivered_strings"
 
         conditions = ' AND '.join(
@@ -642,6 +658,7 @@ def delete_undelivered_string(
         if (1,) not in connection.execute(f"{check_query} WHERE {conditions});", values).fetchall():
             raise npbc_exceptions.StringNotExists("String with given parameters does not exist.")
 
+        # if the string did exist, delete it
         delete_query = "DELETE FROM undelivered_strings"
 
         connection.execute(f"{delete_query} WHERE {conditions};", values)
@@ -689,10 +706,12 @@ def get_undelivered_strings(
 
     global DATABASE_PATH
 
+    # initialize parameters for the WHERE clause of the SQL query
     parameters = []
     values = []
     data = []
 
+    # check each parameter and add it to the WHERE clause if it is given
     if string_id:
         parameters.append("string_id")
         values.append(string_id)
@@ -715,6 +734,8 @@ def get_undelivered_strings(
 
 
     with connect(DATABASE_PATH) as connection:
+
+        # generate the SQL query
         main_query = "SELECT string_id, paper_id, year, month, string FROM undelivered_strings"
         
         if not parameters:
@@ -731,6 +752,7 @@ def get_undelivered_strings(
         data = connection.execute(query, values).fetchall()
     connection.close()
 
+    # if no data was found, raise an error
     if not data:
         raise npbc_exceptions.StringNotExists("String with given parameters does not exist.")
 
@@ -752,10 +774,12 @@ def get_logged_data(
 
     global DATABASE_PATH
 
+    # initialize parameters for the WHERE clause of the SQL query
     data = []
     parameters = []
     values = ()
 
+    # check each parameter and add it to the WHERE clause if it is given
     if paper_id:
         parameters.append("paper_id")
         values += (paper_id,)
@@ -776,6 +800,7 @@ def get_logged_data(
         parameters.append("timestamp")
         values += (timestamp.strftime(r'%d/%m/%Y %I:%M:%S %p'),)
 
+    # generate the SQL query
     columns_only_query = """
         SELECT logs.log_id, logs.paper_id, logs.month, logs.year, logs.timestamp, undelivered_dates_logs.date_not_delivered, cost_logs.cost
         FROM logs
@@ -793,7 +818,7 @@ def get_logged_data(
     else:
         final_query = f"{columns_only_query};"
 
-
+    # execute the query
     with connect(DATABASE_PATH) as connection:
         data = connection.execute(final_query, values).fetchall()
 

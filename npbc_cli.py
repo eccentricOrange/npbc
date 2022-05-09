@@ -1,5 +1,5 @@
 """
-wraps a CLI around the core functionality (argparse)
+wraps a CLI around the core functionality (using argparse)
 - inherits functionality from `npbc_core.py`
 - inherits regex from `npbc_regex.py`, used for validation
 - inherits exceptions from `npbc_exceptions.py`, used for error handling
@@ -161,7 +161,11 @@ def define_and_read_args() -> ArgNamespace:
 
 
 def status_print(status: bool, message: str) -> None:
-    """print out a coloured status message using Colorama"""
+    """
+    print out a coloured status message using Colorama
+    - if the status is True, print in green (success)
+    - if the status is False, print in red (failure)
+    """
 
     if status:
         print(f"{Fore.GREEN}", end="")
@@ -219,20 +223,37 @@ def calculate(args: ArgNamespace) -> None:
     # ignore if none exist
     except npbc_exceptions.StringNotExists:
         pass
+    
+    # if there is a database error, print an error message
+    except sqlite3.DatabaseError as e:
+        status_print(False, f"Database error: {e}\nPlease report this to the developer.")
+        return
 
-    # calculate the cost for each paper
-    costs, total, undelivered_dates = npbc_core.calculate_cost_of_all_papers(
-        undelivered_strings,
-        month,
-        year
-    )
+    try:
+        # calculate the cost for each paper
+        costs, total, undelivered_dates = npbc_core.calculate_cost_of_all_papers(
+            undelivered_strings,
+            month,
+            year
+        )
+    
+    # if there is a database error, print an error message
+    except sqlite3.DatabaseError as e:
+        status_print(False, f"Database error: {e}\nPlease report this to the developer.")
+        return
 
     # format the results
     formatted = '\n'.join(npbc_core.format_output(costs, total, month, year))
 
     # unless the user specifies so, log the results to the database
     if not args.nolog:
-        npbc_core.save_results(costs, undelivered_dates, month, year)
+        try:
+            npbc_core.save_results(costs, undelivered_dates, month, year)
+
+        # if there is a database error, print an error message
+        except sqlite3.DatabaseError as e:
+            status_print(False, f"Database error: {e}\nPlease report this to the developer.")
+            return
 
         formatted += '\n\nLog saved to file.'
 
@@ -245,30 +266,44 @@ def addudl(args: ArgNamespace) -> None:
     """add undelivered strings to the database
     - default to the current month if no month and/or no year is given"""
 
+    # validate the month and year
     try:
         npbc_core.validate_month_and_year(args.month, args.year)
 
+    # if they are invalid, print an error message
     except npbc_exceptions.InvalidMonthYear:
         status_print(False, "Invalid month and/or year.")
         return
 
+    ## deal with month and year
+    # for any that are not given, set them to the current month and year
     month = args.month or datetime.now().month
     year = args.year or datetime.now().year
 
+    # if the user either specifies a specific paper or specifies all papers
     if args.paperid or args.all:
 
+        # attempt to add the strings to the database
         try:
             print(f"{month=} {year=} {args.paperid=} {args.strings=}")
             npbc_core.add_undelivered_string(month, year, args.paperid, *args.strings)
 
+        # if the paper doesn't exist, print an error message
         except npbc_exceptions.PaperNotExists:
             status_print(False, f"Paper with ID {args.paperid} does not exist.")
             return
 
+        # if the string was invalid, print an error message
         except npbc_exceptions.InvalidUndeliveredString:
             status_print(False, "Invalid undelivered string(s).")
             return
+    
+        # if there is a database error, print an error message
+        except sqlite3.DatabaseError as e:
+            status_print(False, f"Database error: {e}\nPlease report this to the developer.")
+            return
 
+    # if no paper is specified, print an error message
     else:
         status_print(False, "No paper(s) specified.")
         return
@@ -279,13 +314,16 @@ def addudl(args: ArgNamespace) -> None:
 def deludl(args: ArgNamespace) -> None:
     """delete undelivered strings from the database"""
 
+    # validate the month and year
     try:
         npbc_core.validate_month_and_year(args.month, args.year)
 
+    # if they are invalid, print an error message
     except npbc_exceptions.InvalidMonthYear:
         status_print(False, "Invalid month and/or year.")
         return
 
+    # attempt to delete the strings from the database
     try:
         npbc_core.delete_undelivered_string(
             month=args.month,
@@ -295,12 +333,19 @@ def deludl(args: ArgNamespace) -> None:
             string_id=args.stringid
         )
 
+    # if no parameters are given, print an error message
     except npbc_exceptions.NoParameters:
         status_print(False, "No parameters specified.")
         return
 
+    # if the string doesn't exist, print an error message
     except npbc_exceptions.StringNotExists:
         status_print(False, "String does not exist.")
+        return
+    
+    # if there is a database error, print an error message
+    except sqlite3.DatabaseError as e:
+        status_print(False, f"Database error: {e}\nPlease report this to the developer.")
         return
         
     status_print(True, "Success!")
@@ -311,13 +356,16 @@ def getudl(args: ArgNamespace) -> None:
     filter by whichever parameter the user provides. they as many as they want.
     available parameters: month, year, paper_id, string_id, string"""
 
+    # validate the month and year
     try:
         npbc_core.validate_month_and_year(args.month, args.year)
 
+    # if they are invalid, print an error message
     except npbc_exceptions.InvalidMonthYear:
         status_print(False, "Invalid month and/or year.")
         return
 
+    # attempt to get the strings from the database
     try:
         undelivered_strings = npbc_core.get_undelivered_strings(
             month=args.month,
@@ -327,21 +375,21 @@ def getudl(args: ArgNamespace) -> None:
             string=args.string
         )
 
-    except npbc_exceptions.NoParameters:
-        status_print(False, "No parameters specified.")
-        return
-
+    # if the string doesn't exist, print an error message
     except npbc_exceptions.StringNotExists:
         status_print(False, "No strings found for the given parameters.")
         return
 
-    # format the results
     status_print(True, "Success!")
 
+    ## format the results
+
+    # print the column headers
     print(f"{Fore.YELLOW}string_id{Style.RESET_ALL} | {Fore.YELLOW}paper_id{Style.RESET_ALL} | {Fore.YELLOW}year{Style.RESET_ALL} | {Fore.YELLOW}month{Style.RESET_ALL} | {Fore.YELLOW}string{Style.RESET_ALL}")
 
+    # print the strings
     for items in undelivered_strings:
-        print('|'.join([str(item) for item in items]))
+        print(', '.join([str(item) for item in items]))
 
 
 def extract_delivery_from_user_input(input_delivery: str) -> list[bool]:
@@ -359,43 +407,69 @@ def extract_delivery_from_user_input(input_delivery: str) -> list[bool]:
 def extract_costs_from_user_input(paper_id: int | None, delivery_data: list[bool] | None, *input_costs: float) -> Generator[float, None, None]:
     """convert the user input to a float list"""
 
+    # filter the data to remove zeros
     suspected_data = [
         cost
         for cost in input_costs
         if cost != 0
     ]
+
+    # reverse it so that we can pop to get the first element first (FILO to FIFO)
     suspected_data.reverse()
 
+    # if the delivery data is given, use it
     if delivery_data:
+
+        # if the number of days the paper is delivered is not equal to the number of costs, raise an error
         if (len(suspected_data) != delivery_data.count(True)):
             raise npbc_exceptions.InvalidInput("Number of costs don't match number of days delivered.")
 
+        # for each day, yield the cost if it is delivered or 0 if it is not
         for day in delivery_data:
             yield suspected_data.pop() if day else 0
 
+    # if the delivery data is not given, but the paper ID is given, get the delivery data from the database
     elif paper_id:
-        raw_data = [paper for paper in npbc_core.get_papers() if paper[0] == int(paper_id)]
+        
+        # get the delivery data from the database, and filter for the paper ID
+        try:
+            raw_data = [paper for paper in npbc_core.get_papers() if paper[0] == int(paper_id)]
+    
+        # if there is a database error, print an error message
+        except sqlite3.DatabaseError as e:
+            status_print(False, f"Database error: {e}\nPlease report this to the developer.")
+            return
 
+        raw_data.sort(key=lambda paper: paper[2])
+
+        # extract the data from the database
         delivered = [
             bool(delivered)
-            for _, _, day_id, delivered, _ in raw_data
+            for _, _, _, delivered, _ in raw_data
         ]
 
+        # if the number of days the paper is delivered is not equal to the number of costs, raise an error
         if len(suspected_data) != delivered.count(True):
             raise npbc_exceptions.InvalidInput("Number of costs don't match number of days delivered.")
 
+        # for each day, yield the cost if it is delivered or 0 if it is not
         for day in delivered:
             yield suspected_data.pop() if day else 0
 
     else:
-        raise npbc_exceptions.InvalidInput("Something went wrong.")
+        raise npbc_exceptions.InvalidInput("Neither delivery data nor paper ID given.")
 
 
 def editpaper(args: ArgNamespace) -> None:
     """edit a paper's information"""
+
+
     try:
+
+        # attempt to get the delivery data. if it's not given, set it to None
         delivery_data = extract_delivery_from_user_input(args.delivered) if args.delivered else None
 
+        # attempt to edit the paper. if costs are given, use them, else use None
         npbc_core.edit_existing_paper(
             paper_id=args.paperid,
             name=args.name,
@@ -403,12 +477,19 @@ def editpaper(args: ArgNamespace) -> None:
             days_cost=list(extract_costs_from_user_input(args.paperid, delivery_data, *args.costs)) if args.costs else None
         )
 
+    # if the paper doesn't exist, print an error message
     except npbc_exceptions.PaperNotExists:
         status_print(False, "Paper does not exist.")
         return
 
+    # if some input is invalid, print an error message
     except npbc_exceptions.InvalidInput as e:
         status_print(False, f"Invalid input: {e}")
+        return
+    
+    # if there is a database error, print an error message
+    except sqlite3.DatabaseError as e:
+        status_print(False, f"Database error: {e}\nPlease report this to the developer.")
         return
 
     status_print(True, "Success!")
@@ -418,20 +499,29 @@ def addpaper(args: ArgNamespace) -> None:
     """add a new paper to the database"""
 
     try:
+        # attempt to get the delivery data
         delivery_data = extract_delivery_from_user_input(args.delivered)
 
+        # attempt to add the paper.
         npbc_core.add_new_paper(
             name=args.name,
             days_delivered=delivery_data,
             days_cost=list(extract_costs_from_user_input(None, delivery_data, *args.costs))
         )
 
+    # if the paper already exists, print an error message
+    except npbc_exceptions.PaperAlreadyExists:
+        status_print(False, "Paper already exists.")
+        return
+    
+    # if some input is invalid, print an error message
     except npbc_exceptions.InvalidInput as e:
         status_print(False, f"Invalid input: {e}")
         return
-
-    except npbc_exceptions.PaperAlreadyExists:
-        status_print(False, "Paper already exists.")
+    
+    # if there is a database error, print an error message
+    except sqlite3.DatabaseError as e:
+        status_print(False, f"Database error: {e}\nPlease report this to the developer.")
         return
 
     status_print(True, "Success!")
@@ -440,11 +530,18 @@ def addpaper(args: ArgNamespace) -> None:
 def delpaper(args: ArgNamespace) -> None:
     """delete a paper from the database"""
 
+    # attempt to delete the paper
     try:
         npbc_core.delete_existing_paper(args.paperid)
 
+    # if the paper doesn't exist, print an error message
     except npbc_exceptions.PaperNotExists:
         status_print(False, "Paper does not exist.")
+        return
+    
+    # if there is a database error, print an error message
+    except sqlite3.DatabaseError as e:
+        status_print(False, f"Database error: {e}\nPlease report this to the developer.")
         return
 
     status_print(True, "Success!")
@@ -456,23 +553,29 @@ def getpapers(args: ArgNamespace) -> None:
     - available parameters: name, days, costs
     - the output is provided as a formatted table, printed to the standard output"""
 
+    # get the papers from the database
     try:
         raw_data = npbc_core.get_papers()
 
+    # if there is a database error, print an error message
     except sqlite3.DatabaseError as e:
         status_print(False, f"Database error: {e}\nPlease report this to the developer.")
         return
 
+    # initialize lists for column headers and paper IDs
     headers = ['paper_id']
     ids = []
 
+    # extract paperr IDs
     ids = list(set(paper[0] for paper in raw_data))
     ids.sort()
     
+    # initialize lists for the data, based on the number of paper IDs
     delivery = [None for _ in ids]
     costs = [None for _ in ids]
     names = [None for _ in ids]
 
+    # if the user wants the name, add it to the headers and the data to the list
     if args.names:
         headers.append('name')
 
@@ -481,25 +584,33 @@ def getpapers(args: ArgNamespace) -> None:
             for paper_id, name, _, _, _ in raw_data
         ))
 
+        # sort the names by paper ID and extract the names only
         names.sort(key=lambda item: item[0])
         names = [name for _, name in names]
 
+    # if the user wants the delivery data or the costs, get the data about days
     if args.delivered or args.cost:
+
+        # initialize a dictionary for the days of each paper
         days = {
             paper_id: {}
             for paper_id in ids
         }
 
+        # for each paper, add the days to the dictionary
         for paper_id, _, day_id, _, _ in raw_data:
             days[paper_id][day_id] = {}
         
+        # for each paper, add the costs and delivery data to the dictionary
         for paper_id, _, day_id, day_delivery, day_cost in raw_data:
             days[paper_id][day_id]['delivery'] = day_delivery
             days[paper_id][day_id]['cost'] = day_cost
 
+        # if the user wants the delivery data, add it to the headers and the data to the list
         if args.delivered:
             headers.append('days')
 
+            # convert the data to the /[YN]{7}/ format the user is used to
             delivery = [
                 ''.join([
                     'Y' if days[paper_id][day_id]['delivery'] else 'N'
@@ -508,9 +619,11 @@ def getpapers(args: ArgNamespace) -> None:
                 for paper_id in ids
             ]
 
+        # if the user wants the costs, add it to the headers and the data to the list
         if args.cost:
             headers.append('costs')
 
+            # convert the data to the /x(;x){0,6}/ where x is a floating point number format the user is used to
             costs = [
                 ';'.join([
                     str(days[paper_id][day_id]['cost'])
@@ -520,6 +633,7 @@ def getpapers(args: ArgNamespace) -> None:
                 for paper_id in ids
             ]
 
+    # print the headers
     print(' | '.join([
         f"{Fore.YELLOW}{header}{Style.RESET_ALL}"
         for header in headers
@@ -547,6 +661,7 @@ def getlogs(args: ArgNamespace) -> None:
     - available parameters: log_id, paper_id, month, year, timestamp
     - will return both date logs and cost logs"""
 
+    # attempt to get the logs from the database
     try:
         data = npbc_core.get_logged_data(
             log_id = args.logid,
@@ -556,14 +671,17 @@ def getlogs(args: ArgNamespace) -> None:
             timestamp= datetime.strptime(args.timestamp, r'%d/%m/%Y %I:%M:%S %p') if args.timestamp else None
         )
 
+    # if there is a database error, print an error message
     except sqlite3.DatabaseError as e:
         status_print(False, f"Database error. Please report this to the developer.\n{e}")
         return
 
+    # if there is a date format error, print an error message
     except ValueError:
         status_print(False, "Invalid date format. Please use the following format: dd/mm/yyyy hh:mm:ss AM/PM")
         return
 
+    # print column headers
     print(' | '.join(
         f"{Fore.YELLOW}{header}{Style.RESET_ALL}"
         for header in ['log_id', 'paper_id', 'month', 'year', 'timestamp', 'date', 'cost']
@@ -588,8 +706,19 @@ def main() -> None:
     - parses the command line arguments
     - calls the appropriate function based on the arguments"""
 
-    npbc_core.setup_and_connect_DB()
+    # attempt to initialize the database
+    try:
+        npbc_core.setup_and_connect_DB()
+    
+    # if there is a database error, print an error message
+    except sqlite3.DatabaseError as e:
+        status_print(False, f"Database error: {e}\nPlease report this to the developer.")
+        return
+
+    # parse the command line arguments
     parsed = define_and_read_args()
+
+    # execute the appropriate function
     parsed.func(parsed)
 
 
