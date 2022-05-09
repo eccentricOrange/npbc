@@ -4,9 +4,12 @@ __pycache__
 *build
 *dist
 .vs
-exp
+exp*
 *legacy*
-npbc.db
-pyenv-install
 bin
 .vscode
+.pytest_cache
+data/*
+!data/test.sql
+!data/schema.sql
+.env
