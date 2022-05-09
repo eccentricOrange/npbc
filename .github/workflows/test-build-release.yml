@@ -1,0 +1,64 @@
+name: Test, build and release
+
+on: [push]
+
+jobs:
+
+  # test with pytest
+  test:
+    name: pytest
+    runs-on: ubuntu-latest
+
+    # used to ensure testing directories are used, not user directories
+    env:
+      DEVELOPMENT: '1'
+
+    steps:
+      - uses: actions/checkout@v2
+      
+      # build SQLite from source, because I need 3.35<=
+      - run: wget https://sqlite.org/2022/sqlite-autoconf-3380500.tar.gz
+      - run: tar -xvf sqlite-autoconf-3380500.tar.gz
+      - run: ./configure
+        working-directory: sqlite-autoconf-3380500
+      - run: make
+        working-directory: sqlite-autoconf-3380500
+      - run: sudo make install
+        working-directory: sqlite-autoconf-3380500
+      - run: export PATH="/usr/local/lib:$PATH"
+
+      # run pytest
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - run: pip install -r requirements.txt pytest
+      - run: pytest
+        env:
+          LD_LIBRARY_PATH: /usr/local/lib
+
+  # build executable for windows
+  build-windows:
+    name: build for windows
+    runs-on: windows-latest
+    needs: test
+
+    steps:
+
+      # setup
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - run: pip install -r requirements.txt pyinstaller
+      - run: mkdir bin
+      - run: mkdir build
+
+      # build
+      - run: pyinstaller --distpath bin --clean --add-data "data/schema.sql;" --onefile --name npbc_cli-windows-x64 npbc_cli.py
+      - run: pyinstaller --distpath bin --clean --onefile --name npbc_updater-windows-x64 npbc_updater.py
+
+      # upload artifacts
+      - uses: actions/upload-artifact@v2
+        with:
+          path: bin
+          name: |
+            npbc_cli-windows-x64
+            npbc_updater-windows-x64
