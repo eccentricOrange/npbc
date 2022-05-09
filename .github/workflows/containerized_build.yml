@@ -33,12 +33,12 @@ jobs:
       # make and install sqlite
       - run: wget https://sqlite.org/2022/sqlite-autoconf-3380500.tar.gz
       - run: tar -xvf sqlite-autoconf-3380500.tar.gz
-      # - run: cd sqlite-autoconf-3380500
+      - run: cd cd /__w/npbc/npbc/sqlite-autoconf-3380500
       - run: ls
       - run: pwd
-      - run: sqlite-autoconf-3380500/configure
-      - run: make sqlite-autoconf-3380500
-      - run: make sqlite-autoconf-3380500/install
+      - run: ./configure
+      - run: make 
+      - run: make install
       - run: export PATH="/usr/local/lib:$PATH"
       - run: sqlite3 --version
 
