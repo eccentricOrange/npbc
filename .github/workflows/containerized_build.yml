@@ -21,7 +21,6 @@ jobs:
     steps:
       # check out repo
       - uses: actions/checkout@v2
-      - run: pwd
 
       # prevent from asking user for input
       - run: export DEBIAN_FRONTEND=noninteractive
@@ -32,9 +31,8 @@ jobs:
       - run: apt -q upgrade -y
 
       # make and install sqlite
-      - run: mkdir /tmp/sqlite -p
-      - run: wget https://sqlite.org/2022/sqlite-autoconf-3380500.tar.gz -P /tmp/sqlite
-      - run: tar -xvf /tmp/sqlite/sqlite-autoconf-sqlite-autoconf-3380500.tar.gz && cd sqlite-autoconf-3340100
+      - run: wget https://sqlite.org/2022/sqlite-autoconf-3380500.tar.gz
+      - run: tar -xvf sqlite-autoconf-3380500.tar.gz && cd sqlite-autoconf-3380500
       - run: ./configure
       - run: make
       - run: make install
@@ -42,6 +40,7 @@ jobs:
       - run: sqlite3 --version
 
       # install pyenv
+      - run: cd /__w/npbc/npbc
       - run: curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash
       - run: exec $SHELL
       - run: ~/.pyenv/bin/pyenv update
