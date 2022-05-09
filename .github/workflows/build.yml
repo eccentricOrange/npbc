@@ -1,75 +1,75 @@
-# name: build and release
+name: build and release
 
-# on: [push]
+on: [push]
 
-# jobs:
-#   test:
-#     name: pytest
-#     runs-on: ubuntu-latest
-#     steps:
-#       - uses: actions/checkout@v2
-#       - uses: actions/setup-python@v2
-#         with:
-#           python-version: '3.10'
-#       - run: pip install -r requirements.txt pytest
-#       - uses: cclauss/GitHub-Action-for-pytest@0.5.0
-#       - run: pytest
+jobs:
+  test:
+    name: pytest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - run: pip install -r requirements.txt pytest
+      - uses: cclauss/GitHub-Action-for-pytest@0.5.0
+      - run: pytest
 
-#   build:
-#     needs:
-#       - test
-#     strategy:
-#       matrix:
-#         os:
-#           - ubuntu
-#           - windows
-#           - macos
-#         architecture: ['x64']
-#         app: ['cli', updater]
-#         include:
-#           - os: windows
-#             data-file: data/schema.sql;.
-#             name: windows
-#           - os: macos
-#             data-file: data/schema.sql:.
-#             name: macos
-#           - os: ubuntu
-#             data-file: data/schema.sql:.
-#             name: linux
-#     runs-on: ${{ matrix.os }}-latest
-#     name: ${{ matrix.app }}-${{ matrix.name }}-${{ matrix.architecture }}
-#     steps:
-#       - uses: actions/checkout@v2
-#       - uses: actions/setup-python@v2
-#         with:
-#           python-version: '3.10'
-#           architecture: ${{ matrix.architecture }}
-#       - run: pip install -r requirements.txt pyinstaller
-#       - run: mkdir build
-#       - run: mkdir bin
-#       - run: pyinstaller --distpath bin --clean --add-data "${{ matrix.data-file }}" --onefile --name npbc_${{ matrix.app }}-${{ matrix.name }}-${{ matrix.architecture }} npbc_${{ matrix.app }}.py
-#       - uses: actions/upload-artifact@v2
-#         with:
-#           path: bin
-#           name: npbc_${{ matrix.app }}-${{ matrix.name }}-${{ matrix.architecture }}
+  build:
+    needs:
+      - test
+    strategy:
+      matrix:
+        os:
+          - ubuntu
+          - windows
+          - macos
+        architecture: ['x64']
+        app: ['cli', updater]
+        include:
+          - os: windows
+            data-file: data/schema.sql;.
+            name: windows
+          - os: macos
+            data-file: data/schema.sql:.
+            name: macos
+          - os: ubuntu
+            data-file: data/schema.sql:.
+            name: linux
+    runs-on: ${{ matrix.os }}-latest
+    name: ${{ matrix.app }}-${{ matrix.name }}-${{ matrix.architecture }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+          architecture: ${{ matrix.architecture }}
+      - run: pip install -r requirements.txt pyinstaller
+      - run: mkdir build
+      - run: mkdir bin
+      - run: pyinstaller --distpath bin --clean --add-data "${{ matrix.data-file }}" --onefile --name npbc_${{ matrix.app }}-${{ matrix.name }}-${{ matrix.architecture }} npbc_${{ matrix.app }}.py
+      - uses: actions/upload-artifact@v2
+        with:
+          path: bin
+          name: npbc_${{ matrix.app }}-${{ matrix.name }}-${{ matrix.architecture }}
 
-#   release:
-#     needs:
-#       - build
-#     if: startsWith(github.ref, 'refs/tags/v')
-#     runs-on: ubuntu-latest
-#     permissions:
-#       contents: write
-#     steps:
-#     - uses: actions/checkout@v2
-#     - run: mkdir bin
-#     - uses: actions/download-artifact@v2
-#       with:
-#         path: bin
-#     - uses: ncipollo/release-action@v1
-#       with:
-#         artifacts: "bin/npbc*/*"
-#         token: ${{ secrets.GITHUB_TOKEN }}
-#         generateReleaseNotes: true
-#         artifactErrorsFailBuild: true
-#         prerelease: false
+  release:
+    needs:
+      - build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v2
+    - run: mkdir bin
+    - uses: actions/download-artifact@v2
+      with:
+        path: bin
+    - uses: ncipollo/release-action@v1
+      with:
+        artifacts: "bin/npbc*/*"
+        token: ${{ secrets.GITHUB_TOKEN }}
+        generateReleaseNotes: true
+        artifactErrorsFailBuild: true
+        prerelease: false
