@@ -55,12 +55,12 @@ jobs:
       - run: pyinstaller --distpath bin --clean --add-data "data/schema.sql;." --onefile --name npbc_cli-windows-x64 npbc_cli.py
       - run: pyinstaller --distpath bin --clean --onefile --name npbc_updater-windows-x64 npbc_updater.py
 
-      - run: ls
-      - run: bin
-        working-directory: bin
-
       # upload artifacts
       - uses: actions/upload-artifact@v2
         with:
           path: bin
-          name: ./*
+          name: npbc_cli-windows-x64 
+      - uses: actions/upload-artifact@v2
+        with:
+          path: bin
+          name: npbc_updater-windows-x64 
