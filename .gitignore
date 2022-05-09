@@ -9,5 +9,7 @@ exp*
 bin
 .vscode
 .pytest_cache
-data/*.db
+data/*
+!data/test.sql
+!data/schema.sql
 .env
