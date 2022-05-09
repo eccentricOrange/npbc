@@ -7,3 +7,6 @@ colorama
 
 ## Testing
 # pytest
+
+## Building
+# pyinstaller
