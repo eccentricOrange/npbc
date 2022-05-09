@@ -48,14 +48,15 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
       - run: |
-          pip install -r requirements.txt pyinstaller
+          pip install pyinstaller
           mkdir bin
           mkdir build
 
       # build
       - run: |
-          pyinstaller --distpath bin --clean --add-data "data/schema.sql:." --onefile --name npbc_cli-linux-x64 npbc_cli.py
           pyinstaller --distpath bin --clean --onefile --name npbc_updater-linux-x64 npbc_updater.py
+          pip install -r requirements.txt
+          pyinstaller --distpath bin --clean --add-data "data/schema.sql:." --onefile --name npbc_cli-linux-x64 npbc_cli.py
 
       # upload artifacts
       - uses: actions/upload-artifact@v2
@@ -79,14 +80,15 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
       - run: |
-          pip install -r requirements.txt pyinstaller
+          pip install pyinstaller
           mkdir bin
           mkdir build
 
       # build
       - run: |
-          pyinstaller --distpath bin --clean --add-data "data/schema.sql;." --onefile --name npbc_cli-windows-x64 npbc_cli.py
           pyinstaller --distpath bin --clean --onefile --name npbc_updater-windows-x64 npbc_updater.py
+          pip install -r requirements.txt
+          pyinstaller --distpath bin --clean --add-data "data/schema.sql;." --onefile --name npbc_cli-windows-x64 npbc_cli.py
 
       # upload artifacts
       - uses: actions/upload-artifact@v2
@@ -110,14 +112,15 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
       - run: |
-          pip install -r requirements.txt pyinstaller
+          pip install pyinstaller
           mkdir bin
           mkdir build
 
       # build
       - run: |
-          pyinstaller --distpath bin --clean --add-data "data/schema.sql:." --onefile --name npbc_cli-macos-x64 npbc_cli.py
           pyinstaller --distpath bin --clean --onefile --name npbc_updater-macos-x64 npbc_updater.py
+          pip install -r requirements.txt
+          pyinstaller --distpath bin --clean --add-data "data/schema.sql:." --onefile --name npbc_cli-macos-x64 npbc_cli.py
 
       # upload artifacts
       - uses: actions/upload-artifact@v2
