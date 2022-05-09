@@ -47,6 +47,7 @@ jobs:
       - run: sqlite3 --version
 
       # install pyenv
+      - run: LD_LIBRARY_PATH=/usr/local/lib
       - run: cd /__w/npbc/npbc
       - run: curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash
       - run: exec $SHELL
