@@ -1,0 +1,166 @@
+name: Test, build and release
+
+on: [push]
+
+jobs:
+
+  # test with pytest
+  test:
+    name: pytest
+    runs-on: ubuntu-latest
+
+    # used to ensure testing directories are used, not user directories
+    env:
+      DEVELOPMENT: '1'
+
+    steps:
+      - uses: actions/checkout@v2
+      
+      # build SQLite from source, because I need 3.35<=
+      - run: |
+          wget https://sqlite.org/2022/sqlite-autoconf-3380500.tar.gz
+          tar -xvf sqlite-autoconf-3380500.tar.gz
+      - run: |
+          ./configure
+          make
+          sudo make install
+          export PATH="/usr/local/lib:$PATH"
+        working-directory: sqlite-autoconf-3380500
+
+      # run pytest
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - run: pip install -r requirements.txt pytest
+      - run: pytest
+        env:
+          LD_LIBRARY_PATH: /usr/local/lib
+
+  # build executable for linux
+  build-linux:
+    name: build for linux
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+
+      # setup
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - run: |
+          pip install pyinstaller
+          mkdir bin
+          mkdir build
+
+      # build
+      - run: |
+          pyinstaller --distpath bin --clean --onefile --name npbc_updater-linux-x64 npbc_updater.py
+          pip install -r requirements.txt
+          pyinstaller --distpath bin --clean --add-data "data/schema.sql:." --onefile --name npbc_cli-linux-x64 npbc_cli.py
+
+      # upload artifacts
+      - uses: actions/upload-artifact@v2
+        with:
+          path: bin
+          name: npbc_cli-linux-x64 
+      - uses: actions/upload-artifact@v2
+        with:
+          path: bin
+          name: npbc_updater-linux-x64
+
+  # build executable for windows
+  build-windows:
+    name: build for windows
+    runs-on: windows-latest
+    needs: test
+
+    steps:
+
+      # setup
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - run: |
+          pip install pyinstaller
+          mkdir bin
+          mkdir build
+
+      # build
+      - run: |
+          pyinstaller --distpath bin --clean --onefile --name npbc_updater-windows-x64 npbc_updater.py
+          pip install -r requirements.txt
+          pyinstaller --distpath bin --clean --add-data "data/schema.sql;." --onefile --name npbc_cli-windows-x64 npbc_cli.py
+
+      # upload artifacts
+      - uses: actions/upload-artifact@v2
+        with:
+          path: bin
+          name: npbc_cli-windows-x64 
+      - uses: actions/upload-artifact@v2
+        with:
+          path: bin
+          name: npbc_updater-windows-x64
+
+  # build executable for macos
+  build-macos:
+    name: build for macos
+    runs-on: macos-latest
+    needs: test
+
+    steps:
+
+      # setup
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - run: |
+          pip install pyinstaller
+          mkdir bin
+          mkdir build
+
+      # build
+      - run: |
+          pyinstaller --distpath bin --clean --onefile --name npbc_updater-macos-x64 npbc_updater.py
+          pip install -r requirements.txt
+          pyinstaller --distpath bin --clean --add-data "data/schema.sql:." --onefile --name npbc_cli-macos-x64 npbc_cli.py
+
+      # upload artifacts
+      - uses: actions/upload-artifact@v2
+        with:
+          path: bin
+          name: npbc_cli-macos-x64 
+      - uses: actions/upload-artifact@v2
+        with:
+          path: bin
+          name: npbc_updater-macos-x64
+
+  # create release from tag
+  release:
+
+    # ensure that build is complete for all platforms
+    needs:
+      - build-linux
+      - build-macos
+      - build-windows
+
+    # run only if we're on a tag beginning with 'v' ('v1.2.5', for example)
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+
+    # download the artifacts
+    - run: mkdir bin
+    - uses: actions/download-artifact@v2
+      with:
+        path: bin
+
+    # do the release
+    - uses: ncipollo/release-action@v1
+      with:
+        artifacts: "bin/npbc*/*"
+        token: ${{ secrets.GITHUB_TOKEN }}
+        generateReleaseNotes: true
+        artifactErrorsFailBuild: true
+        prerelease: false

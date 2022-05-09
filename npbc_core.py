@@ -341,7 +341,7 @@ def save_results(
                 """
                 INSERT INTO logs (paper_id, month, year, timestamp)
                 VALUES (?, ?, ?, ?)
-                RETURNING log_id;
+                RETURNING logs.log_id;
                 """,
                 (paper_id, month, year, timestamp)
             ).fetchone()[0]
@@ -408,14 +408,14 @@ def add_new_paper(name: str, days_delivered: list[bool], days_cost: list[float])
 
         # insert the paper
         paper_id = connection.execute(
-            "INSERT INTO papers (name) VALUES (?) RETURNING paper_id;",
+            "INSERT INTO papers (name) VALUES (?) RETURNING papers.paper_id;",
             (name,)
         ).fetchone()[0]
 
         # create days for the paper
         paper_days = {
             day_id: connection.execute(
-                "INSERT INTO papers_days (paper_id, day_id) VALUES (?, ?) RETURNING paper_day_id;",
+                "INSERT INTO papers_days (paper_id, day_id) VALUES (?, ?) RETURNING papers_days.paper_day_id;",
                 (paper_id, day_id)
             ).fetchone()[0]
             for day_id, _ in enumerate(days_delivered)
