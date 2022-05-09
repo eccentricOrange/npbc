@@ -34,7 +34,7 @@ jobs:
       - run: wget https://sqlite.org/2022/sqlite-autoconf-3380500.tar.gz
       - run: tar -xvf sqlite-autoconf-3380500.tar.gz
       - run: cd /__w/npbc/npbc/sqlite-autoconf-3380500
-      - run: ls
+      - run: ls -al
       - run: pwd
       - run: ./configure
       - run: make 
