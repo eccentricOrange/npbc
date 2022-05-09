@@ -158,5 +158,5 @@ jobs:
         artifacts: "bin/npbc*/*"
         token: ${{ secrets.GITHUB_TOKEN }}
         generateReleaseNotes: true
-        artifactErrorsFailBuild: true
+        artifactErrorsFailBuild: false
         prerelease: false
