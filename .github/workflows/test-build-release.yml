@@ -9,10 +9,6 @@ jobs:
     name: pytest
     runs-on: ubuntu-latest
 
-    # used to ensure testing directories are used, not user directories
-    env:
-      DEVELOPMENT: '1'
-
     steps:
       - uses: actions/checkout@v2
       
