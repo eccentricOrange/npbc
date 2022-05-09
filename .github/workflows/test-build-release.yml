@@ -18,7 +18,7 @@ jobs:
       
       # build SQLite from source, because I need 3.35<=
       - run: |
-          wget https://sqlite.org/2022/sqlite-autoconf-3380500.tar. gz
+          wget https://sqlite.org/2022/sqlite-autoconf-3380500.tar.gz
           tar -xvf sqlite-autoconf-3380500.tar.gz
       - run: |
           ./configure
@@ -127,4 +127,4 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           path: bin
-          name: npbc_updater-macos-x64 
+          name: npbc_updater-macos-x64
