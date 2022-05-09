@@ -40,7 +40,7 @@ jobs:
   build-windows:
     name: build for windows
     runs-on: windows-latest
-    needs: test
+    # needs: test
 
     steps:
 
