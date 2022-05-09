@@ -17,9 +17,10 @@ jobs:
       - uses: actions/checkout@v2
       
       # build SQLite from source, because I need 3.35<=
-      - run: wget https://sqlite.org/2022/sqlite-autoconf-3380500.tar.gz
       - run: |
+          wget https://sqlite.org/2022/sqlite-autoconf-3380500.tar. gz
           tar -xvf sqlite-autoconf-3380500.tar.gz
+      - run: |
           ./configure
           make
           sudo make install
