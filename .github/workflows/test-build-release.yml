@@ -56,11 +56,11 @@ jobs:
       - run: pyinstaller --distpath bin --clean --onefile --name npbc_updater-windows-x64 npbc_updater.py
 
       - run: ls
+      - run: bin
+        working-directory: bin
 
       # upload artifacts
       - uses: actions/upload-artifact@v2
         with:
           path: bin
-          name: |
-            npbc_cli-windows-x64.exe
-            npbc_updater-windows-x64.exe
+          name: ./*
