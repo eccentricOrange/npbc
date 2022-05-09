@@ -15,22 +15,37 @@ jobs:
 
     # to avoid using old sqlite version
     container:
-      image: debian:latest
+      image: ubuntu:22.04
       options: --user root
 
     steps:
+      # check out repo
       - uses: actions/checkout@v2
+
+      # prevent from asking user for input
       - run: export DEBIAN_FRONTEND=noninteractive
+
+      # install recommended tools for building Python
       - run: apt -q update
       - run: apt -q install make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev git sqlite3 -y
       - run: apt -q upgrade -y
+
+      # install pyenv
       - run: curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash
       - run: exec $SHELL
       - run: ~/.pyenv/bin/pyenv update
+
+      # install and set up required Python
       - run: ~/.pyenv/bin/pyenv install 3.10.2
       - run: ~/.pyenv/bin/pyenv virtualenv 3.10.2 npbc
       - run: ~/.pyenv/bin/pyenv local 3.10.2/envs/npbc
+
+      # print version info (debugging)
       - run: ~/.pyenv/shims/python -V
       - run: ~/.pyenv/shims/python -c "import sqlite3; print(sqlite3.version)"
+
+      # install pip packages
       - run: ~/.pyenv/shims/pip install -r requirements.txt pytest
+
+      # run test
       - run: ~/.pyenv/shims/pytest -vv
