@@ -285,7 +285,6 @@ def addudl(args: ArgNamespace) -> None:
 
         # attempt to add the strings to the database
         try:
-            print(f"{month=} {year=} {args.paperid=} {args.strings=}")
             npbc_core.add_undelivered_string(month, year, args.paperid, *args.strings)
 
         # if the paper doesn't exist, print an error message

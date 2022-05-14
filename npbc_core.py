@@ -215,20 +215,15 @@ def get_cost_and_delivery_data(paper_id: int, connection: Connection) -> list[tu
     """get the cost and delivery data for a given paper from the DB"""
     
     query = """
-        SELECT papers_days_delivered.delivered, papers_days_cost.cost
-        FROM papers_days
-        INNER JOIN papers_days_delivered
-        ON papers_days.paper_day_id = papers_days_delivered.paper_day_id
-        INNER JOIN papers_days_cost
-        ON papers_days.paper_day_id = papers_days_cost.paper_day_id
-        WHERE papers_days.paper_id = ?
-        ORDER BY papers_days.day_id;
+        SELECT delivered, cost FROM cost_and_delivery_data
+        WHERE paper_id = ?
+        ORDER BY day_id;
     """
 
-    return [
-        (bool(delivered), cost)
-        for delivered, cost in connection.execute(query, (paper_id, )).fetchall()
-    ]
+    return list(map(
+        lambda row: (bool(row[0]), row[1]),
+        connection.execute(query, (paper_id,)).fetchall()
+    ))
 
 
 def calculate_cost_of_one_paper(
@@ -370,7 +365,7 @@ def format_output(costs: dict[int, float], total: float, month: int, year: int) 
     yield f"For {date_type(year=year, month=month, day=1).strftime(r'%B %Y')},\n"
 
     # output the total cost of all papers
-    yield f"*TOTAL*: {total}"
+    yield f"*TOTAL*: {total:.2f}"
 
     # output the cost of each paper with its name
     with connect(DATABASE_PATH) as connection:
@@ -380,7 +375,7 @@ def format_output(costs: dict[int, float], total: float, month: int, year: int) 
         }
 
         for paper_id, cost in costs.items():
-            yield f"{papers[paper_id]}: {cost}"
+            yield f"{papers[paper_id]}: {cost:.2f}"
 
     connection.close()
 
@@ -405,27 +400,11 @@ def add_new_paper(name: str, days_delivered: list[bool], days_cost: list[float])
             (name,)
         ).fetchone()[0]
 
-        # create days for the paper
-        paper_days = {
-            day_id: connection.execute(
-                "INSERT INTO papers_days (paper_id, day_id) VALUES (?, ?) RETURNING papers_days.paper_day_id;",
-                (paper_id, day_id)
-            ).fetchone()[0]
-            for day_id, _ in enumerate(days_delivered)
-        }
-
-        # create cost entries for each day
-        for day_id, cost in enumerate(days_cost):
+        # create cost and delivered entries for each day
+        for day_id, (delivered, cost) in enumerate(zip(days_delivered, days_cost)):
             connection.execute(
-                "INSERT INTO papers_days_cost (paper_day_id, cost) VALUES (?, ?);",
-                (paper_days[day_id], cost)
-            )
-
-        # create delivered entries for each day
-        for day_id, delivered in enumerate(days_delivered):
-            connection.execute(
-                "INSERT INTO papers_days_delivered (paper_day_id, delivered) VALUES (?, ?);",
-                (paper_days[day_id], delivered)
+                "INSERT INTO cost_and_delivery_data (paper_id, day_id, delivered, cost) VALUES (?, ?, ?, ?);",
+                (paper_id, day_id, delivered, cost)
             )
 
     connection.close()
@@ -457,31 +436,21 @@ def edit_existing_paper(
                 (name, paper_id)
             )
 
-        # get the days for the paper
-        if (days_delivered is not None) or (days_cost is not None):
-            paper_days = {
-                row[0]: row[1]
-                for row in connection.execute(
-                    "SELECT day_id, paper_day_id FROM papers_days WHERE paper_id = ?;",
-                    (paper_id,)
+        # update the costs of each day
+        if days_cost is not None:
+            for day_id, cost in enumerate(days_cost):
+                connection.execute(
+                    "UPDATE cost_and_delivery_data SET cost = ? WHERE paper_id = ? AND day_id = ?;",
+                    (cost, paper_id, day_id)
                 )
-            }
 
-            # update the delivered data for the paper
-            if days_delivered is not None:
-                for day_id, delivered in enumerate(days_delivered):
-                    connection.execute(
-                        "UPDATE papers_days_delivered SET delivered = ? WHERE paper_day_id = ?;",
-                        (delivered, paper_days[day_id])
-                    )
-
-            # update the days for the paper
-            if days_cost is not None:
-                for day_id, cost in enumerate(days_cost):
-                    connection.execute(
-                        "UPDATE papers_days_cost SET cost = ? WHERE paper_day_id = ?;",
-                        (cost, paper_days[day_id])
-                    )
+        # update the delivered status of each day
+        if days_delivered is not None:
+            for day_id, delivered in enumerate(days_delivered):
+                connection.execute(
+                    "UPDATE cost_and_delivery_data SET delivered = ? WHERE paper_id = ? AND day_id = ?;",
+                    (delivered, paper_id, day_id)
+                )
 
     connection.close()
 
@@ -506,27 +475,9 @@ def delete_existing_paper(paper_id: int) -> None:
             (paper_id,)
         )
 
-        # get the days for the paper
-        paper_days = [
-            row[0]
-            for row in connection.execute("SELECT paper_day_id FROM papers_days WHERE paper_id = ?;", (paper_id,))
-        ]
-
         # delete the costs and delivery data for the paper
-        for paper_day_id in paper_days:
-            connection.execute(
-                "DELETE FROM papers_days_cost WHERE paper_day_id = ?;",
-                (paper_day_id,)
-            )
-
-            connection.execute(
-                "DELETE FROM papers_days_delivered WHERE paper_day_id = ?;",
-                (paper_day_id,)
-            )
-
-        # delete the days for the paper
         connection.execute(
-            "DELETE FROM papers_days WHERE paper_id = ?;",
+            "DELETE FROM cost_and_delivery_data WHERE paper_id = ?;",
             (paper_id,)
         )
 
@@ -658,11 +609,10 @@ def get_papers() -> list[tuple[int, str, int, int, float]]:
     raw_data = []
 
     query = """
-        SELECT papers.paper_id, papers.name, papers_days.day_id, papers_days_delivered.delivered, papers_days_cost.cost
+        SELECT papers.paper_id, papers.name, cost_and_delivery_data.day_id, cost_and_delivery_data.delivered, cost_and_delivery_data.cost
         FROM papers
-        INNER JOIN papers_days ON papers.paper_id = papers_days.paper_id
-        INNER JOIN papers_days_delivered ON papers_days.paper_day_id = papers_days_delivered.paper_day_id
-        INNER JOIN papers_days_cost ON papers_days.paper_day_id = papers_days_cost.paper_day_id;
+        INNER JOIN cost_and_delivery_data ON papers.paper_id = cost_and_delivery_data.paper_id
+        ORDER BY papers.paper_id, cost_and_delivery_data.day_id;
     """
 
     with connect(DATABASE_PATH) as connection:

@@ -4,23 +4,13 @@ CREATE TABLE IF NOT EXISTS papers (
     CONSTRAINT unique_paper_name UNIQUE (name)
 );
 
-CREATE TABLE IF NOT EXISTS papers_days (
+CREATE TABLE IF NOT EXISTS cost_and_delivery_data (
     paper_day_id INTEGER PRIMARY KEY AUTOINCREMENT,
     paper_id INTEGER NOT NULL REFERENCES papers(paper_id),
     day_id INTEGER NOT NULL,
+    cost REAL NOT NULL,
+    delivered INTEGER NOT NULL,
     CONSTRAINT unique_paper_day UNIQUE (paper_id, day_id)
-);
-
-CREATE TABLE IF NOT EXISTS papers_days_delivered (
-    papers_days_delivered_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    paper_day_id INTEGER NOT NULL REFERENCES papers_days(paper_day_id),
-    delivered INTEGER NOT NULL CHECK (delivered IN (0, 1))
-);
-
-CREATE TABLE IF NOT EXISTS papers_days_cost (
-    papers_days_cost_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    paper_day_id INTEGER NOT NULL REFERENCES papers_days(paper_day_id),
-    cost REAL
 );
 
 CREATE TABLE IF NOT EXISTS undelivered_strings (
