@@ -663,11 +663,11 @@ def getlogs(args: ArgNamespace) -> None:
     # attempt to get the logs from the database
     try:
         data = npbc_core.get_logged_data(
-            log_id = args.logid,
-            paper_id=args.paperid,
-            month=args.month,
-            year=args.year,
-            timestamp= datetime.strptime(args.timestamp, r'%d/%m/%Y %I:%M:%S %p') if args.timestamp else None
+            query_log_id = args.logid,
+            query_paper_id=args.paperid,
+            query_month=args.month,
+            query_year=args.year,
+            query_timestamp= datetime.strptime(args.timestamp, r'%d/%m/%Y %I:%M:%S %p') if args.timestamp else None
         )
 
     # if there is a database error, print an error message
@@ -683,7 +683,7 @@ def getlogs(args: ArgNamespace) -> None:
     # print column headers
     print(' | '.join(
         f"{Fore.YELLOW}{header}{Style.RESET_ALL}"
-        for header in ['log_id', 'paper_id', 'month', 'year', 'timestamp', 'date', 'cost']
+        for header in ['log_id', 'paper_id', 'month', 'year', 'timestamp', 'date/cost']
     ))
 
     # print the data
