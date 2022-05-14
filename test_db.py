@@ -23,7 +23,8 @@ TEST_SQL = Path("data") / "test.sql"
 
 
 def setup_db(database_path: Path, schema_path: Path, test_sql: Path):
-    DATABASE_PATH.unlink(missing_ok=True)
+    database_path.unlink(missing_ok=True)
+    
 
     with connect(database_path) as connection:
         connection.executescript(schema_path.read_text())
@@ -281,11 +282,14 @@ def test_save_results():
     setup_db(DATABASE_PATH, SCHEMA_PATH, TEST_SQL)
 
     known_data = [
-        (1, 1, 1, 2020, '04/01/2022 01:05:42 AM', '2020-01-01', 105.0),
-        (1, 1, 1, 2020, '04/01/2022 01:05:42 AM', '2020-01-02', 105.0),
-        (2, 2, 1, 2020, '04/01/2022 01:05:42 AM', '2020-01-03', 51.0),
-        (2, 2, 1, 2020, '04/01/2022 01:05:42 AM', '2020-01-01', 51.0),
-        (2, 2, 1, 2020, '04/01/2022 01:05:42 AM', '2020-01-05', 51.0)
+        (1, 1, 2020, '04/01/2022 01:05:42 AM', '2020-01-01'),
+        (1, 1, 2020, '04/01/2022 01:05:42 AM', '2020-01-02'),
+        (2, 1, 2020, '04/01/2022 01:05:42 AM', '2020-01-01'),
+        (2, 1, 2020, '04/01/2022 01:05:42 AM', '2020-01-05'),
+        (2, 1, 2020, '04/01/2022 01:05:42 AM', '2020-01-03'),
+        (1, 1, 2020, '04/01/2022 01:05:42 AM', 105.0),
+        (2, 1, 2020, '04/01/2022 01:05:42 AM', 51.0),
+        (3, 1, 2020, '04/01/2022 01:05:42 AM', 647.0)
     ]
 
     npbc_core.save_results(

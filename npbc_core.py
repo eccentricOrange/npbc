@@ -692,71 +692,82 @@ def get_undelivered_strings(
 
 
 def get_logged_data(
-    paper_id: int | None = None,
-    log_id: int | None = None,
-    month: int | None = None,
-    year: int | None = None,
-    timestamp: date_type | None = None
-):
+    query_paper_id: int | None = None,
+    query_log_id: int | None = None,
+    query_month: int | None = None,
+    query_year: int | None = None,
+    query_timestamp: date_type | None = None
+) -> Generator[tuple[int, int, int, int, str, str | float], None, None]:
     """get logged data
     - the user may specify as parameters many as they want
     - available parameters: paper_id, log_id, month, year, timestamp
-    - returns: a list of tuples containing the following fields:
-      log_id, paper_id, month, year, timestamp, date, cost."""
+    - yields: tuples containing the following fields:
+      log_id, paper_id, month, year, timestamp, date | cost."""
 
     global DATABASE_PATH
 
     # initialize parameters for the WHERE clause of the SQL query
-    data = []
     parameters = []
     values = ()
 
     # check each parameter and add it to the WHERE clause if it is given
-    if paper_id:
+    if query_paper_id:
         parameters.append("paper_id")
-        values += (paper_id,)
+        values += (query_paper_id,)
 
-    if log_id:
+    if query_log_id:
         parameters.append("log_id")
-        values += (log_id,)
+        values += (query_log_id,)
 
-    if month:
+    if query_month:
         parameters.append("month")
-        values += (month,)
+        values += (query_month,)
 
-    if year:
+    if query_year:
         parameters.append("year")
-        values += (year,)
+        values += (query_year,)
 
-    if timestamp:
+    if query_timestamp:
         parameters.append("timestamp")
-        values += (timestamp.strftime(r'%d/%m/%Y %I:%M:%S %p'),)
+        values += (query_timestamp.strftime(r'%d/%m/%Y %I:%M:%S %p'),)
 
     # generate the SQL query
-    columns_only_query = """
-        SELECT logs.log_id, logs.paper_id, logs.month, logs.year, logs.timestamp, undelivered_dates_logs.date_not_delivered, cost_logs.cost
+    logs_base_query = """
+        SELECT log_id, paper_id, timestamp, month, year
         FROM logs
-        INNER JOIN undelivered_dates_logs ON logs.log_id = undelivered_dates_logs.log_id
-        INNER JOIN cost_logs ON logs.log_id = cost_logs.log_id"""
+        ORDER BY log_id, paper_id   
+    """
 
     if parameters:
         conditions = ' AND '.join(
-            f"logs.{parameter} = ?"
+            f"{parameter} = ?"
             for parameter in parameters
         )
 
-        final_query = f"{columns_only_query} WHERE {conditions};"
+        logs_query = f"{logs_base_query} WHERE {conditions};"
 
     else:
-        final_query = f"{columns_only_query};"
+        logs_query = f"{logs_base_query};"
 
-    # execute the query
+    dates_query = "SELECT log_id, date_not_delivered FROM undelivered_dates_logs;"
+    costs_query = "SELECT log_id, cost FROM cost_logs;"
+
     with connect(DATABASE_PATH) as connection:
-        data = connection.execute(final_query, values).fetchall()
+        logs = {
+            log_id: [paper_id, month, year, timestamp]
+            for log_id, paper_id, timestamp, month, year in connection.execute(logs_query, values).fetchall()
+        }
 
+        dates = connection.execute(dates_query).fetchall()
+        costs = connection.execute(costs_query).fetchall()
+
+        for log_id, date in dates:
+            yield tuple(logs[log_id] + [date])
+
+        for log_id, cost in costs:
+            yield tuple(logs[log_id] + [float(cost)])
+        
     connection.close()
-
-    return data
 
 
 
