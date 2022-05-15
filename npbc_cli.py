@@ -397,10 +397,7 @@ def extract_delivery_from_user_input(input_delivery: str) -> list[bool]:
     if not DELIVERY_MATCH_REGEX.match(input_delivery):
         raise npbc_exceptions.InvalidInput("Invalid delivery days.")
 
-    return [
-        day == 'Y'
-        for day in input_delivery
-    ]
+    return list(map(lambda x: x == 'Y', input_delivery))
 
 
 def extract_costs_from_user_input(paper_id: int | None, delivery_data: list[bool] | None, *input_costs: float) -> Generator[float, None, None]:

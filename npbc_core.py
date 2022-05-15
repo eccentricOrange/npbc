@@ -101,7 +101,7 @@ def extract_number(string: str, month: int, year: int) -> date_type | None:
 def extract_range(string: str, month: int, year: int) -> Generator[date_type, None, None]:
     """if the date is a range of numbers, it's a range of days. we identify all the dates in that range, bounds inclusive"""
 
-    start, end = [int(date) for date in npbc_regex.HYPHEN_SPLIT_REGEX.split(string)]
+    start, end = map(int, npbc_regex.HYPHEN_SPLIT_REGEX.split(string))
 
     # if the range is valid for the given month
     if 0 < start <= end <= monthrange(year, month)[1]:
@@ -369,10 +369,7 @@ def format_output(costs: dict[int, float], total: float, month: int, year: int) 
 
     # output the cost of each paper with its name
     with connect(DATABASE_PATH) as connection:
-        papers = {
-            row[0]: row[1]
-            for row in connection.execute("SELECT paper_id, name FROM papers;").fetchall()
-        }
+        papers = dict(connection.execute("SELECT paper_id, name FROM papers;").fetchall())
 
         for paper_id, cost in costs.items():
             yield f"{papers[paper_id]}: {cost:.2f}"
@@ -392,7 +389,8 @@ def add_new_paper(name: str, days_delivered: list[bool], days_cost: list[float])
         if connection.execute(
             "SELECT EXISTS (SELECT 1 FROM papers WHERE name = ?);",
             (name,)).fetchone()[0]:
-            raise npbc_exceptions.PaperAlreadyExists(f"Paper \"{name}\" already exists.")
+            raise npbc_exceptions.PaperAlreadyExists(f"Paper \"{name}\" already exists."
+        )
 
         # insert the paper
         paper_id = connection.execute(
@@ -427,7 +425,8 @@ def edit_existing_paper(
         if not connection.execute(
             "SELECT EXISTS (SELECT 1 FROM papers WHERE paper_id = ?);",
             (paper_id,)).fetchone()[0]:
-            raise npbc_exceptions.PaperNotExists(f"Paper with ID {paper_id} does not exist.")
+            raise npbc_exceptions.PaperNotExists(f"Paper with ID {paper_id} does not exist."
+        )
 
         # update the paper name
         if name is not None:
@@ -467,7 +466,8 @@ def delete_existing_paper(paper_id: int) -> None:
         if not connection.execute(
             "SELECT EXISTS (SELECT 1 FROM papers WHERE paper_id = ?);",
             (paper_id,)).fetchone()[0]:
-            raise npbc_exceptions.PaperNotExists(f"Paper with ID {paper_id} does not exist.")
+            raise npbc_exceptions.PaperNotExists(f"Paper with ID {paper_id} does not exist."
+        )
 
         # delete the paper
         connection.execute(
@@ -501,7 +501,8 @@ def add_undelivered_string(month: int, year: int, paper_id: int | None = None, *
             if not connection.execute(
                 "SELECT EXISTS (SELECT 1 FROM papers WHERE paper_id = ?);",
                 (paper_id,)).fetchone()[0]:
-                raise npbc_exceptions.PaperNotExists(f"Paper with ID {paper_id} does not exist.")
+                raise npbc_exceptions.PaperNotExists(f"Paper with ID {paper_id} does not exist."
+            )
         
             # add the string(s)
             params = [
