@@ -14,6 +14,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      - run: sqlite3 --version
       
       # # build SQLite from source, because I need 3.35<=
       # - run: |
