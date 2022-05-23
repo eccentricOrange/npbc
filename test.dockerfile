@@ -8,6 +8,6 @@ RUN make
 RUN make install
 RUN export PATH="/usr/local/lib:$PATH"
 
-ADD ./requirements.txt requirements.txt
+ADD requirements.txt requirements.txt
 
 RUN pip install -r requirements.txt pytest
