@@ -14,7 +14,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - run: sqlite3 --version
       - run: pytest
         env:
           LD_LIBRARY_PATH: /usr/local/lib
