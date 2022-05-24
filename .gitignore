@@ -1,7 +1,7 @@
 .python-version
 npbc-env
 __pycache__
-*build
+./*build
 *dist
 .vs
 exp*
