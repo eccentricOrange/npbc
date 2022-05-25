@@ -54,15 +54,23 @@ def get_number_of_each_weekday(month: int, year: int) -> Generator[int, None, No
     """generate a list of number of times each weekday occurs in a given month (return a generator)
     - the list will be in the same order as WEEKDAY_NAMES (so the first day should be Monday)"""
 
+    # get the calendar for the month
     main_calendar = monthcalendar(year, month)
+
+    # get the number of weeks in that month from the calendar
     number_of_weeks = len(main_calendar)
 
+    # iterate over each possible weekday
     for i, _ in enumerate(WEEKDAY_NAMES):
+
+        # assume that the weekday occurs once per week in the month
         number_of_weekday: int = number_of_weeks
 
+        # if the first week doesn't have the weekday, decrement its count
         if main_calendar[0][i] == 0:
             number_of_weekday -= 1
         
+        # if the last week doesn't have the weekday, decrement its count
         if main_calendar[-1][i] == 0:
             number_of_weekday -= 1
 
@@ -220,6 +228,7 @@ def get_cost_and_delivery_data(paper_id: int, connection: Connection) -> list[tu
         ORDER BY day_id;
     """
 
+    # return a list but convert the delivery data to Booleans because SQLite won't do it
     return list(map(
         lambda row: (bool(row[0]), row[1]),
         connection.execute(query, (paper_id,)).fetchall()
