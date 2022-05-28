@@ -14,6 +14,7 @@ from typing import Counter
 
 from pytest import raises
 
+import npbc_cli
 import npbc_core
 import npbc_exceptions
 
@@ -24,7 +25,6 @@ TEST_SQL = Path("data") / "test.sql"
 
 def setup_db(database_path: Path, schema_path: Path, test_sql: Path):
     database_path.unlink(missing_ok=True)
-    
 
     with connect(database_path) as connection:
         connection.executescript(schema_path.read_text())
@@ -32,6 +32,19 @@ def setup_db(database_path: Path, schema_path: Path, test_sql: Path):
         connection.executescript(test_sql.read_text())
 
     connection.close()
+
+
+def test_db_creation():
+    DATABASE_PATH.unlink(missing_ok=True)
+    assert not DATABASE_PATH.exists()
+
+    try:
+        npbc_cli.main()
+
+    except SystemExit:
+        pass
+
+    assert DATABASE_PATH.exists()
 
 
 def test_get_papers():
