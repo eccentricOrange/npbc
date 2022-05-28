@@ -20,10 +20,10 @@ NUMBER_MATCH_REGEX = compile_regex(r'^[\d]{1,2}?$')
 RANGE_MATCH_REGEX = compile_regex(r'^\d{1,2} *- *\d{1,2}$')
 
 # match for weekday name. day must appear as "daynames" (example = "mondays"). all lowercase.
-DAYS_MATCH_REGEX = compile_regex(f"^{'|'.join([day_name.lower() + 's' for day_name in WEEKDAY_NAMES_ITERABLE])}$")
+DAYS_MATCH_REGEX = compile_regex(f"^{'|'.join(map(lambda x: x.lower() + 's', WEEKDAY_NAMES_ITERABLE))}$")
 
 # match for nth weekday name. day must appear as "n-dayname" (example = "1-monday"). all lowercase. must be one digit.
-N_DAY_MATCH_REGEX = compile_regex(f"^\\d *- *({'|'.join([day_name.lower() for day_name in WEEKDAY_NAMES_ITERABLE])})$")
+N_DAY_MATCH_REGEX = compile_regex(f"^\\d *- *({'|'.join(map(lambda x: x.lower(), WEEKDAY_NAMES_ITERABLE))})$")
 
 # match for the text "all" in any case.
 ALL_MATCH_REGEX = compile_regex(r'^[aA][lL]{2}$')
