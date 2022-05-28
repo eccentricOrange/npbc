@@ -176,7 +176,7 @@ def status_print(status: bool, message: str) -> None:
     print(f"{Style.BRIGHT}{message}{Style.RESET_ALL}\n")
 
 
-def calculate(args: ArgNamespace) -> None:
+def calculate(parsed_arguments: ArgNamespace) -> None:
     """calculate the cost for a given month and year
     - default to the previous month if no month and no year is given
     - default to the current month if no month is given and year is given
@@ -185,19 +185,19 @@ def calculate(args: ArgNamespace) -> None:
     ## deal with month and year
 
     # if either of them are given
-    if args.month or args.year:
+    if parsed_arguments.month or parsed_arguments.year:
 
         # validate them
         try:
-            npbc_core.validate_month_and_year(args.month, args.year)
+            npbc_core.validate_month_and_year(parsed_arguments.month, parsed_arguments.year)
         
         except npbc_exceptions.InvalidMonthYear:
             status_print(False, "Invalid month and/or year.")
             return
 
         # for each, if it is not given, set it to the current month and/or year
-        month = args.month or datetime.now().month
-        year = args.year or datetime.now().year
+        month = parsed_arguments.month or datetime.now().month
+        year = parsed_arguments.year or datetime.now().year
 
     # if neither are given
     else:
@@ -247,7 +247,7 @@ def calculate(args: ArgNamespace) -> None:
     formatted = '\n'.join(npbc_core.format_output(costs, total, month, year))
 
     # unless the user specifies so, log the results to the database
-    if not args.nolog:
+    if not parsed_arguments.nolog:
         try:
             npbc_core.save_results(costs, undelivered_dates, month, year)
 
@@ -263,13 +263,13 @@ def calculate(args: ArgNamespace) -> None:
     print(f"SUMMARY:\n\n{formatted}")
 
 
-def addudl(args: ArgNamespace) -> None:
+def addudl(parsed_arguments: ArgNamespace) -> None:
     """add undelivered strings to the database
     - default to the current month if no month and/or no year is given"""
 
     # validate the month and year
     try:
-        npbc_core.validate_month_and_year(args.month, args.year)
+        npbc_core.validate_month_and_year(parsed_arguments.month, parsed_arguments.year)
 
     # if they are invalid, print an error message
     except npbc_exceptions.InvalidMonthYear:
@@ -278,19 +278,19 @@ def addudl(args: ArgNamespace) -> None:
 
     ## deal with month and year
     # for any that are not given, set them to the current month and year
-    month = args.month or datetime.now().month
-    year = args.year or datetime.now().year
+    month = parsed_arguments.month or datetime.now().month
+    year = parsed_arguments.year or datetime.now().year
 
     # if the user either specifies a specific paper or specifies all papers
-    if args.paperid or args.all:
+    if parsed_arguments.paperid or parsed_arguments.all:
 
         # attempt to add the strings to the database
         try:
-            npbc_core.add_undelivered_string(month, year, args.paperid, *args.strings)
+            npbc_core.add_undelivered_string(month, year, parsed_arguments.paperid, *parsed_arguments.strings)
 
         # if the paper doesn't exist, print an error message
         except npbc_exceptions.PaperNotExists:
-            status_print(False, f"Paper with ID {args.paperid} does not exist.")
+            status_print(False, f"Paper with ID {parsed_arguments.paperid} does not exist.")
             return
 
         # if the string was invalid, print an error message
@@ -311,12 +311,12 @@ def addudl(args: ArgNamespace) -> None:
     status_print(True, "Success!")
 
 
-def deludl(args: ArgNamespace) -> None:
+def deludl(parsed_arguments: ArgNamespace) -> None:
     """delete undelivered strings from the database"""
 
     # validate the month and year
     try:
-        npbc_core.validate_month_and_year(args.month, args.year)
+        npbc_core.validate_month_and_year(parsed_arguments.month, parsed_arguments.year)
 
     # if they are invalid, print an error message
     except npbc_exceptions.InvalidMonthYear:
@@ -326,11 +326,11 @@ def deludl(args: ArgNamespace) -> None:
     # attempt to delete the strings from the database
     try:
         npbc_core.delete_undelivered_string(
-            month=args.month,
-            year=args.year,
-            paper_id=args.paperid,
-            string=args.string,
-            string_id=args.stringid
+            month=parsed_arguments.month,
+            year=parsed_arguments.year,
+            paper_id=parsed_arguments.paperid,
+            string=parsed_arguments.string,
+            string_id=parsed_arguments.stringid
         )
 
     # if no parameters are given, print an error message
@@ -351,14 +351,14 @@ def deludl(args: ArgNamespace) -> None:
     status_print(True, "Success!")
 
 
-def getudl(args: ArgNamespace) -> None:
+def getudl(parsed_arguments: ArgNamespace) -> None:
     """get undelivered strings from the database
     filter by whichever parameter the user provides. they as many as they want.
     available parameters: month, year, paper_id, string_id, string"""
 
     # validate the month and year
     try:
-        npbc_core.validate_month_and_year(args.month, args.year)
+        npbc_core.validate_month_and_year(parsed_arguments.month, parsed_arguments.year)
 
     # if they are invalid, print an error message
     except npbc_exceptions.InvalidMonthYear:
@@ -368,11 +368,11 @@ def getudl(args: ArgNamespace) -> None:
     # attempt to get the strings from the database
     try:
         undelivered_strings = npbc_core.get_undelivered_strings(
-            month=args.month,
-            year=args.year,
-            paper_id=args.paperid,
-            string_id=args.stringid,
-            string=args.string
+            month=parsed_arguments.month,
+            year=parsed_arguments.year,
+            paper_id=parsed_arguments.paperid,
+            string_id=parsed_arguments.stringid,
+            string=parsed_arguments.string
         )
 
     # if the string doesn't exist, print an error message
@@ -457,21 +457,21 @@ def extract_costs_from_user_input(paper_id: int | None, delivery_data: list[bool
         raise npbc_exceptions.InvalidInput("Neither delivery data nor paper ID given.")
 
 
-def editpaper(args: ArgNamespace) -> None:
+def editpaper(parsed_arguments: ArgNamespace) -> None:
     """edit a paper's information"""
 
 
     try:
 
         # attempt to get the delivery data. if it's not given, set it to None
-        delivery_data = extract_delivery_from_user_input(args.delivered) if args.delivered else None
+        delivery_data = extract_delivery_from_user_input(parsed_arguments.delivered) if parsed_arguments.delivered else None
 
         # attempt to edit the paper. if costs are given, use them, else use None
         npbc_core.edit_existing_paper(
-            paper_id=args.paperid,
-            name=args.name,
+            paper_id=parsed_arguments.paperid,
+            name=parsed_arguments.name,
             days_delivered=delivery_data,
-            days_cost=list(extract_costs_from_user_input(args.paperid, delivery_data, *args.costs)) if args.costs else None
+            days_cost=list(extract_costs_from_user_input(parsed_arguments.paperid, delivery_data, *parsed_arguments.costs)) if parsed_arguments.costs else None
         )
 
     # if the paper doesn't exist, print an error message
@@ -492,18 +492,18 @@ def editpaper(args: ArgNamespace) -> None:
     status_print(True, "Success!")
 
 
-def addpaper(args: ArgNamespace) -> None:
+def addpaper(parsed_arguments: ArgNamespace) -> None:
     """add a new paper to the database"""
 
     try:
         # attempt to get the delivery data
-        delivery_data = extract_delivery_from_user_input(args.delivered)
+        delivery_data = extract_delivery_from_user_input(parsed_arguments.delivered)
 
         # attempt to add the paper.
         npbc_core.add_new_paper(
-            name=args.name,
+            name=parsed_arguments.name,
             days_delivered=delivery_data,
-            days_cost=list(extract_costs_from_user_input(None, delivery_data, *args.costs))
+            days_cost=list(extract_costs_from_user_input(None, delivery_data, *parsed_arguments.costs))
         )
 
     # if the paper already exists, print an error message
@@ -524,12 +524,12 @@ def addpaper(args: ArgNamespace) -> None:
     status_print(True, "Success!")
 
 
-def delpaper(args: ArgNamespace) -> None:
+def delpaper(parsed_arguments: ArgNamespace) -> None:
     """delete a paper from the database"""
 
     # attempt to delete the paper
     try:
-        npbc_core.delete_existing_paper(args.paperid)
+        npbc_core.delete_existing_paper(parsed_arguments.paperid)
 
     # if the paper doesn't exist, print an error message
     except npbc_exceptions.PaperNotExists:
@@ -544,7 +544,7 @@ def delpaper(args: ArgNamespace) -> None:
     status_print(True, "Success!")
 
 
-def getpapers(args: ArgNamespace) -> None:
+def getpapers(parsed_arguments: ArgNamespace) -> None:
     """get a list of all papers in the database
     - filter by whichever parameter the user provides. they may use as many as they want (but keys are always printed)
     - available parameters: name, days, costs
@@ -573,7 +573,7 @@ def getpapers(args: ArgNamespace) -> None:
     names = [None for _ in ids]
 
     # if the user wants the name, add it to the headers and the data to the list
-    if args.names:
+    if parsed_arguments.names:
         headers.append('name')
 
         names = list(set(
@@ -586,7 +586,7 @@ def getpapers(args: ArgNamespace) -> None:
         names = [name for _, name in names]
 
     # if the user wants the delivery data or the costs, get the data about days
-    if args.delivered or args.cost:
+    if parsed_arguments.delivered or parsed_arguments.cost:
 
         # initialize a dictionary for the days of each paper
         days = {
@@ -604,7 +604,7 @@ def getpapers(args: ArgNamespace) -> None:
             days[paper_id][day_id]['cost'] = day_cost
 
         # if the user wants the delivery data, add it to the headers and the data to the list
-        if args.delivered:
+        if parsed_arguments.delivered:
             headers.append('days')
 
             # convert the data to the /[YN]{7}/ format the user is used to
@@ -617,7 +617,7 @@ def getpapers(args: ArgNamespace) -> None:
             ]
 
         # if the user wants the costs, add it to the headers and the data to the list
-        if args.cost:
+        if parsed_arguments.cost:
             headers.append('costs')
 
             # convert the data to the /x(;x){0,6}/ where x is a floating point number format the user is used to
@@ -640,19 +640,19 @@ def getpapers(args: ArgNamespace) -> None:
     for paper_id, name, delivered, cost in zip(ids, names, delivery, costs):
         print(paper_id, end='')
 
-        if args.names:
+        if parsed_arguments.names:
             print(f", {name}", end='')
 
-        if args.delivered:
+        if parsed_arguments.delivered:
             print(f", {delivered}", end='')
 
-        if args.cost:
+        if parsed_arguments.cost:
             print(f", {cost}", end='')
 
         print()
 
 
-def getlogs(args: ArgNamespace) -> None:
+def getlogs(parsed_arguments: ArgNamespace) -> None:
     """get a list of all logs in the database
     - filter by whichever parameter the user provides. they may use as many as they want (but log IDs are always printed)
     - available parameters: log_id, paper_id, month, year, timestamp
@@ -661,11 +661,11 @@ def getlogs(args: ArgNamespace) -> None:
     # attempt to get the logs from the database
     try:
         data = npbc_core.get_logged_data(
-            query_log_id = args.logid,
-            query_paper_id=args.paperid,
-            query_month=args.month,
-            query_year=args.year,
-            query_timestamp= datetime.strptime(args.timestamp, r'%d/%m/%Y %I:%M:%S %p') if args.timestamp else None
+            query_log_id = parsed_arguments.logid,
+            query_paper_id=parsed_arguments.paperid,
+            query_month=parsed_arguments.month,
+            query_year=parsed_arguments.year,
+            query_timestamp= datetime.strptime(parsed_arguments.timestamp, r'%d/%m/%Y %I:%M:%S %p') if parsed_arguments.timestamp else None
         )
 
     # if there is a database error, print an error message
@@ -689,7 +689,7 @@ def getlogs(args: ArgNamespace) -> None:
         print(', '.join(str(item) for item in row))
 
 
-def update(args: ArgNamespace) -> None:
+def update(parsed_arguments: ArgNamespace) -> None:
     """update the application
     - under normal operation, this function should never run
     - if the update CLI argument is provided, this script will never run and the updater will be run instead"""
@@ -713,10 +713,10 @@ def main(arguments: list[str]) -> None:
         return
 
     # parse the command line arguments
-    parsed = define_and_read_args(arguments)
+    parsed_namespace = define_and_read_args(arguments)
 
     # execute the appropriate function
-    parsed.func(parsed)
+    parsed_namespace.func(parsed_namespace)
 
 
 if __name__ == "__main__":
