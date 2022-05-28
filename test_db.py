@@ -18,18 +18,19 @@ import npbc_cli
 import npbc_core
 import npbc_exceptions
 
-DATABASE_PATH = Path("data") / "npbc.db"
-SCHEMA_PATH = Path("data") / "schema.sql"
-TEST_SQL = Path("data") / "test.sql"
+ACTIVE_DIRECTORY = Path("data")
+DATABASE_PATH = ACTIVE_DIRECTORY / "npbc.db"
+SCHEMA_PATH = ACTIVE_DIRECTORY / "schema.sql"
+TEST_SQL = ACTIVE_DIRECTORY / "test.sql"
 
 
-def setup_db(database_path: Path, schema_path: Path, test_sql: Path):
-    database_path.unlink(missing_ok=True)
+def setup_db():
+    DATABASE_PATH.unlink(missing_ok=True)
 
-    with connect(database_path) as connection:
-        connection.executescript(schema_path.read_text())
+    with connect(DATABASE_PATH) as connection:
+        connection.executescript(SCHEMA_PATH.read_text())
         connection.commit()
-        connection.executescript(test_sql.read_text())
+        connection.executescript(TEST_SQL.read_text())
 
     connection.close()
 
@@ -39,7 +40,7 @@ def test_db_creation():
     assert not DATABASE_PATH.exists()
 
     try:
-        npbc_cli.main()
+        npbc_cli.main([])
 
     except SystemExit:
         pass
@@ -48,7 +49,7 @@ def test_db_creation():
 
 
 def test_get_papers():
-    setup_db(DATABASE_PATH, SCHEMA_PATH, TEST_SQL)
+    setup_db()
 
     known_data = [
         (1, 'paper1', 0, 0, 0),
@@ -78,7 +79,7 @@ def test_get_papers():
 
 
 def test_get_undelivered_strings():
-    setup_db(DATABASE_PATH, SCHEMA_PATH, TEST_SQL)
+    setup_db()
 
     known_data = [
         (1, 1, 2020, 11, '5'),
@@ -99,7 +100,7 @@ def test_get_undelivered_strings():
 
 
 def test_delete_paper():
-    setup_db(DATABASE_PATH, SCHEMA_PATH, TEST_SQL)
+    setup_db()
 
     npbc_core.delete_existing_paper(2)
 
@@ -128,7 +129,7 @@ def test_delete_paper():
 
 
 def test_add_paper():
-    setup_db(DATABASE_PATH, SCHEMA_PATH, TEST_SQL)
+    setup_db()
 
     known_data = [
         (1, 'paper1', 0, 0, 0),
@@ -178,7 +179,7 @@ def test_add_paper():
 
 
 def test_edit_paper():
-    setup_db(DATABASE_PATH, SCHEMA_PATH, TEST_SQL)
+    setup_db()
 
     known_data = [
         (1, 'paper1', 0, 0, 0),
@@ -248,19 +249,19 @@ def test_delete_string():
         (5, 3, 2020, 10, 'all')
     ]
 
-    setup_db(DATABASE_PATH, SCHEMA_PATH, TEST_SQL)
+    setup_db()
     npbc_core.delete_undelivered_string(string='all')
     assert Counter(npbc_core.get_undelivered_strings()) == Counter(known_data[:4])
 
-    setup_db(DATABASE_PATH, SCHEMA_PATH, TEST_SQL)
+    setup_db()
     npbc_core.delete_undelivered_string(month=11)
     assert Counter(npbc_core.get_undelivered_strings()) == Counter([known_data[4]])
 
-    setup_db(DATABASE_PATH, SCHEMA_PATH, TEST_SQL)
+    setup_db()
     npbc_core.delete_undelivered_string(paper_id=1)
     assert Counter(npbc_core.get_undelivered_strings()) == Counter(known_data[2:])
 
-    setup_db(DATABASE_PATH, SCHEMA_PATH, TEST_SQL)
+    setup_db()
 
     with raises(npbc_exceptions.StringNotExists):
         npbc_core.delete_undelivered_string(string='not exists')
@@ -270,7 +271,7 @@ def test_delete_string():
 
 
 def test_add_string():
-    setup_db(DATABASE_PATH, SCHEMA_PATH, TEST_SQL)
+    setup_db()
 
     known_data = [
         (1, 1, 2020, 11, '5'),
@@ -292,7 +293,7 @@ def test_add_string():
 
 
 def test_save_results():
-    setup_db(DATABASE_PATH, SCHEMA_PATH, TEST_SQL)
+    setup_db()
 
     known_data = [
         (1, 1, 2020, '04/01/2022 01:05:42 AM', '2020-01-01'),

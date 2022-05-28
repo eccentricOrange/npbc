@@ -12,6 +12,7 @@ import sqlite3
 from argparse import ArgumentParser
 from argparse import Namespace as ArgNamespace
 from datetime import datetime
+from sys import argv
 from typing import Generator
 
 from colorama import Fore, Style
@@ -21,7 +22,7 @@ import npbc_exceptions
 from npbc_regex import DELIVERY_MATCH_REGEX
 
 
-def define_and_read_args() -> ArgNamespace:
+def define_and_read_args(arguments: list[str]) -> ArgNamespace:
     """configure parsers
     - define the main parser for the application executable
     - define subparsers (one for each functionality)
@@ -157,7 +158,7 @@ def define_and_read_args() -> ArgNamespace:
     update_parser.set_defaults(func=update)
 
 
-    return main_parser.parse_args()
+    return main_parser.parse_args(arguments)
 
 
 def status_print(status: bool, message: str) -> None:
@@ -696,7 +697,7 @@ def update(args: ArgNamespace) -> None:
     status_print(False, "Update failed.")
 
 
-def main() -> None:
+def main(arguments: list[str]) -> None:
     """main function
     - initialize the database
     - parses the command line arguments
@@ -712,11 +713,11 @@ def main() -> None:
         return
 
     # parse the command line arguments
-    parsed = define_and_read_args()
+    parsed = define_and_read_args(arguments)
 
     # execute the appropriate function
     parsed.func(parsed)
 
 
 if __name__ == "__main__":
-    main()
+    main(argv[1:])

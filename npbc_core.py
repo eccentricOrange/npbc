@@ -27,7 +27,7 @@ DATABASE_DIR = Path.home() / '.npbc'
 SCHEMA_PATH = Path(__file__).parent / 'schema.sql'
 
 # if in a development environment, set the paths to the data folder
-if str(environ.get('NPBC_DEVELOPMENT')) == "1" or str(environ.get('CI')) == "true":
+if environ.get('NPBC_DEVELOPMENT') or environ.get('CI'):
     DATABASE_DIR = Path('data')
     SCHEMA_PATH = Path('data') / 'schema.sql'
 
