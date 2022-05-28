@@ -39,8 +39,6 @@ WEEKDAY_NAMES = list(weekday_names_iterable)
 def setup_and_connect_DB() -> None:
     """ensure DB exists and it's set up with the schema"""
 
-    global DATABASE_DIR, DATABASE_PATH, SCHEMA_PATH
-
     DATABASE_DIR.mkdir(parents=True, exist_ok=True)
     DATABASE_PATH.touch(exist_ok=True)
 
@@ -268,7 +266,6 @@ def calculate_cost_of_all_papers(undelivered_strings: dict[int, list[str]], mont
     """calculate the cost of all papers for the full month
     - return data about the cost of each paper, the total cost, and dates when each paper was not delivered"""
 
-    global DATABASE_PATH
     NUMBER_OF_EACH_WEEKDAY = list(get_number_of_each_weekday(month, year))
     cost_and_delivery_data = {}
 
@@ -323,7 +320,6 @@ def save_results(
     - save the dates any paper was not delivered
     - save the final cost of each paper"""
 
-    global DATABASE_PATH
     timestamp = (custom_timestamp if custom_timestamp else datetime.now()).strftime(r'%d/%m/%Y %I:%M:%S %p')
 
     with connect(DATABASE_PATH) as connection:
@@ -368,8 +364,6 @@ def save_results(
 def format_output(costs: dict[int, float], total: float, month: int, year: int) -> Generator[str, None, None]:
     """format the output of calculating the cost of all papers"""
     
-    global DATABASE_PATH
-
     # output the name of the month for which the total cost was calculated
     yield f"For {date_type(year=year, month=month, day=1).strftime(r'%B %Y')},\n"
 
@@ -389,8 +383,6 @@ def format_output(costs: dict[int, float], total: float, month: int, year: int) 
 def add_new_paper(name: str, days_delivered: list[bool], days_cost: list[float]) -> None:
     """add a new paper
     - do not allow if the paper already exists"""
-
-    global DATABASE_PATH
 
     with connect(DATABASE_PATH) as connection:
         
@@ -425,8 +417,6 @@ def edit_existing_paper(
 ) -> None:
     """edit an existing paper
     do not allow if the paper does not exist"""
-
-    global DATABASE_PATH
 
     with connect(DATABASE_PATH) as connection:
         
@@ -467,8 +457,6 @@ def delete_existing_paper(paper_id: int) -> None:
     """delete an existing paper
     - do not allow if the paper does not exist"""
 
-    global DATABASE_PATH
-
     with connect(DATABASE_PATH) as connection:
         
         # check if the paper exists
@@ -496,8 +484,6 @@ def delete_existing_paper(paper_id: int) -> None:
 def add_undelivered_string(month: int, year: int, paper_id: int | None = None, *undelivered_strings: str) -> None:
     """record strings for date(s) paper(s) were not delivered
     - if no paper ID is specified, all papers are assumed"""
-
-    global DATABASE_PATH
 
     # validate the strings
     validate_undelivered_string(*undelivered_strings)
@@ -557,8 +543,6 @@ def delete_undelivered_string(
     """delete an existing undelivered string
     - do not allow if the string does not exist"""
 
-    global DATABASE_PATH
-
     # initialize parameters for the WHERE clause of the SQL query
     parameters = []
     values = []
@@ -614,8 +598,6 @@ def get_papers() -> list[tuple[int, str, int, int, float]]:
     - returns a list of tuples containing the following fields:
       paper_id, paper_name, day_id, paper_delivered, paper_cost"""
 
-    global DATABASE_PATH
-
     raw_data = []
 
     query = """
@@ -645,8 +627,6 @@ def get_undelivered_strings(
     - available parameters: string_id, month, year, paper_id, string
     - returns a list of tuples containing the following fields:
       string_id, paper_id, year, month, string"""
-
-    global DATABASE_PATH
 
     # initialize parameters for the WHERE clause of the SQL query
     parameters = []
@@ -713,8 +693,6 @@ def get_logged_data(
     - available parameters: paper_id, log_id, month, year, timestamp
     - yields: tuples containing the following fields:
       log_id, paper_id, month, year, timestamp, date | cost."""
-
-    global DATABASE_PATH
 
     # initialize parameters for the WHERE clause of the SQL query
     parameters = []
