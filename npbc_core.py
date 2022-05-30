@@ -325,7 +325,7 @@ def save_results(
     - save the dates any paper was not delivered
     - save the final cost of each paper"""
 
-    timestamp = (custom_timestamp if custom_timestamp else datetime.now()).strftime(r'%d/%m/%Y %I:%M:%S %p')
+    timestamp = (custom_timestamp or datetime.now()).strftime(r'%d/%m/%Y %I:%M:%S %p')
 
     with connect(DATABASE_PATH) as connection:
 
