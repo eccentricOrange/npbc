@@ -8,12 +8,12 @@ provides the core functionality
 
 from calendar import day_name as weekday_names_iterable
 from calendar import monthcalendar, monthrange
-from datetime import date as date_type
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from os import environ
 from pathlib import Path
 from sqlite3 import Connection, connect
 from typing import Generator
+
 import numpy
 import numpy.typing
 
@@ -98,38 +98,38 @@ def validate_undelivered_string(*strings: str) -> None:
 
     # if we get here, all strings passed the regex check
 
-def extract_number(string: str, month: int, year: int) -> date_type | None:
+def extract_number(string: str, month: int, year: int) -> date | None:
     """if the date is simply a number, it's a single day. so we just identify that date"""
 
-    date = int(string)
+    day = int(string)
 
     # if the date is valid for the given month
-    if 0 < date <= monthrange(year, month)[1]:
-        return date_type(year, month, date)
+    if 0 < day <= monthrange(year, month)[1]:
+        return date(year, month, day)
 
 
-def extract_range(string: str, month: int, year: int) -> Generator[date_type, None, None]:
+def extract_range(string: str, month: int, year: int) -> Generator[date, None, None]:
     """if the date is a range of numbers, it's a range of days. we identify all the dates in that range, bounds inclusive"""
 
     start, end = map(int, npbc_regex.HYPHEN_SPLIT_REGEX.split(string))
 
     # if the range is valid for the given month
     if 0 < start <= end <= monthrange(year, month)[1]:
-        for date in range(start, end + 1):
-            yield date_type(year, month, date)
+        for day in range(start, end + 1):
+            yield date(year, month, day)
 
 
-def extract_weekday(string: str, month: int, year: int) -> Generator[date_type, None, None]:
+def extract_weekday(string: str, month: int, year: int) -> Generator[date, None, None]:
     """if the date is the plural of a weekday name, we identify all dates in that month which are the given weekday"""
 
     weekday = WEEKDAY_NAMES.index(string.capitalize().rstrip('s'))
 
     for day in range(1, monthrange(year, month)[1] + 1):
-        if date_type(year, month, day).weekday() == weekday:
-            yield date_type(year, month, day)
+        if date(year, month, day).weekday() == weekday:
+            yield date(year, month, day)
 
 
-def extract_nth_weekday(string: str, month: int, year: int) -> date_type | None:
+def extract_nth_weekday(string: str, month: int, year: int) -> date | None:
     """if the date is a number and a weekday name (singular), we identify the date that is the nth occurrence of the given weekday in the month"""
 
     n, weekday_name = npbc_regex.HYPHEN_SPLIT_REGEX.split(string)
@@ -144,23 +144,23 @@ def extract_nth_weekday(string: str, month: int, year: int) -> date_type | None:
 
         # store all dates when the given weekday occurs in the given month
         valid_dates = [
-            date_type(year, month, day)
+            date(year, month, day)
             for day in range(1, monthrange(year, month)[1] + 1)
-            if date_type(year, month, day).weekday() == weekday
+            if date(year, month, day).weekday() == weekday
         ]
 
         # return the date that is the nth occurrence of the given weekday in the month
         return valid_dates[n - 1]
 
 
-def extract_all(month: int, year: int) -> Generator[date_type, None, None]:
+def extract_all(month: int, year: int) -> Generator[date, None, None]:
     """if the text is "all", we identify all the dates in the month"""
 
     for day in range(1, monthrange(year, month)[1] + 1):
-        yield date_type(year, month, day)
+        yield date(year, month, day)
 
 
-def parse_undelivered_string(month: int, year: int, string: str) -> set[date_type]:
+def parse_undelivered_string(month: int, year: int, string: str) -> set[date]:
     """parse a section of the strings
     - each section is a string that specifies a set of dates
     - this function will return a set of dates that uniquely identifies each date mentioned across the string"""
@@ -196,7 +196,7 @@ def parse_undelivered_string(month: int, year: int, string: str) -> set[date_typ
     return dates
 
     
-def parse_undelivered_strings(month: int, year: int, *strings: str) -> set[date_type]:
+def parse_undelivered_strings(month: int, year: int, *strings: str) -> set[date]:
     """parse a string that specifies when a given paper was not delivered
     - each section states some set of dates
     - this function will return a set of dates that uniquely identifies each date mentioned across all the strings"""
@@ -244,7 +244,7 @@ def get_cost_and_delivery_data(paper_id: int, connection: Connection) -> tuple[n
 
 def calculate_cost_of_one_paper(
         number_of_each_weekday: list[int],
-        undelivered_dates: set[date_type],
+        undelivered_dates: set[date],
         cost_data: numpy.typing.NDArray[numpy.floating],
         delivery_data: numpy.typing.NDArray[numpy.int8]
     ) -> float:
@@ -255,8 +255,8 @@ def calculate_cost_of_one_paper(
     number_of_days_per_weekday_not_received = numpy.zeros(len(number_of_each_weekday), dtype=numpy.int8)
     
     # for each date that the paper was not delivered, we increment the counter for the corresponding weekday
-    for date in undelivered_dates:
-        number_of_days_per_weekday_not_received[date.weekday()] += 1
+    for day in undelivered_dates:
+        number_of_days_per_weekday_not_received[day.weekday()] += 1
 
     return numpy.sum(
         delivery_data * cost_data * (number_of_each_weekday - number_of_days_per_weekday_not_received)
@@ -266,7 +266,7 @@ def calculate_cost_of_one_paper(
 def calculate_cost_of_all_papers(undelivered_strings: dict[int, list[str]], month: int, year: int) -> tuple[
     dict[int, float],
     float,
-    dict[int, set[date_type]]
+    dict[int, set[date]]
 ]:
     """calculate the cost of all papers for the full month
     - return data about the cost of each paper, the total cost, and dates when each paper was not delivered"""
@@ -287,7 +287,7 @@ def calculate_cost_of_all_papers(undelivered_strings: dict[int, list[str]], mont
     connection.close()
 
     # initialize a "blank" dictionary that will eventually contain any dates when a paper was not delivered
-    undelivered_dates: dict[int, set[date_type]] = {
+    undelivered_dates: dict[int, set[date]] = {
         int(paper_id): set()
         for paper_id, in papers # type: ignore
     }
@@ -316,7 +316,7 @@ def calculate_cost_of_all_papers(undelivered_strings: dict[int, list[str]], mont
 
 def save_results(
     costs: dict[int, float],
-    undelivered_dates: dict[int, set[date_type]],
+    undelivered_dates: dict[int, set[date]],
     month: int,
     year: int,
     custom_timestamp: datetime | None = None
@@ -354,13 +354,13 @@ def save_results(
 
         # create undelivered date entries for each paper
         for paper_id, dates in undelivered_dates.items():
-            for date in dates:
+            for day in dates:
                 connection.execute(
                     """
                     INSERT INTO undelivered_dates_logs (log_id, date_not_delivered)
                     VALUES (?, ?);
                     """,
-                    (log_ids[paper_id], date.strftime("%Y-%m-%d"))
+                    (log_ids[paper_id], day.strftime("%Y-%m-%d"))
                 )
 
     connection.close()
@@ -370,7 +370,7 @@ def format_output(costs: dict[int, float], total: float, month: int, year: int) 
     """format the output of calculating the cost of all papers"""
     
     # output the name of the month for which the total cost was calculated
-    yield f"For {date_type(year=year, month=month, day=1).strftime(r'%B %Y')},\n"
+    yield f"For {date(year=year, month=month, day=1).strftime(r'%B %Y')},\n"
 
     # output the total cost of all papers
     yield f"*TOTAL*: {total:.2f}"
@@ -691,7 +691,7 @@ def get_logged_data(
     query_log_id: int | None = None,
     query_month: int | None = None,
     query_year: int | None = None,
-    query_timestamp: date_type | None = None
+    query_timestamp: date | None = None
 ) -> Generator[tuple[int, int, int, int, str, str | float], None, None]:
     """get logged data
     - the user may specify as parameters many as they want
@@ -754,8 +754,8 @@ def get_logged_data(
         dates = connection.execute(dates_query).fetchall()
         costs = connection.execute(costs_query).fetchall()
 
-        for log_id, date in dates:
-            yield tuple(logs[log_id] + [date])
+        for log_id, date_undelivered in dates:
+            yield tuple(logs[log_id] + [date_undelivered])
 
         for log_id, cost in costs:
             yield tuple(logs[log_id] + [float(cost)])
@@ -764,7 +764,7 @@ def get_logged_data(
 
 
 
-def get_previous_month() -> date_type:
+def get_previous_month() -> date:
     """get the previous month, by looking at 1 day before the first day of the current month (duh)"""
 
     return (datetime.today().replace(day=1) - timedelta(days=1)).replace(day=1)
