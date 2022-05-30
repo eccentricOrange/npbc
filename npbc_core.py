@@ -61,7 +61,7 @@ def get_number_of_each_weekday(month: int, year: int) -> Generator[int, None, No
     number_of_weeks = len(main_calendar)
 
     # iterate over each possible weekday
-    for i, _ in enumerate(WEEKDAY_NAMES):
+    for i in range(len(WEEKDAY_NAMES)):
 
         # assume that the weekday occurs once per week in the month
         number_of_weekday: int = number_of_weeks

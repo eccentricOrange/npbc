@@ -611,7 +611,7 @@ def getpapers(parsed_arguments: ArgNamespace) -> None:
             delivery = [
                 ''.join([
                     'Y' if days[paper_id][day_id]['delivery'] else 'N'
-                    for day_id, _ in enumerate(npbc_core.WEEKDAY_NAMES)
+                    for day_id in range(len(npbc_core.WEEKDAY_NAMES))
                 ])
                 for paper_id in ids
             ]
@@ -624,7 +624,7 @@ def getpapers(parsed_arguments: ArgNamespace) -> None:
             costs = [
                 ';'.join([
                     str(days[paper_id][day_id]['cost'])
-                    for day_id, _ in enumerate(npbc_core.WEEKDAY_NAMES)
+                    for day_id in range(len(npbc_core.WEEKDAY_NAMES))
                     if days[paper_id][day_id]['cost'] != 0
                 ])
                 for paper_id in ids
