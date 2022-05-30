@@ -84,12 +84,14 @@ def validate_undelivered_string(*strings: str) -> None:
 
     # check that the string matches one of the acceptable patterns
     for string in strings:
-        if string and not (
-            npbc_regex.NUMBER_MATCH_REGEX.match(string) or
-            npbc_regex.RANGE_MATCH_REGEX.match(string) or
-            npbc_regex.DAYS_MATCH_REGEX.match(string) or
-            npbc_regex.N_DAY_MATCH_REGEX.match(string) or
-            npbc_regex.ALL_MATCH_REGEX.match(string)
+        if string and not any (
+            pattern.match(string) for pattern in (
+                npbc_regex.NUMBER_MATCH_REGEX,
+                npbc_regex.RANGE_MATCH_REGEX,
+                npbc_regex.DAYS_MATCH_REGEX,
+                npbc_regex.N_DAY_MATCH_REGEX,
+                npbc_regex.ALL_MATCH_REGEX
+            )
         ):
 
             raise npbc_exceptions.InvalidUndeliveredString(f'{string} is not a valid undelivered string.')
