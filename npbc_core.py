@@ -35,8 +35,8 @@ if environ.get('NPBC_DEVELOPMENT') or environ.get('CI'):
 
 DATABASE_PATH = DATABASE_DIR / 'npbc.db'
 
-## list constant for names of weekdays
-WEEKDAY_NAMES = list(weekday_names_iterable)
+## constant for names of weekdays
+WEEKDAY_NAMES = tuple(weekday_names_iterable)
 
 def setup_and_connect_DB() -> None:
     """ensure DB exists and it's set up with the schema"""
@@ -219,7 +219,7 @@ def parse_undelivered_strings(month: int, year: int, *strings: str) -> set[date_
     return dates
 
 
-def get_cost_and_delivery_data(paper_id: int, connection: Connection) -> tuple[numpy.typing.NDArray[numpy.floating], numpy.typing.NDArray[numpy.integer]]:
+def get_cost_and_delivery_data(paper_id: int, connection: Connection) -> tuple[numpy.typing.NDArray[numpy.floating], numpy.typing.NDArray[numpy.int8]]:
     """get the cost and delivery data for a given paper from the DB"""
     
     delivered_query = """
@@ -244,13 +244,13 @@ def calculate_cost_of_one_paper(
         number_of_each_weekday: list[int],
         undelivered_dates: set[date_type],
         cost_data: numpy.typing.NDArray[numpy.floating],
-        delivery_data: numpy.typing.NDArray[numpy.integer]
+        delivery_data: numpy.typing.NDArray[numpy.int8]
     ) -> float:
     """calculate the cost of one paper for the full month
     - any dates when it was not delivered will be removed"""
     
     # initialize counters corresponding to each weekday when the paper was not delivered
-    number_of_days_per_weekday_not_received = numpy.zeros(len(number_of_each_weekday), dtype=numpy.integer)
+    number_of_days_per_weekday_not_received = numpy.zeros(len(number_of_each_weekday), dtype=numpy.int8)
     
     # for each date that the paper was not delivered, we increment the counter for the corresponding weekday
     for date in undelivered_dates:
