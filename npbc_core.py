@@ -104,7 +104,7 @@ def extract_number(string: str, month: int, year: int) -> date_type | None:
     date = int(string)
 
     # if the date is valid for the given month
-    if date > 0 and date <= monthrange(year, month)[1]:
+    if 0 < date <= monthrange(year, month)[1]:
         return date_type(year, month, date)
 
 
@@ -137,7 +137,7 @@ def extract_nth_weekday(string: str, month: int, year: int) -> date_type | None:
     n = int(n)
 
     # if the day is valid for the given month
-    if n > 0 and n <= list(get_number_of_each_weekday(month, year))[WEEKDAY_NAMES.index(weekday_name.capitalize())]:
+    if 0 < n <= list(get_number_of_each_weekday(month, year))[WEEKDAY_NAMES.index(weekday_name.capitalize())]:
         
         # record the "day_id" corresponding to the given weekday name
         weekday = WEEKDAY_NAMES.index(weekday_name.capitalize())
