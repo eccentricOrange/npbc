@@ -5,6 +5,7 @@ test data-independent functions from the core
 
 from datetime import date as date_type
 
+from numpy import array
 from pytest import raises
 
 import npbc_core
@@ -186,36 +187,24 @@ def test_undelivered_string_parsing():
 def test_calculating_cost_of_one_paper():
     DAYS_PER_WEEK = [5, 4, 4, 4, 4, 5, 5]
 
-    COST_AND_DELIVERY_DATA: list[tuple[bool, float]] = [
-        (False, 0),
-        (False, 0),
-        (True, 2),
-        (True, 2),
-        (True, 5),
-        (False, 0),
-        (True, 1)
-    ]
+    COST_AND_DELIVERY_DATA = (
+        array([0, 0, 2, 2, 5, 0, 1]),
+        array([False, False,  True,  True,  True, False,  True])
+    )
 
     test_function = npbc_core.calculate_cost_of_one_paper
 
     assert test_function(
         DAYS_PER_WEEK,
         set([]),
-        COST_AND_DELIVERY_DATA
+        *COST_AND_DELIVERY_DATA
     ) == 41
 
     assert test_function(
         DAYS_PER_WEEK,
         set([]),
-        [
-            (False, 0),
-            (False, 0),
-            (True, 2),
-            (True, 2),
-            (True, 5),
-            (False, 0),
-            (False, 1)
-        ]
+        array([0, 0, 2, 2, 5, 0, 1]),
+        array([False, False,  True,  True,  True, False, False])
     ) == 36
 
     assert test_function(
@@ -223,7 +212,7 @@ def test_calculating_cost_of_one_paper():
         set([
             date_type(year=2022, month=1, day=8)
         ]),
-        COST_AND_DELIVERY_DATA
+        *COST_AND_DELIVERY_DATA
     ) == 41
 
     assert test_function(
@@ -232,7 +221,7 @@ def test_calculating_cost_of_one_paper():
             date_type(year=2022, month=1, day=8),
             date_type(year=2022, month=1, day=8)
         ]),
-        COST_AND_DELIVERY_DATA
+        *COST_AND_DELIVERY_DATA
     ) == 41
 
     assert test_function(
@@ -241,7 +230,7 @@ def test_calculating_cost_of_one_paper():
             date_type(year=2022, month=1, day=8),
             date_type(year=2022, month=1, day=17)
         ]),
-        COST_AND_DELIVERY_DATA
+        *COST_AND_DELIVERY_DATA
     ) == 41
 
     assert test_function(
@@ -249,7 +238,7 @@ def test_calculating_cost_of_one_paper():
         set([
             date_type(year=2022, month=1, day=2)
         ]),
-        COST_AND_DELIVERY_DATA
+        *COST_AND_DELIVERY_DATA
     ) == 40
 
     assert test_function(
@@ -258,7 +247,7 @@ def test_calculating_cost_of_one_paper():
             date_type(year=2022, month=1, day=2),
             date_type(year=2022, month=1, day=2)
         ]),
-        COST_AND_DELIVERY_DATA
+        *COST_AND_DELIVERY_DATA
     ) == 40
 
     assert test_function(
@@ -267,7 +256,7 @@ def test_calculating_cost_of_one_paper():
             date_type(year=2022, month=1, day=6),
             date_type(year=2022, month=1, day=7)
         ]),
-        COST_AND_DELIVERY_DATA
+        *COST_AND_DELIVERY_DATA
     ) == 34
 
     assert test_function(
@@ -277,7 +266,7 @@ def test_calculating_cost_of_one_paper():
             date_type(year=2022, month=1, day=7),
             date_type(year=2022, month=1, day=8)
         ]),
-        COST_AND_DELIVERY_DATA
+        *COST_AND_DELIVERY_DATA
     ) == 34
 
     assert test_function(
@@ -291,7 +280,7 @@ def test_calculating_cost_of_one_paper():
             date_type(year=2022, month=1, day=8),
             date_type(year=2022, month=1, day=8)
         ]),
-        COST_AND_DELIVERY_DATA
+        *COST_AND_DELIVERY_DATA
     ) == 34
 
 
