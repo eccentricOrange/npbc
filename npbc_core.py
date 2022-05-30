@@ -14,6 +14,8 @@ from os import environ
 from pathlib import Path
 from sqlite3 import Connection, connect
 from typing import Generator
+import numpy
+import numpy.typing
 
 import npbc_exceptions
 import npbc_regex
@@ -217,45 +219,46 @@ def parse_undelivered_strings(month: int, year: int, *strings: str) -> set[date_
     return dates
 
 
-def get_cost_and_delivery_data(paper_id: int, connection: Connection) -> list[tuple[bool, float]]:
+def get_cost_and_delivery_data(paper_id: int, connection: Connection) -> tuple[numpy.typing.NDArray[numpy.floating], numpy.typing.NDArray[numpy.integer]]:
     """get the cost and delivery data for a given paper from the DB"""
     
-    query = """
-        SELECT delivered, cost FROM cost_and_delivery_data
+    delivered_query = """
+        SELECT delivered FROM cost_and_delivery_data
         WHERE paper_id = ?
         ORDER BY day_id;
     """
 
-    # return a list but convert the delivery data to Booleans because SQLite won't do it
-    return list(map(
-        lambda row: (bool(row[0]), row[1]),
-        connection.execute(query, (paper_id,)).fetchall()
-    ))
+    cost_query = """
+        SELECT cost FROM cost_and_delivery_data
+        WHERE paper_id = ?
+        ORDER BY day_id;
+    """
+    
+    delivery_data = numpy.array(connection.execute(delivered_query, (paper_id,)).fetchall())
+    cost_data = numpy.array(connection.execute(cost_query, (paper_id,)).fetchall())
+
+    return cost_data.reshape(len(cost_data)), delivery_data.reshape(len(delivery_data))
 
 
 def calculate_cost_of_one_paper(
         number_of_each_weekday: list[int],
         undelivered_dates: set[date_type],
-        cost_and_delivered_data: list[tuple[bool, float]]
+        cost_data: numpy.typing.NDArray[numpy.floating],
+        delivery_data: numpy.typing.NDArray[numpy.integer]
     ) -> float:
     """calculate the cost of one paper for the full month
     - any dates when it was not delivered will be removed"""
     
     # initialize counters corresponding to each weekday when the paper was not delivered
-    number_of_days_per_weekday_not_received = [0] * len(number_of_each_weekday)
+    number_of_days_per_weekday_not_received = numpy.zeros(len(number_of_each_weekday), dtype=numpy.integer)
     
     # for each date that the paper was not delivered, we increment the counter for the corresponding weekday
     for date in undelivered_dates:
         number_of_days_per_weekday_not_received[date.weekday()] += 1
 
-    # calculate the total number of each weekday the paper was delivered (if it is supposed to be delivered)
-    # multiply this number by the cost of each day
-    # add all the costs together and return the result
-    return sum([
-        (number_of_each_weekday[day_id] - number_of_days_per_weekday_not_received[day_id]) * cost
-        if delivered else 0
-        for day_id, (delivered, cost) in enumerate(cost_and_delivered_data)
-    ])
+    return numpy.sum(
+        delivery_data * cost_data * (number_of_each_weekday - number_of_days_per_weekday_not_received)
+    )
 
 
 def calculate_cost_of_all_papers(undelivered_strings: dict[int, list[str]], month: int, year: int) -> tuple[
@@ -298,7 +301,7 @@ def calculate_cost_of_all_papers(undelivered_strings: dict[int, list[str]], mont
         paper_id: calculate_cost_of_one_paper(
             NUMBER_OF_EACH_WEEKDAY,
             undelivered_dates[paper_id],
-            cost_and_delivery_data[index]
+            *cost_and_delivery_data[index]
         )
         for index, (paper_id,) in enumerate(papers) # type: ignore
     }
