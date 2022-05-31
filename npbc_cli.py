@@ -161,19 +161,15 @@ def define_and_read_args(arguments: list[str]) -> ArgNamespace:
     return main_parser.parse_args(arguments)
 
 
-def status_print(status: bool, message: str) -> None:
+def status_print(success: bool, message: str) -> None:
     """
     print out a coloured status message using Colorama
     - if the status is True, print in green (success)
     - if the status is False, print in red (failure)
     """
 
-    if status:
-        print(f"{Fore.GREEN}", end="")
-    else:
-        print(f"{Fore.RED}", end="")
-
-    print(f"{Style.BRIGHT}{message}{Style.RESET_ALL}\n")
+    colour = Fore.GREEN if success else Fore.RED
+    print(f"{colour}{Style.BRIGHT}{message}{Style.RESET_ALL}\n")
 
 
 def calculate(parsed_arguments: ArgNamespace, connection: Connection) -> None:
