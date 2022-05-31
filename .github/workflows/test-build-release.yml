@@ -17,6 +17,7 @@ jobs:
       - run: pytest
         env:
           LD_LIBRARY_PATH: /usr/local/lib
+          NPBC_DATABASE_DIR: data
 
   # build executable for linux
   build-linux:

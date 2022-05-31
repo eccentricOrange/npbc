@@ -8,12 +8,13 @@ provides the core functionality
 
 from calendar import day_name as weekday_names_iterable
 from calendar import monthcalendar, monthrange
-from datetime import date as date_type
-from datetime import datetime, timedelta
+from collections import namedtuple
+from collections.abc import Generator
+from datetime import date, datetime, timedelta
 from os import environ
 from pathlib import Path
 from sqlite3 import Connection, connect
-from typing import Generator
+
 import numpy
 import numpy.typing
 
@@ -22,23 +23,24 @@ import npbc_regex
 
 ## paths for the folder containing schema and database files
 # during normal use, the DB will be in ~/.npbc (where ~ is the user's home directory) and the schema will be bundled with the executable
-# during development, the DB and schema will both be in "data"
+# during development, the DB and schema will both be in the folder provided by the environment (likely "data")
 
-# default to PRODUCTION
-DATABASE_DIR = Path.home() / '.npbc'
-SCHEMA_PATH = Path(__file__).parent / 'schema.sql'
+DATABASE_VARIABLE = environ.get("NPBC_DATABASE_DIR")
+DATABASE_DIR = Path(DATABASE_VARIABLE) if DATABASE_VARIABLE is not None else Path.home() / ".npbc"
+DATABASE_PATH = DATABASE_DIR / "npbc.sqlite"
 
-# if in a development environment, set the paths to the data folder
-if environ.get('NPBC_DEVELOPMENT') or environ.get('CI'):
-    DATABASE_DIR = Path('data')
-    SCHEMA_PATH = Path('data') / 'schema.sql'
+SCHEMA_DIR = Path(DATABASE_VARIABLE) if DATABASE_VARIABLE is not None else Path(__file__).parent
+SCHEMA_PATH = SCHEMA_DIR / "schema.sql"
 
-DATABASE_PATH = DATABASE_DIR / 'npbc.db'
+## constant for names of weekdays
+WEEKDAY_NAMES = tuple(weekday_names_iterable)
 
-## list constant for names of weekdays
-WEEKDAY_NAMES = list(weekday_names_iterable)
+# create tuple classes for return data
+Papers = namedtuple("Papers", ["paper_id", "name", "day_id", "delivered", "cost"])
+UndeliveredStrings = namedtuple("UndeliveredStrings", ["string_id", "paper_id", "year", "month", "string"])
 
-def setup_and_connect_DB() -> None:
+
+def create_and_setup_DB() -> Path:
     """ensure DB exists and it's set up with the schema"""
 
     DATABASE_DIR.mkdir(parents=True, exist_ok=True)
@@ -48,6 +50,8 @@ def setup_and_connect_DB() -> None:
         connection.executescript(SCHEMA_PATH.read_text())
 
     connection.close()
+
+    return DATABASE_PATH
 
 
 def get_number_of_each_weekday(month: int, year: int) -> Generator[int, None, None]:
@@ -61,7 +65,7 @@ def get_number_of_each_weekday(month: int, year: int) -> Generator[int, None, No
     number_of_weeks = len(main_calendar)
 
     # iterate over each possible weekday
-    for i, _ in enumerate(WEEKDAY_NAMES):
+    for i in range(len(WEEKDAY_NAMES)):
 
         # assume that the weekday occurs once per week in the month
         number_of_weekday: int = number_of_weeks
@@ -84,50 +88,52 @@ def validate_undelivered_string(*strings: str) -> None:
 
     # check that the string matches one of the acceptable patterns
     for string in strings:
-        if string and not (
-            npbc_regex.NUMBER_MATCH_REGEX.match(string) or
-            npbc_regex.RANGE_MATCH_REGEX.match(string) or
-            npbc_regex.DAYS_MATCH_REGEX.match(string) or
-            npbc_regex.N_DAY_MATCH_REGEX.match(string) or
-            npbc_regex.ALL_MATCH_REGEX.match(string)
+        if string and not any (
+            pattern.match(string) for pattern in (
+                npbc_regex.NUMBER_MATCH_REGEX,
+                npbc_regex.RANGE_MATCH_REGEX,
+                npbc_regex.DAYS_MATCH_REGEX,
+                npbc_regex.N_DAY_MATCH_REGEX,
+                npbc_regex.ALL_MATCH_REGEX
+            )
         ):
 
             raise npbc_exceptions.InvalidUndeliveredString(f'{string} is not a valid undelivered string.')
 
     # if we get here, all strings passed the regex check
 
-def extract_number(string: str, month: int, year: int) -> date_type | None:
+def extract_number(string: str, month: int, year: int) -> date | None:
     """if the date is simply a number, it's a single day. so we just identify that date"""
 
-    date = int(string)
+    day = int(string)
 
     # if the date is valid for the given month
-    if date > 0 and date <= monthrange(year, month)[1]:
-        return date_type(year, month, date)
+    if 0 < day <= monthrange(year, month)[1]:
+        return date(year, month, day)
 
 
-def extract_range(string: str, month: int, year: int) -> Generator[date_type, None, None]:
+def extract_range(string: str, month: int, year: int) -> Generator[date, None, None]:
     """if the date is a range of numbers, it's a range of days. we identify all the dates in that range, bounds inclusive"""
 
     start, end = map(int, npbc_regex.HYPHEN_SPLIT_REGEX.split(string))
 
     # if the range is valid for the given month
     if 0 < start <= end <= monthrange(year, month)[1]:
-        for date in range(start, end + 1):
-            yield date_type(year, month, date)
+        for day in range(start, end + 1):
+            yield date(year, month, day)
 
 
-def extract_weekday(string: str, month: int, year: int) -> Generator[date_type, None, None]:
+def extract_weekday(string: str, month: int, year: int) -> Generator[date, None, None]:
     """if the date is the plural of a weekday name, we identify all dates in that month which are the given weekday"""
 
     weekday = WEEKDAY_NAMES.index(string.capitalize().rstrip('s'))
 
     for day in range(1, monthrange(year, month)[1] + 1):
-        if date_type(year, month, day).weekday() == weekday:
-            yield date_type(year, month, day)
+        if date(year, month, day).weekday() == weekday:
+            yield date(year, month, day)
 
 
-def extract_nth_weekday(string: str, month: int, year: int) -> date_type | None:
+def extract_nth_weekday(string: str, month: int, year: int) -> date | None:
     """if the date is a number and a weekday name (singular), we identify the date that is the nth occurrence of the given weekday in the month"""
 
     n, weekday_name = npbc_regex.HYPHEN_SPLIT_REGEX.split(string)
@@ -135,30 +141,30 @@ def extract_nth_weekday(string: str, month: int, year: int) -> date_type | None:
     n = int(n)
 
     # if the day is valid for the given month
-    if n > 0 and n <= list(get_number_of_each_weekday(month, year))[WEEKDAY_NAMES.index(weekday_name.capitalize())]:
+    if 0 < n <= list(get_number_of_each_weekday(month, year))[WEEKDAY_NAMES.index(weekday_name.capitalize())]:
         
         # record the "day_id" corresponding to the given weekday name
         weekday = WEEKDAY_NAMES.index(weekday_name.capitalize())
 
         # store all dates when the given weekday occurs in the given month
         valid_dates = [
-            date_type(year, month, day)
+            date(year, month, day)
             for day in range(1, monthrange(year, month)[1] + 1)
-            if date_type(year, month, day).weekday() == weekday
+            if date(year, month, day).weekday() == weekday
         ]
 
         # return the date that is the nth occurrence of the given weekday in the month
         return valid_dates[n - 1]
 
 
-def extract_all(month: int, year: int) -> Generator[date_type, None, None]:
+def extract_all(month: int, year: int) -> Generator[date, None, None]:
     """if the text is "all", we identify all the dates in the month"""
 
     for day in range(1, monthrange(year, month)[1] + 1):
-        yield date_type(year, month, day)
+        yield date(year, month, day)
 
 
-def parse_undelivered_string(month: int, year: int, string: str) -> set[date_type]:
+def parse_undelivered_string(month: int, year: int, string: str) -> set[date]:
     """parse a section of the strings
     - each section is a string that specifies a set of dates
     - this function will return a set of dates that uniquely identifies each date mentioned across the string"""
@@ -194,7 +200,7 @@ def parse_undelivered_string(month: int, year: int, string: str) -> set[date_typ
     return dates
 
     
-def parse_undelivered_strings(month: int, year: int, *strings: str) -> set[date_type]:
+def parse_undelivered_strings(month: int, year: int, *strings: str) -> set[date]:
     """parse a string that specifies when a given paper was not delivered
     - each section states some set of dates
     - this function will return a set of dates that uniquely identifies each date mentioned across all the strings"""
@@ -219,7 +225,7 @@ def parse_undelivered_strings(month: int, year: int, *strings: str) -> set[date_
     return dates
 
 
-def get_cost_and_delivery_data(paper_id: int, connection: Connection) -> tuple[numpy.typing.NDArray[numpy.floating], numpy.typing.NDArray[numpy.integer]]:
+def get_cost_and_delivery_data(paper_id: int, connection: Connection) -> tuple[numpy.typing.NDArray[numpy.floating], numpy.typing.NDArray[numpy.int8]]:
     """get the cost and delivery data for a given paper from the DB"""
     
     delivered_query = """
@@ -242,29 +248,29 @@ def get_cost_and_delivery_data(paper_id: int, connection: Connection) -> tuple[n
 
 def calculate_cost_of_one_paper(
         number_of_each_weekday: list[int],
-        undelivered_dates: set[date_type],
+        undelivered_dates: set[date],
         cost_data: numpy.typing.NDArray[numpy.floating],
-        delivery_data: numpy.typing.NDArray[numpy.integer]
+        delivery_data: numpy.typing.NDArray[numpy.int8]
     ) -> float:
     """calculate the cost of one paper for the full month
     - any dates when it was not delivered will be removed"""
     
     # initialize counters corresponding to each weekday when the paper was not delivered
-    number_of_days_per_weekday_not_received = numpy.zeros(len(number_of_each_weekday), dtype=numpy.integer)
+    number_of_days_per_weekday_not_received = numpy.zeros(len(number_of_each_weekday), dtype=numpy.int8)
     
     # for each date that the paper was not delivered, we increment the counter for the corresponding weekday
-    for date in undelivered_dates:
-        number_of_days_per_weekday_not_received[date.weekday()] += 1
+    for day in undelivered_dates:
+        number_of_days_per_weekday_not_received[day.weekday()] += 1
 
     return numpy.sum(
         delivery_data * cost_data * (number_of_each_weekday - number_of_days_per_weekday_not_received)
     )
 
 
-def calculate_cost_of_all_papers(undelivered_strings: dict[int, list[str]], month: int, year: int) -> tuple[
+def calculate_cost_of_all_papers(connection: Connection, undelivered_strings: dict[int, list[str]], month: int, year: int) -> tuple[
     dict[int, float],
     float,
-    dict[int, set[date_type]]
+    dict[int, set[date]]
 ]:
     """calculate the cost of all papers for the full month
     - return data about the cost of each paper, the total cost, and dates when each paper was not delivered"""
@@ -273,19 +279,17 @@ def calculate_cost_of_all_papers(undelivered_strings: dict[int, list[str]], mont
     cost_and_delivery_data = {}
 
     # get the IDs of papers that exist
-    with connect(DATABASE_PATH) as connection:
-        papers = connection.execute("SELECT paper_id FROM papers;").fetchall()
+    papers = connection.execute("SELECT paper_id FROM papers;").fetchall()
 
-        # get the data about cost and delivery for each paper
-        cost_and_delivery_data = [
-            get_cost_and_delivery_data(paper_id, connection)
-            for paper_id, in papers # type: ignore
-        ]
+    # get the data about cost and delivery for each paper
+    cost_and_delivery_data = [
+        get_cost_and_delivery_data(paper_id, connection)
+        for paper_id, in papers # type: ignore
+    ]
 
-    connection.close()
 
     # initialize a "blank" dictionary that will eventually contain any dates when a paper was not delivered
-    undelivered_dates: dict[int, set[date_type]] = {
+    undelivered_dates: dict[int, set[date]] = {
         int(paper_id): set()
         for paper_id, in papers # type: ignore
     }
@@ -313,8 +317,9 @@ def calculate_cost_of_all_papers(undelivered_strings: dict[int, list[str]], mont
 
 
 def save_results(
+    connection: Connection,
     costs: dict[int, float],
-    undelivered_dates: dict[int, set[date_type]],
+    undelivered_dates: dict[int, set[date]],
     month: int,
     year: int,
     custom_timestamp: datetime | None = None
@@ -323,96 +328,86 @@ def save_results(
     - save the dates any paper was not delivered
     - save the final cost of each paper"""
 
-    timestamp = (custom_timestamp if custom_timestamp else datetime.now()).strftime(r'%d/%m/%Y %I:%M:%S %p')
+    timestamp = (custom_timestamp or datetime.now()).strftime(r'%d/%m/%Y %I:%M:%S %p')
 
-    with connect(DATABASE_PATH) as connection:
+    # create log entries for each paper
+    log_ids = {
+        paper_id: connection.execute(
+            """
+            INSERT INTO logs (paper_id, month, year, timestamp)
+            VALUES (?, ?, ?, ?)
+            RETURNING logs.log_id;
+            """,
+            (paper_id, month, year, timestamp)
+        ).fetchone()[0]
+        for paper_id in costs.keys()
+    }
 
-        # create log entries for each paper
-        log_ids = {
-            paper_id: connection.execute(
-                """
-                INSERT INTO logs (paper_id, month, year, timestamp)
-                VALUES (?, ?, ?, ?)
-                RETURNING logs.log_id;
-                """,
-                (paper_id, month, year, timestamp)
-            ).fetchone()[0]
-            for paper_id in costs.keys()
-        }
+    # create cost entries for each paper
+    for paper_id, log_id in log_ids.items():
+        connection.execute(
+            """
+            INSERT INTO cost_logs (log_id, cost)
+            VALUES (?, ?);
+            """,
+            (log_id, costs[paper_id])
+        )
 
-        # create cost entries for each paper
-        for paper_id, log_id in log_ids.items():
+    # create undelivered date entries for each paper
+    for paper_id, dates in undelivered_dates.items():
+        for day in dates:
             connection.execute(
                 """
-                INSERT INTO cost_logs (log_id, cost)
+                INSERT INTO undelivered_dates_logs (log_id, date_not_delivered)
                 VALUES (?, ?);
                 """,
-                (log_id, costs[paper_id])
+                (log_ids[paper_id], day.strftime("%Y-%m-%d"))
             )
 
-        # create undelivered date entries for each paper
-        for paper_id, dates in undelivered_dates.items():
-            for date in dates:
-                connection.execute(
-                    """
-                    INSERT INTO undelivered_dates_logs (log_id, date_not_delivered)
-                    VALUES (?, ?);
-                    """,
-                    (log_ids[paper_id], date.strftime("%Y-%m-%d"))
-                )
 
-    connection.close()
-
-
-def format_output(costs: dict[int, float], total: float, month: int, year: int) -> Generator[str, None, None]:
+def format_output(connection: Connection, costs: dict[int, float], total: float, month: int, year: int) -> Generator[str, None, None]:
     """format the output of calculating the cost of all papers"""
     
     # output the name of the month for which the total cost was calculated
-    yield f"For {date_type(year=year, month=month, day=1).strftime(r'%B %Y')},\n"
+    yield f"For {date(year=year, month=month, day=1).strftime(r'%B %Y')},\n"
 
     # output the total cost of all papers
     yield f"*TOTAL*: {total:.2f}"
 
     # output the cost of each paper with its name
-    with connect(DATABASE_PATH) as connection:
-        papers = dict(connection.execute("SELECT paper_id, name FROM papers;").fetchall())
+    papers = dict(connection.execute("SELECT paper_id, name FROM papers;").fetchall())
 
-        for paper_id, cost in costs.items():
-            yield f"{papers[paper_id]}: {cost:.2f}"
-
-    connection.close()
+    for paper_id, cost in costs.items():
+        yield f"{papers[paper_id]}: {cost:.2f}"
 
 
-def add_new_paper(name: str, days_delivered: list[bool], days_cost: list[float]) -> None:
+def add_new_paper(connection: Connection, name: str, days_delivered: list[bool], days_cost: list[float]) -> None:
     """add a new paper
     - do not allow if the paper already exists"""
 
-    with connect(DATABASE_PATH) as connection:
-        
-        # check if the paper already exists
-        if connection.execute(
-            "SELECT EXISTS (SELECT 1 FROM papers WHERE name = ?);",
-            (name,)).fetchone()[0]:
-            raise npbc_exceptions.PaperAlreadyExists(f"Paper \"{name}\" already exists."
+    # check if the paper already exists
+    if connection.execute(
+        "SELECT EXISTS (SELECT 1 FROM papers WHERE name = ?);",
+        (name,)).fetchone()[0]:
+        raise npbc_exceptions.PaperAlreadyExists(f"Paper \"{name}\" already exists."
+    )
+
+    # insert the paper
+    paper_id = connection.execute(
+        "INSERT INTO papers (name) VALUES (?) RETURNING papers.paper_id;",
+        (name,)
+    ).fetchone()[0]
+
+    # create cost and delivered entries for each day
+    for day_id, (delivered, cost) in enumerate(zip(days_delivered, days_cost)):
+        connection.execute(
+            "INSERT INTO cost_and_delivery_data (paper_id, day_id, delivered, cost) VALUES (?, ?, ?, ?);",
+            (paper_id, day_id, delivered, cost)
         )
-
-        # insert the paper
-        paper_id = connection.execute(
-            "INSERT INTO papers (name) VALUES (?) RETURNING papers.paper_id;",
-            (name,)
-        ).fetchone()[0]
-
-        # create cost and delivered entries for each day
-        for day_id, (delivered, cost) in enumerate(zip(days_delivered, days_cost)):
-            connection.execute(
-                "INSERT INTO cost_and_delivery_data (paper_id, day_id, delivered, cost) VALUES (?, ?, ?, ?);",
-                (paper_id, day_id, delivered, cost)
-            )
-
-    connection.close()
 
 
 def edit_existing_paper(
+    connection: Connection,
     paper_id: int,
     name: str | None = None,
     days_delivered: list[bool] | None = None,
@@ -421,70 +416,62 @@ def edit_existing_paper(
     """edit an existing paper
     do not allow if the paper does not exist"""
 
-    with connect(DATABASE_PATH) as connection:
-        
-        # check if the paper exists
-        if not connection.execute(
-            "SELECT EXISTS (SELECT 1 FROM papers WHERE paper_id = ?);",
-            (paper_id,)).fetchone()[0]:
-            raise npbc_exceptions.PaperNotExists(f"Paper with ID {paper_id} does not exist."
+    # check if the paper exists
+    if not connection.execute(
+        "SELECT EXISTS (SELECT 1 FROM papers WHERE paper_id = ?);",
+        (paper_id,)).fetchone()[0]:
+        raise npbc_exceptions.PaperNotExists(f"Paper with ID {paper_id} does not exist."
+    )
+
+    # update the paper name
+    if name is not None:
+        connection.execute(
+            "UPDATE papers SET name = ? WHERE paper_id = ?;",
+            (name, paper_id)
         )
 
-        # update the paper name
-        if name is not None:
+    # update the costs of each day
+    if days_cost is not None:
+        for day_id, cost in enumerate(days_cost):
             connection.execute(
-                "UPDATE papers SET name = ? WHERE paper_id = ?;",
-                (name, paper_id)
+                "UPDATE cost_and_delivery_data SET cost = ? WHERE paper_id = ? AND day_id = ?;",
+                (cost, paper_id, day_id)
             )
 
-        # update the costs of each day
-        if days_cost is not None:
-            for day_id, cost in enumerate(days_cost):
-                connection.execute(
-                    "UPDATE cost_and_delivery_data SET cost = ? WHERE paper_id = ? AND day_id = ?;",
-                    (cost, paper_id, day_id)
-                )
-
-        # update the delivered status of each day
-        if days_delivered is not None:
-            for day_id, delivered in enumerate(days_delivered):
-                connection.execute(
-                    "UPDATE cost_and_delivery_data SET delivered = ? WHERE paper_id = ? AND day_id = ?;",
-                    (delivered, paper_id, day_id)
-                )
-
-    connection.close()
+    # update the delivered status of each day
+    if days_delivered is not None:
+        for day_id, delivered in enumerate(days_delivered):
+            connection.execute(
+                "UPDATE cost_and_delivery_data SET delivered = ? WHERE paper_id = ? AND day_id = ?;",
+                (delivered, paper_id, day_id)
+            )
 
 
-def delete_existing_paper(paper_id: int) -> None:
+def delete_existing_paper(connection: Connection, paper_id: int) -> None:
     """delete an existing paper
     - do not allow if the paper does not exist"""
 
-    with connect(DATABASE_PATH) as connection:
-        
-        # check if the paper exists
-        if not connection.execute(
-            "SELECT EXISTS (SELECT 1 FROM papers WHERE paper_id = ?);",
-            (paper_id,)).fetchone()[0]:
-            raise npbc_exceptions.PaperNotExists(f"Paper with ID {paper_id} does not exist."
-        )
+    # check if the paper exists
+    if not connection.execute(
+        "SELECT EXISTS (SELECT 1 FROM papers WHERE paper_id = ?);",
+        (paper_id,)).fetchone()[0]:
+        raise npbc_exceptions.PaperNotExists(f"Paper with ID {paper_id} does not exist."
+    )
 
-        # delete the paper
-        connection.execute(
-            "DELETE FROM papers WHERE paper_id = ?;",
-            (paper_id,)
-        )
+    # delete the paper
+    connection.execute(
+        "DELETE FROM papers WHERE paper_id = ?;",
+        (paper_id,)
+    )
 
-        # delete the costs and delivery data for the paper
-        connection.execute(
-            "DELETE FROM cost_and_delivery_data WHERE paper_id = ?;",
-            (paper_id,)
-        )
-
-    connection.close()
+    # delete the costs and delivery data for the paper
+    connection.execute(
+        "DELETE FROM cost_and_delivery_data WHERE paper_id = ?;",
+        (paper_id,)
+    )
 
 
-def add_undelivered_string(month: int, year: int, paper_id: int | None = None, *undelivered_strings: str) -> None:
+def add_undelivered_string(connection: Connection, month: int, year: int, paper_id: int | None = None, *undelivered_strings: str) -> None:
     """record strings for date(s) paper(s) were not delivered
     - if no paper ID is specified, all papers are assumed"""
 
@@ -495,48 +482,42 @@ def add_undelivered_string(month: int, year: int, paper_id: int | None = None, *
     if paper_id:
 
         # check that specified paper exists in the database
-        with connect(DATABASE_PATH) as connection:
-            if not connection.execute(
-                "SELECT EXISTS (SELECT 1 FROM papers WHERE paper_id = ?);",
-                (paper_id,)).fetchone()[0]:
-                raise npbc_exceptions.PaperNotExists(f"Paper with ID {paper_id} does not exist."
-            )
-        
-            # add the string(s)
-            params = [
-                (month, year, paper_id, string)
-                for string in undelivered_strings
-            ]
+        if not connection.execute(
+            "SELECT EXISTS (SELECT 1 FROM papers WHERE paper_id = ?);",
+            (paper_id,)).fetchone()[0]:
+            raise npbc_exceptions.PaperNotExists(f"Paper with ID {paper_id} does not exist."
+        )
+    
+        # add the string(s)
+        params = [
+            (month, year, paper_id, string)
+            for string in undelivered_strings
+        ]
 
-            connection.executemany("INSERT INTO undelivered_strings (month, year, paper_id, string) VALUES (?, ?, ?, ?);", params)
+        connection.executemany("INSERT INTO undelivered_strings (month, year, paper_id, string) VALUES (?, ?, ?, ?);", params)
 
-        connection.close()
-
-    # if no paper ID is given
     else:
 
         # get the IDs of all papers
-        with connect(DATABASE_PATH) as connection:
-            paper_ids = [
-                row[0]
-                for row in connection.execute(
-                    "SELECT paper_id FROM papers;"
-                )
-            ]
+        paper_ids = [
+            row[0]
+            for row in connection.execute(
+                "SELECT paper_id FROM papers;"
+            )
+        ]
 
-            # add the string(s)
-            params = [
-                (month, year, paper_id, string)
-                for paper_id in paper_ids
-                for string in undelivered_strings
-            ]
+        # add the string(s)
+        params = [
+            (month, year, paper_id, string)
+            for paper_id in paper_ids
+            for string in undelivered_strings
+        ]
 
-            connection.executemany("INSERT INTO undelivered_strings (month, year, paper_id, string) VALUES (?, ?, ?, ?);", params)
-
-        connection.close()
+        connection.executemany("INSERT INTO undelivered_strings (month, year, paper_id, string) VALUES (?, ?, ?, ?);", params)
 
 
 def delete_undelivered_string(
+    connection: Connection,
     string_id: int | None = None,
     string: str | None = None,
     paper_id: int | None = None,
@@ -575,28 +556,24 @@ def delete_undelivered_string(
     if not parameters:
         raise npbc_exceptions.NoParameters("No parameters given.")
 
-    with connect(DATABASE_PATH) as connection:
+    # check if the string exists
+    check_query = "SELECT EXISTS (SELECT 1 FROM undelivered_strings"
 
-        # check if the string exists
-        check_query = "SELECT EXISTS (SELECT 1 FROM undelivered_strings"
+    conditions = ' AND '.join(
+        f"{parameter} = ?"
+        for parameter in parameters
+    )
 
-        conditions = ' AND '.join(
-            f"{parameter} = ?"
-            for parameter in parameters
-        )
+    if (1,) not in connection.execute(f"{check_query} WHERE {conditions});", values).fetchall():
+        raise npbc_exceptions.StringNotExists("String with given parameters does not exist.")
 
-        if (1,) not in connection.execute(f"{check_query} WHERE {conditions});", values).fetchall():
-            raise npbc_exceptions.StringNotExists("String with given parameters does not exist.")
+    # if the string did exist, delete it
+    delete_query = "DELETE FROM undelivered_strings"
 
-        # if the string did exist, delete it
-        delete_query = "DELETE FROM undelivered_strings"
-
-        connection.execute(f"{delete_query} WHERE {conditions};", values)
-
-    connection.close()
+    connection.execute(f"{delete_query} WHERE {conditions};", values)
 
 
-def get_papers() -> list[tuple[int, str, int, int, float]]:
+def get_papers(connection: Connection) -> tuple[Papers]:
     """get all papers
     - returns a list of tuples containing the following fields:
       paper_id, paper_name, day_id, paper_delivered, paper_cost"""
@@ -610,21 +587,22 @@ def get_papers() -> list[tuple[int, str, int, int, float]]:
         ORDER BY papers.paper_id, cost_and_delivery_data.day_id;
     """
 
-    with connect(DATABASE_PATH) as connection:
-        raw_data = connection.execute(query).fetchall()
+    raw_data = connection.execute(query).fetchall()
 
-    connection.close()
-
-    return raw_data
+    return tuple(map(
+        lambda row: Papers(*row),
+        raw_data
+    ))
 
 
 def get_undelivered_strings(
+    connection: Connection,
     string_id: int | None = None,
     month: int | None = None,
     year: int | None = None,
     paper_id: int | None = None,
     string: str | None = None
-) -> list[tuple[int, int, int, int, str]]:
+) -> tuple[UndeliveredStrings]:
     """get undelivered strings
     - the user may specify as many as they want parameters
     - available parameters: string_id, month, year, paper_id, string
@@ -658,38 +636,39 @@ def get_undelivered_strings(
         values.append(string)
 
 
-    with connect(DATABASE_PATH) as connection:
+    # generate the SQL query
+    main_query = "SELECT string_id, paper_id, year, month, string FROM undelivered_strings"
+    
+    if not parameters:
+        query = f"{main_query};"
 
-        # generate the SQL query
-        main_query = "SELECT string_id, paper_id, year, month, string FROM undelivered_strings"
-        
-        if not parameters:
-            query = f"{main_query};"
+    else:
+        conditions = ' AND '.join(
+            f"{parameter} = ?"
+            for parameter in parameters
+        )
 
-        else:
-            conditions = ' AND '.join(
-                f"{parameter} = ?"
-                for parameter in parameters
-            )
+        query = f"{main_query} WHERE {conditions};"
 
-            query = f"{main_query} WHERE {conditions};"
-
-        data = connection.execute(query, values).fetchall()
-    connection.close()
+    data = connection.execute(query, values).fetchall()
 
     # if no data was found, raise an error
     if not data:
         raise npbc_exceptions.StringNotExists("String with given parameters does not exist.")
 
-    return data
+    return tuple(map(
+        lambda row: UndeliveredStrings(*row),
+        data
+    ))
 
 
 def get_logged_data(
+    connection: Connection,
     query_paper_id: int | None = None,
     query_log_id: int | None = None,
     query_month: int | None = None,
     query_year: int | None = None,
-    query_timestamp: date_type | None = None
+    query_timestamp: date | None = None
 ) -> Generator[tuple[int, int, int, int, str, str | float], None, None]:
     """get logged data
     - the user may specify as parameters many as they want
@@ -743,26 +722,22 @@ def get_logged_data(
     dates_query = "SELECT log_id, date_not_delivered FROM undelivered_dates_logs;"
     costs_query = "SELECT log_id, cost FROM cost_logs;"
 
-    with connect(DATABASE_PATH) as connection:
-        logs = {
-            log_id: [paper_id, month, year, timestamp]
-            for log_id, paper_id, timestamp, month, year in connection.execute(logs_query, values).fetchall()
-        }
+    logs = {
+        log_id: [paper_id, month, year, timestamp]
+        for log_id, paper_id, timestamp, month, year in connection.execute(logs_query, values).fetchall()
+    }
 
-        dates = connection.execute(dates_query).fetchall()
-        costs = connection.execute(costs_query).fetchall()
+    dates = connection.execute(dates_query).fetchall()
+    costs = connection.execute(costs_query).fetchall()
 
-        for log_id, date in dates:
-            yield tuple(logs[log_id] + [date])
+    for log_id, date_undelivered in dates:
+        yield tuple(logs[log_id] + [date_undelivered])
 
-        for log_id, cost in costs:
-            yield tuple(logs[log_id] + [float(cost)])
-        
-    connection.close()
+    for log_id, cost in costs:
+        yield tuple(logs[log_id] + [float(cost)])
 
 
-
-def get_previous_month() -> date_type:
+def get_previous_month() -> date:
     """get the previous month, by looking at 1 day before the first day of the current month (duh)"""
 
     return (datetime.today().replace(day=1) - timedelta(days=1)).replace(day=1)

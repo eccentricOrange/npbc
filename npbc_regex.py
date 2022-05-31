@@ -5,8 +5,8 @@ regex used by other files
 """
 
 from calendar import day_name as WEEKDAY_NAMES_ITERABLE
+from re import IGNORECASE
 from re import compile as compile_regex
-
 
 ## regex used to match against strings
 
@@ -26,7 +26,7 @@ DAYS_MATCH_REGEX = compile_regex(f"^{'|'.join(map(lambda x: x.lower() + 's', WEE
 N_DAY_MATCH_REGEX = compile_regex(f"^\\d *- *({'|'.join(map(lambda x: x.lower(), WEEKDAY_NAMES_ITERABLE))})$")
 
 # match for the text "all" in any case.
-ALL_MATCH_REGEX = compile_regex(r'^[aA][lL]{2}$')
+ALL_MATCH_REGEX = compile_regex(r'^all$', IGNORECASE)
 
 # match for seven values, each of which must be a 'Y' or an 'N'. there are no delimiters.
 DELIVERY_MATCH_REGEX = compile_regex(r'^[YN]{7}$')
