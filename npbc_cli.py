@@ -11,9 +11,9 @@ wraps a CLI around the core functionality (using argparse)
 import sqlite3
 from argparse import ArgumentParser
 from argparse import Namespace as ArgNamespace
+from collections.abc import Generator
 from datetime import datetime
 from sys import argv
-from typing import Generator
 
 from colorama import Fore, Style
 

@@ -8,11 +8,11 @@ provides the core functionality
 
 from calendar import day_name as weekday_names_iterable
 from calendar import monthcalendar, monthrange
+from collections.abc import Generator
 from datetime import date, datetime, timedelta
 from os import environ
 from pathlib import Path
 from sqlite3 import Connection, connect
-from typing import Generator
 
 import numpy
 import numpy.typing
