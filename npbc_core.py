@@ -22,18 +22,14 @@ import npbc_regex
 
 ## paths for the folder containing schema and database files
 # during normal use, the DB will be in ~/.npbc (where ~ is the user's home directory) and the schema will be bundled with the executable
-# during development, the DB and schema will both be in "data"
+# during development, the DB and schema will both be in the folder provided by the environment (likely "data")
 
-# default to PRODUCTION
-DATABASE_DIR = Path.home() / '.npbc'
-SCHEMA_PATH = Path(__file__).parent / 'schema.sql'
+DATABASE_VARIABLE = environ.get("NPBC_DATABASE_DIR")
+DATABASE_DIR = Path(DATABASE_VARIABLE) if DATABASE_VARIABLE is not None else Path.home() / ".npbc"
+DATABASE_PATH = DATABASE_DIR / "npbc.sqlite"
 
-# if in a development environment, set the paths to the data folder
-if environ.get('NPBC_DEVELOPMENT') or environ.get('CI'):
-    DATABASE_DIR = Path('data')
-    SCHEMA_PATH = Path('data') / 'schema.sql'
-
-DATABASE_PATH = DATABASE_DIR / 'npbc.sqlite'
+SCHEMA_DIR = Path(DATABASE_VARIABLE) if DATABASE_VARIABLE is not None else Path(__file__).parent
+SCHEMA_PATH = SCHEMA_DIR / "schema.sql"
 
 ## constant for names of weekdays
 WEEKDAY_NAMES = tuple(weekday_names_iterable)
