@@ -8,6 +8,7 @@ provides the core functionality
 
 from calendar import day_name as weekday_names_iterable
 from calendar import monthcalendar, monthrange
+from collections import namedtuple
 from collections.abc import Generator
 from datetime import date, datetime, timedelta
 from os import environ
@@ -33,6 +34,11 @@ SCHEMA_PATH = SCHEMA_DIR / "schema.sql"
 
 ## constant for names of weekdays
 WEEKDAY_NAMES = tuple(weekday_names_iterable)
+
+# create tuple classes for return data
+Papers = namedtuple("Papers", ["paper_id", "name", "day_id", "delivered", "cost"])
+UndeliveredStrings = namedtuple("UndeliveredStrings", ["string_id", "paper_id", "year", "month", "string"])
+
 
 def create_and_setup_DB() -> Path:
     """ensure DB exists and it's set up with the schema"""
@@ -567,7 +573,7 @@ def delete_undelivered_string(
     connection.execute(f"{delete_query} WHERE {conditions};", values)
 
 
-def get_papers(connection: Connection) -> list[tuple[int, str, int, int, float]]:
+def get_papers(connection: Connection) -> tuple[Papers]:
     """get all papers
     - returns a list of tuples containing the following fields:
       paper_id, paper_name, day_id, paper_delivered, paper_cost"""
@@ -583,7 +589,10 @@ def get_papers(connection: Connection) -> list[tuple[int, str, int, int, float]]
 
     raw_data = connection.execute(query).fetchall()
 
-    return raw_data
+    return tuple(map(
+        lambda row: Papers(*row),
+        raw_data
+    ))
 
 
 def get_undelivered_strings(
@@ -593,7 +602,7 @@ def get_undelivered_strings(
     year: int | None = None,
     paper_id: int | None = None,
     string: str | None = None
-) -> list[tuple[int, int, int, int, str]]:
+) -> tuple[UndeliveredStrings]:
     """get undelivered strings
     - the user may specify as many as they want parameters
     - available parameters: string_id, month, year, paper_id, string
@@ -647,7 +656,10 @@ def get_undelivered_strings(
     if not data:
         raise npbc_exceptions.StringNotExists("String with given parameters does not exist.")
 
-    return data
+    return tuple(map(
+        lambda row: UndeliveredStrings(*row),
+        data
+    ))
 
 
 def get_logged_data(

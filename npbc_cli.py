@@ -161,19 +161,15 @@ def define_and_read_args(arguments: list[str]) -> ArgNamespace:
     return main_parser.parse_args(arguments)
 
 
-def status_print(status: bool, message: str) -> None:
+def status_print(success: bool, message: str) -> None:
     """
     print out a coloured status message using Colorama
     - if the status is True, print in green (success)
     - if the status is False, print in red (failure)
     """
 
-    if status:
-        print(f"{Fore.GREEN}", end="")
-    else:
-        print(f"{Fore.RED}", end="")
-
-    print(f"{Style.BRIGHT}{message}{Style.RESET_ALL}\n")
+    colour = Fore.GREEN if success else Fore.RED
+    print(f"{colour}{Style.BRIGHT}{message}{Style.RESET_ALL}\n")
 
 
 def calculate(parsed_arguments: ArgNamespace, connection: Connection) -> None:
@@ -209,8 +205,8 @@ def calculate(parsed_arguments: ArgNamespace, connection: Connection) -> None:
 
     # prepare a dictionary for undelivered strings
     undelivered_strings = {
-        int(paper_id): []
-        for paper_id, _, _, _, _ in npbc_core.get_papers(connection)
+        int(paper_data.paper_id): []
+        for paper_data in npbc_core.get_papers(connection)
     }
 
     # get the undelivered strings from the database
@@ -218,8 +214,8 @@ def calculate(parsed_arguments: ArgNamespace, connection: Connection) -> None:
         raw_undelivered_strings = npbc_core.get_undelivered_strings(connection, month=month, year=year)
 
         # add them to the dictionary
-        for _, paper_id, _, _, string in raw_undelivered_strings:
-            undelivered_strings[paper_id].append(string)
+        for raw_undelivered_string in raw_undelivered_strings:
+            undelivered_strings[raw_undelivered_string.paper_id].append(raw_undelivered_string.string)
 
     # ignore if none exist
     except npbc_exceptions.StringNotExists:
@@ -440,12 +436,12 @@ def extract_costs_from_user_input(connection: Connection, paper_id: int | None, 
             status_print(False, f"Database error: {e}\nPlease report this to the developer.")
             return
 
-        raw_data.sort(key=lambda paper: paper[2])
+        raw_data.sort(key=lambda paper: paper_id)
 
         # extract the data from the database
         delivered = [
-            bool(delivered)
-            for _, _, _, delivered, _ in raw_data
+            bool(paper_data.delivered)
+            for paper_data in raw_data
         ]
 
         # if the number of days the paper is delivered is not equal to the number of costs, raise an error
@@ -582,8 +578,8 @@ def getpapers(parsed_arguments: ArgNamespace, connection: Connection) -> None:
         headers.append('name')
 
         names = list(set(
-            (paper_id, name)
-            for paper_id, name, _, _, _ in raw_data
+            (paper_data.paper_id, paper_data.name)
+            for paper_data in raw_data
         ))
 
         # sort the names by paper ID and extract the names only
@@ -600,13 +596,13 @@ def getpapers(parsed_arguments: ArgNamespace, connection: Connection) -> None:
         }
 
         # for each paper, add the days to the dictionary
-        for paper_id, _, day_id, _, _ in raw_data:
-            days[paper_id][day_id] = {}
+        for paper_data in raw_data:
+            days[paper_data.paper_id][paper_data.day_id] = {}
         
         # for each paper, add the costs and delivery data to the dictionary
-        for paper_id, _, day_id, day_delivery, day_cost in raw_data:
-            days[paper_id][day_id]['delivery'] = day_delivery
-            days[paper_id][day_id]['cost'] = day_cost
+        for paper_data in raw_data:
+            days[paper_data.paper_id][paper_data.day_id]['delivery'] = paper_data.delivered
+            days[paper_data.paper_id][paper_data.day_id]['cost'] = paper_data.cost
 
         # if the user wants the delivery data, add it to the headers and the data to the list
         if parsed_arguments.delivered:
