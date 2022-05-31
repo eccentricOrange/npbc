@@ -34,7 +34,7 @@ SCHEMA_PATH = SCHEMA_DIR / "schema.sql"
 ## constant for names of weekdays
 WEEKDAY_NAMES = tuple(weekday_names_iterable)
 
-def setup_and_connect_DB() -> None:
+def create_and_setup_DB() -> Path:
     """ensure DB exists and it's set up with the schema"""
 
     DATABASE_DIR.mkdir(parents=True, exist_ok=True)
@@ -44,6 +44,8 @@ def setup_and_connect_DB() -> None:
         connection.executescript(SCHEMA_PATH.read_text())
 
     connection.close()
+
+    return DATABASE_PATH
 
 
 def get_number_of_each_weekday(month: int, year: int) -> Generator[int, None, None]:
@@ -259,7 +261,7 @@ def calculate_cost_of_one_paper(
     )
 
 
-def calculate_cost_of_all_papers(undelivered_strings: dict[int, list[str]], month: int, year: int) -> tuple[
+def calculate_cost_of_all_papers(connection: Connection, undelivered_strings: dict[int, list[str]], month: int, year: int) -> tuple[
     dict[int, float],
     float,
     dict[int, set[date]]
@@ -271,16 +273,14 @@ def calculate_cost_of_all_papers(undelivered_strings: dict[int, list[str]], mont
     cost_and_delivery_data = {}
 
     # get the IDs of papers that exist
-    with connect(DATABASE_PATH) as connection:
-        papers = connection.execute("SELECT paper_id FROM papers;").fetchall()
+    papers = connection.execute("SELECT paper_id FROM papers;").fetchall()
 
-        # get the data about cost and delivery for each paper
-        cost_and_delivery_data = [
-            get_cost_and_delivery_data(paper_id, connection)
-            for paper_id, in papers # type: ignore
-        ]
+    # get the data about cost and delivery for each paper
+    cost_and_delivery_data = [
+        get_cost_and_delivery_data(paper_id, connection)
+        for paper_id, in papers # type: ignore
+    ]
 
-    connection.close()
 
     # initialize a "blank" dictionary that will eventually contain any dates when a paper was not delivered
     undelivered_dates: dict[int, set[date]] = {
@@ -311,6 +311,7 @@ def calculate_cost_of_all_papers(undelivered_strings: dict[int, list[str]], mont
 
 
 def save_results(
+    connection: Connection,
     costs: dict[int, float],
     undelivered_dates: dict[int, set[date]],
     month: int,
@@ -323,46 +324,42 @@ def save_results(
 
     timestamp = (custom_timestamp or datetime.now()).strftime(r'%d/%m/%Y %I:%M:%S %p')
 
-    with connect(DATABASE_PATH) as connection:
+    # create log entries for each paper
+    log_ids = {
+        paper_id: connection.execute(
+            """
+            INSERT INTO logs (paper_id, month, year, timestamp)
+            VALUES (?, ?, ?, ?)
+            RETURNING logs.log_id;
+            """,
+            (paper_id, month, year, timestamp)
+        ).fetchone()[0]
+        for paper_id in costs.keys()
+    }
 
-        # create log entries for each paper
-        log_ids = {
-            paper_id: connection.execute(
-                """
-                INSERT INTO logs (paper_id, month, year, timestamp)
-                VALUES (?, ?, ?, ?)
-                RETURNING logs.log_id;
-                """,
-                (paper_id, month, year, timestamp)
-            ).fetchone()[0]
-            for paper_id in costs.keys()
-        }
+    # create cost entries for each paper
+    for paper_id, log_id in log_ids.items():
+        connection.execute(
+            """
+            INSERT INTO cost_logs (log_id, cost)
+            VALUES (?, ?);
+            """,
+            (log_id, costs[paper_id])
+        )
 
-        # create cost entries for each paper
-        for paper_id, log_id in log_ids.items():
+    # create undelivered date entries for each paper
+    for paper_id, dates in undelivered_dates.items():
+        for day in dates:
             connection.execute(
                 """
-                INSERT INTO cost_logs (log_id, cost)
+                INSERT INTO undelivered_dates_logs (log_id, date_not_delivered)
                 VALUES (?, ?);
                 """,
-                (log_id, costs[paper_id])
+                (log_ids[paper_id], day.strftime("%Y-%m-%d"))
             )
 
-        # create undelivered date entries for each paper
-        for paper_id, dates in undelivered_dates.items():
-            for day in dates:
-                connection.execute(
-                    """
-                    INSERT INTO undelivered_dates_logs (log_id, date_not_delivered)
-                    VALUES (?, ?);
-                    """,
-                    (log_ids[paper_id], day.strftime("%Y-%m-%d"))
-                )
 
-    connection.close()
-
-
-def format_output(costs: dict[int, float], total: float, month: int, year: int) -> Generator[str, None, None]:
+def format_output(connection: Connection, costs: dict[int, float], total: float, month: int, year: int) -> Generator[str, None, None]:
     """format the output of calculating the cost of all papers"""
     
     # output the name of the month for which the total cost was calculated
@@ -372,45 +369,39 @@ def format_output(costs: dict[int, float], total: float, month: int, year: int) 
     yield f"*TOTAL*: {total:.2f}"
 
     # output the cost of each paper with its name
-    with connect(DATABASE_PATH) as connection:
-        papers = dict(connection.execute("SELECT paper_id, name FROM papers;").fetchall())
+    papers = dict(connection.execute("SELECT paper_id, name FROM papers;").fetchall())
 
-        for paper_id, cost in costs.items():
-            yield f"{papers[paper_id]}: {cost:.2f}"
-
-    connection.close()
+    for paper_id, cost in costs.items():
+        yield f"{papers[paper_id]}: {cost:.2f}"
 
 
-def add_new_paper(name: str, days_delivered: list[bool], days_cost: list[float]) -> None:
+def add_new_paper(connection: Connection, name: str, days_delivered: list[bool], days_cost: list[float]) -> None:
     """add a new paper
     - do not allow if the paper already exists"""
 
-    with connect(DATABASE_PATH) as connection:
-        
-        # check if the paper already exists
-        if connection.execute(
-            "SELECT EXISTS (SELECT 1 FROM papers WHERE name = ?);",
-            (name,)).fetchone()[0]:
-            raise npbc_exceptions.PaperAlreadyExists(f"Paper \"{name}\" already exists."
+    # check if the paper already exists
+    if connection.execute(
+        "SELECT EXISTS (SELECT 1 FROM papers WHERE name = ?);",
+        (name,)).fetchone()[0]:
+        raise npbc_exceptions.PaperAlreadyExists(f"Paper \"{name}\" already exists."
+    )
+
+    # insert the paper
+    paper_id = connection.execute(
+        "INSERT INTO papers (name) VALUES (?) RETURNING papers.paper_id;",
+        (name,)
+    ).fetchone()[0]
+
+    # create cost and delivered entries for each day
+    for day_id, (delivered, cost) in enumerate(zip(days_delivered, days_cost)):
+        connection.execute(
+            "INSERT INTO cost_and_delivery_data (paper_id, day_id, delivered, cost) VALUES (?, ?, ?, ?);",
+            (paper_id, day_id, delivered, cost)
         )
-
-        # insert the paper
-        paper_id = connection.execute(
-            "INSERT INTO papers (name) VALUES (?) RETURNING papers.paper_id;",
-            (name,)
-        ).fetchone()[0]
-
-        # create cost and delivered entries for each day
-        for day_id, (delivered, cost) in enumerate(zip(days_delivered, days_cost)):
-            connection.execute(
-                "INSERT INTO cost_and_delivery_data (paper_id, day_id, delivered, cost) VALUES (?, ?, ?, ?);",
-                (paper_id, day_id, delivered, cost)
-            )
-
-    connection.close()
 
 
 def edit_existing_paper(
+    connection: Connection,
     paper_id: int,
     name: str | None = None,
     days_delivered: list[bool] | None = None,
@@ -419,70 +410,62 @@ def edit_existing_paper(
     """edit an existing paper
     do not allow if the paper does not exist"""
 
-    with connect(DATABASE_PATH) as connection:
-        
-        # check if the paper exists
-        if not connection.execute(
-            "SELECT EXISTS (SELECT 1 FROM papers WHERE paper_id = ?);",
-            (paper_id,)).fetchone()[0]:
-            raise npbc_exceptions.PaperNotExists(f"Paper with ID {paper_id} does not exist."
+    # check if the paper exists
+    if not connection.execute(
+        "SELECT EXISTS (SELECT 1 FROM papers WHERE paper_id = ?);",
+        (paper_id,)).fetchone()[0]:
+        raise npbc_exceptions.PaperNotExists(f"Paper with ID {paper_id} does not exist."
+    )
+
+    # update the paper name
+    if name is not None:
+        connection.execute(
+            "UPDATE papers SET name = ? WHERE paper_id = ?;",
+            (name, paper_id)
         )
 
-        # update the paper name
-        if name is not None:
+    # update the costs of each day
+    if days_cost is not None:
+        for day_id, cost in enumerate(days_cost):
             connection.execute(
-                "UPDATE papers SET name = ? WHERE paper_id = ?;",
-                (name, paper_id)
+                "UPDATE cost_and_delivery_data SET cost = ? WHERE paper_id = ? AND day_id = ?;",
+                (cost, paper_id, day_id)
             )
 
-        # update the costs of each day
-        if days_cost is not None:
-            for day_id, cost in enumerate(days_cost):
-                connection.execute(
-                    "UPDATE cost_and_delivery_data SET cost = ? WHERE paper_id = ? AND day_id = ?;",
-                    (cost, paper_id, day_id)
-                )
-
-        # update the delivered status of each day
-        if days_delivered is not None:
-            for day_id, delivered in enumerate(days_delivered):
-                connection.execute(
-                    "UPDATE cost_and_delivery_data SET delivered = ? WHERE paper_id = ? AND day_id = ?;",
-                    (delivered, paper_id, day_id)
-                )
-
-    connection.close()
+    # update the delivered status of each day
+    if days_delivered is not None:
+        for day_id, delivered in enumerate(days_delivered):
+            connection.execute(
+                "UPDATE cost_and_delivery_data SET delivered = ? WHERE paper_id = ? AND day_id = ?;",
+                (delivered, paper_id, day_id)
+            )
 
 
-def delete_existing_paper(paper_id: int) -> None:
+def delete_existing_paper(connection: Connection, paper_id: int) -> None:
     """delete an existing paper
     - do not allow if the paper does not exist"""
 
-    with connect(DATABASE_PATH) as connection:
-        
-        # check if the paper exists
-        if not connection.execute(
-            "SELECT EXISTS (SELECT 1 FROM papers WHERE paper_id = ?);",
-            (paper_id,)).fetchone()[0]:
-            raise npbc_exceptions.PaperNotExists(f"Paper with ID {paper_id} does not exist."
-        )
+    # check if the paper exists
+    if not connection.execute(
+        "SELECT EXISTS (SELECT 1 FROM papers WHERE paper_id = ?);",
+        (paper_id,)).fetchone()[0]:
+        raise npbc_exceptions.PaperNotExists(f"Paper with ID {paper_id} does not exist."
+    )
 
-        # delete the paper
-        connection.execute(
-            "DELETE FROM papers WHERE paper_id = ?;",
-            (paper_id,)
-        )
+    # delete the paper
+    connection.execute(
+        "DELETE FROM papers WHERE paper_id = ?;",
+        (paper_id,)
+    )
 
-        # delete the costs and delivery data for the paper
-        connection.execute(
-            "DELETE FROM cost_and_delivery_data WHERE paper_id = ?;",
-            (paper_id,)
-        )
-
-    connection.close()
+    # delete the costs and delivery data for the paper
+    connection.execute(
+        "DELETE FROM cost_and_delivery_data WHERE paper_id = ?;",
+        (paper_id,)
+    )
 
 
-def add_undelivered_string(month: int, year: int, paper_id: int | None = None, *undelivered_strings: str) -> None:
+def add_undelivered_string(connection: Connection, month: int, year: int, paper_id: int | None = None, *undelivered_strings: str) -> None:
     """record strings for date(s) paper(s) were not delivered
     - if no paper ID is specified, all papers are assumed"""
 
@@ -493,48 +476,42 @@ def add_undelivered_string(month: int, year: int, paper_id: int | None = None, *
     if paper_id:
 
         # check that specified paper exists in the database
-        with connect(DATABASE_PATH) as connection:
-            if not connection.execute(
-                "SELECT EXISTS (SELECT 1 FROM papers WHERE paper_id = ?);",
-                (paper_id,)).fetchone()[0]:
-                raise npbc_exceptions.PaperNotExists(f"Paper with ID {paper_id} does not exist."
-            )
-        
-            # add the string(s)
-            params = [
-                (month, year, paper_id, string)
-                for string in undelivered_strings
-            ]
+        if not connection.execute(
+            "SELECT EXISTS (SELECT 1 FROM papers WHERE paper_id = ?);",
+            (paper_id,)).fetchone()[0]:
+            raise npbc_exceptions.PaperNotExists(f"Paper with ID {paper_id} does not exist."
+        )
+    
+        # add the string(s)
+        params = [
+            (month, year, paper_id, string)
+            for string in undelivered_strings
+        ]
 
-            connection.executemany("INSERT INTO undelivered_strings (month, year, paper_id, string) VALUES (?, ?, ?, ?);", params)
+        connection.executemany("INSERT INTO undelivered_strings (month, year, paper_id, string) VALUES (?, ?, ?, ?);", params)
 
-        connection.close()
-
-    # if no paper ID is given
     else:
 
         # get the IDs of all papers
-        with connect(DATABASE_PATH) as connection:
-            paper_ids = [
-                row[0]
-                for row in connection.execute(
-                    "SELECT paper_id FROM papers;"
-                )
-            ]
+        paper_ids = [
+            row[0]
+            for row in connection.execute(
+                "SELECT paper_id FROM papers;"
+            )
+        ]
 
-            # add the string(s)
-            params = [
-                (month, year, paper_id, string)
-                for paper_id in paper_ids
-                for string in undelivered_strings
-            ]
+        # add the string(s)
+        params = [
+            (month, year, paper_id, string)
+            for paper_id in paper_ids
+            for string in undelivered_strings
+        ]
 
-            connection.executemany("INSERT INTO undelivered_strings (month, year, paper_id, string) VALUES (?, ?, ?, ?);", params)
-
-        connection.close()
+        connection.executemany("INSERT INTO undelivered_strings (month, year, paper_id, string) VALUES (?, ?, ?, ?);", params)
 
 
 def delete_undelivered_string(
+    connection: Connection,
     string_id: int | None = None,
     string: str | None = None,
     paper_id: int | None = None,
@@ -573,28 +550,24 @@ def delete_undelivered_string(
     if not parameters:
         raise npbc_exceptions.NoParameters("No parameters given.")
 
-    with connect(DATABASE_PATH) as connection:
+    # check if the string exists
+    check_query = "SELECT EXISTS (SELECT 1 FROM undelivered_strings"
 
-        # check if the string exists
-        check_query = "SELECT EXISTS (SELECT 1 FROM undelivered_strings"
+    conditions = ' AND '.join(
+        f"{parameter} = ?"
+        for parameter in parameters
+    )
 
-        conditions = ' AND '.join(
-            f"{parameter} = ?"
-            for parameter in parameters
-        )
+    if (1,) not in connection.execute(f"{check_query} WHERE {conditions});", values).fetchall():
+        raise npbc_exceptions.StringNotExists("String with given parameters does not exist.")
 
-        if (1,) not in connection.execute(f"{check_query} WHERE {conditions});", values).fetchall():
-            raise npbc_exceptions.StringNotExists("String with given parameters does not exist.")
+    # if the string did exist, delete it
+    delete_query = "DELETE FROM undelivered_strings"
 
-        # if the string did exist, delete it
-        delete_query = "DELETE FROM undelivered_strings"
-
-        connection.execute(f"{delete_query} WHERE {conditions};", values)
-
-    connection.close()
+    connection.execute(f"{delete_query} WHERE {conditions};", values)
 
 
-def get_papers() -> list[tuple[int, str, int, int, float]]:
+def get_papers(connection: Connection) -> list[tuple[int, str, int, int, float]]:
     """get all papers
     - returns a list of tuples containing the following fields:
       paper_id, paper_name, day_id, paper_delivered, paper_cost"""
@@ -608,15 +581,13 @@ def get_papers() -> list[tuple[int, str, int, int, float]]:
         ORDER BY papers.paper_id, cost_and_delivery_data.day_id;
     """
 
-    with connect(DATABASE_PATH) as connection:
-        raw_data = connection.execute(query).fetchall()
-
-    connection.close()
+    raw_data = connection.execute(query).fetchall()
 
     return raw_data
 
 
 def get_undelivered_strings(
+    connection: Connection,
     string_id: int | None = None,
     month: int | None = None,
     year: int | None = None,
@@ -656,24 +627,21 @@ def get_undelivered_strings(
         values.append(string)
 
 
-    with connect(DATABASE_PATH) as connection:
+    # generate the SQL query
+    main_query = "SELECT string_id, paper_id, year, month, string FROM undelivered_strings"
+    
+    if not parameters:
+        query = f"{main_query};"
 
-        # generate the SQL query
-        main_query = "SELECT string_id, paper_id, year, month, string FROM undelivered_strings"
-        
-        if not parameters:
-            query = f"{main_query};"
+    else:
+        conditions = ' AND '.join(
+            f"{parameter} = ?"
+            for parameter in parameters
+        )
 
-        else:
-            conditions = ' AND '.join(
-                f"{parameter} = ?"
-                for parameter in parameters
-            )
+        query = f"{main_query} WHERE {conditions};"
 
-            query = f"{main_query} WHERE {conditions};"
-
-        data = connection.execute(query, values).fetchall()
-    connection.close()
+    data = connection.execute(query, values).fetchall()
 
     # if no data was found, raise an error
     if not data:
@@ -683,6 +651,7 @@ def get_undelivered_strings(
 
 
 def get_logged_data(
+    connection: Connection,
     query_paper_id: int | None = None,
     query_log_id: int | None = None,
     query_month: int | None = None,
@@ -741,23 +710,19 @@ def get_logged_data(
     dates_query = "SELECT log_id, date_not_delivered FROM undelivered_dates_logs;"
     costs_query = "SELECT log_id, cost FROM cost_logs;"
 
-    with connect(DATABASE_PATH) as connection:
-        logs = {
-            log_id: [paper_id, month, year, timestamp]
-            for log_id, paper_id, timestamp, month, year in connection.execute(logs_query, values).fetchall()
-        }
+    logs = {
+        log_id: [paper_id, month, year, timestamp]
+        for log_id, paper_id, timestamp, month, year in connection.execute(logs_query, values).fetchall()
+    }
 
-        dates = connection.execute(dates_query).fetchall()
-        costs = connection.execute(costs_query).fetchall()
+    dates = connection.execute(dates_query).fetchall()
+    costs = connection.execute(costs_query).fetchall()
 
-        for log_id, date_undelivered in dates:
-            yield tuple(logs[log_id] + [date_undelivered])
+    for log_id, date_undelivered in dates:
+        yield tuple(logs[log_id] + [date_undelivered])
 
-        for log_id, cost in costs:
-            yield tuple(logs[log_id] + [float(cost)])
-        
-    connection.close()
-
+    for log_id, cost in costs:
+        yield tuple(logs[log_id] + [float(cost)])
 
 
 def get_previous_month() -> date:
