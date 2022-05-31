@@ -3,7 +3,7 @@ test data-independent functions from the core
 - none of these depend on data in the database
 """
 
-from datetime import date as date_type
+from datetime import date
 
 from numpy import array
 from pytest import raises
@@ -73,114 +73,114 @@ def test_undelivered_string_parsing():
     assert test_function(MONTH, YEAR, '') == set([])
 
     assert test_function(MONTH, YEAR, '1') == set([
-        date_type(year=YEAR, month=MONTH, day=1)
+        date(year=YEAR, month=MONTH, day=1)
     ])
 
     assert test_function(MONTH, YEAR, '1-2') == set([
-        date_type(year=YEAR, month=MONTH, day=1),
-        date_type(year=YEAR, month=MONTH, day=2)
+        date(year=YEAR, month=MONTH, day=1),
+        date(year=YEAR, month=MONTH, day=2)
     ])
 
     assert test_function(MONTH, YEAR, '5-17') == set([
-        date_type(year=YEAR, month=MONTH, day=5),
-        date_type(year=YEAR, month=MONTH, day=6),
-        date_type(year=YEAR, month=MONTH, day=7),
-        date_type(year=YEAR, month=MONTH, day=8),
-        date_type(year=YEAR, month=MONTH, day=9),
-        date_type(year=YEAR, month=MONTH, day=10),
-        date_type(year=YEAR, month=MONTH, day=11),
-        date_type(year=YEAR, month=MONTH, day=12),
-        date_type(year=YEAR, month=MONTH, day=13),
-        date_type(year=YEAR, month=MONTH, day=14),
-        date_type(year=YEAR, month=MONTH, day=15),
-        date_type(year=YEAR, month=MONTH, day=16),
-        date_type(year=YEAR, month=MONTH, day=17)
+        date(year=YEAR, month=MONTH, day=5),
+        date(year=YEAR, month=MONTH, day=6),
+        date(year=YEAR, month=MONTH, day=7),
+        date(year=YEAR, month=MONTH, day=8),
+        date(year=YEAR, month=MONTH, day=9),
+        date(year=YEAR, month=MONTH, day=10),
+        date(year=YEAR, month=MONTH, day=11),
+        date(year=YEAR, month=MONTH, day=12),
+        date(year=YEAR, month=MONTH, day=13),
+        date(year=YEAR, month=MONTH, day=14),
+        date(year=YEAR, month=MONTH, day=15),
+        date(year=YEAR, month=MONTH, day=16),
+        date(year=YEAR, month=MONTH, day=17)
     ])
 
     assert test_function(MONTH, YEAR, '5-17', '19') == set([
-        date_type(year=YEAR, month=MONTH, day=5),
-        date_type(year=YEAR, month=MONTH, day=6),
-        date_type(year=YEAR, month=MONTH, day=7),
-        date_type(year=YEAR, month=MONTH, day=8),
-        date_type(year=YEAR, month=MONTH, day=9),
-        date_type(year=YEAR, month=MONTH, day=10),
-        date_type(year=YEAR, month=MONTH, day=11),
-        date_type(year=YEAR, month=MONTH, day=12),
-        date_type(year=YEAR, month=MONTH, day=13),
-        date_type(year=YEAR, month=MONTH, day=14),
-        date_type(year=YEAR, month=MONTH, day=15),
-        date_type(year=YEAR, month=MONTH, day=16),
-        date_type(year=YEAR, month=MONTH, day=17),
-        date_type(year=YEAR, month=MONTH, day=19)
+        date(year=YEAR, month=MONTH, day=5),
+        date(year=YEAR, month=MONTH, day=6),
+        date(year=YEAR, month=MONTH, day=7),
+        date(year=YEAR, month=MONTH, day=8),
+        date(year=YEAR, month=MONTH, day=9),
+        date(year=YEAR, month=MONTH, day=10),
+        date(year=YEAR, month=MONTH, day=11),
+        date(year=YEAR, month=MONTH, day=12),
+        date(year=YEAR, month=MONTH, day=13),
+        date(year=YEAR, month=MONTH, day=14),
+        date(year=YEAR, month=MONTH, day=15),
+        date(year=YEAR, month=MONTH, day=16),
+        date(year=YEAR, month=MONTH, day=17),
+        date(year=YEAR, month=MONTH, day=19)
     ])
 
     assert test_function(MONTH, YEAR, '5-17', '19-21') == set([
-        date_type(year=YEAR, month=MONTH, day=5),
-        date_type(year=YEAR, month=MONTH, day=6),
-        date_type(year=YEAR, month=MONTH, day=7),
-        date_type(year=YEAR, month=MONTH, day=8),
-        date_type(year=YEAR, month=MONTH, day=9),
-        date_type(year=YEAR, month=MONTH, day=10),
-        date_type(year=YEAR, month=MONTH, day=11),
-        date_type(year=YEAR, month=MONTH, day=12),
-        date_type(year=YEAR, month=MONTH, day=13),
-        date_type(year=YEAR, month=MONTH, day=14),
-        date_type(year=YEAR, month=MONTH, day=15),
-        date_type(year=YEAR, month=MONTH, day=16),
-        date_type(year=YEAR, month=MONTH, day=17),
-        date_type(year=YEAR, month=MONTH, day=19),
-        date_type(year=YEAR, month=MONTH, day=20),
-        date_type(year=YEAR, month=MONTH, day=21)
+        date(year=YEAR, month=MONTH, day=5),
+        date(year=YEAR, month=MONTH, day=6),
+        date(year=YEAR, month=MONTH, day=7),
+        date(year=YEAR, month=MONTH, day=8),
+        date(year=YEAR, month=MONTH, day=9),
+        date(year=YEAR, month=MONTH, day=10),
+        date(year=YEAR, month=MONTH, day=11),
+        date(year=YEAR, month=MONTH, day=12),
+        date(year=YEAR, month=MONTH, day=13),
+        date(year=YEAR, month=MONTH, day=14),
+        date(year=YEAR, month=MONTH, day=15),
+        date(year=YEAR, month=MONTH, day=16),
+        date(year=YEAR, month=MONTH, day=17),
+        date(year=YEAR, month=MONTH, day=19),
+        date(year=YEAR, month=MONTH, day=20),
+        date(year=YEAR, month=MONTH, day=21)
     ])
 
     assert test_function(MONTH, YEAR, '5-17', '19-21', '23') == set([
-        date_type(year=YEAR, month=MONTH, day=5),
-        date_type(year=YEAR, month=MONTH, day=6),
-        date_type(year=YEAR, month=MONTH, day=7),
-        date_type(year=YEAR, month=MONTH, day=8),
-        date_type(year=YEAR, month=MONTH, day=9),
-        date_type(year=YEAR, month=MONTH, day=10),
-        date_type(year=YEAR, month=MONTH, day=11),
-        date_type(year=YEAR, month=MONTH, day=12),
-        date_type(year=YEAR, month=MONTH, day=13),
-        date_type(year=YEAR, month=MONTH, day=14),
-        date_type(year=YEAR, month=MONTH, day=15),
-        date_type(year=YEAR, month=MONTH, day=16),
-        date_type(year=YEAR, month=MONTH, day=17),
-        date_type(year=YEAR, month=MONTH, day=19),
-        date_type(year=YEAR, month=MONTH, day=20),
-        date_type(year=YEAR, month=MONTH, day=21),
-        date_type(year=YEAR, month=MONTH, day=23)
+        date(year=YEAR, month=MONTH, day=5),
+        date(year=YEAR, month=MONTH, day=6),
+        date(year=YEAR, month=MONTH, day=7),
+        date(year=YEAR, month=MONTH, day=8),
+        date(year=YEAR, month=MONTH, day=9),
+        date(year=YEAR, month=MONTH, day=10),
+        date(year=YEAR, month=MONTH, day=11),
+        date(year=YEAR, month=MONTH, day=12),
+        date(year=YEAR, month=MONTH, day=13),
+        date(year=YEAR, month=MONTH, day=14),
+        date(year=YEAR, month=MONTH, day=15),
+        date(year=YEAR, month=MONTH, day=16),
+        date(year=YEAR, month=MONTH, day=17),
+        date(year=YEAR, month=MONTH, day=19),
+        date(year=YEAR, month=MONTH, day=20),
+        date(year=YEAR, month=MONTH, day=21),
+        date(year=YEAR, month=MONTH, day=23)
     ])
 
     assert test_function(MONTH, YEAR, 'mondays') == set([
-        date_type(year=YEAR, month=MONTH, day=1),
-        date_type(year=YEAR, month=MONTH, day=8),
-        date_type(year=YEAR, month=MONTH, day=15),
-        date_type(year=YEAR, month=MONTH, day=22),
-        date_type(year=YEAR, month=MONTH, day=29)
+        date(year=YEAR, month=MONTH, day=1),
+        date(year=YEAR, month=MONTH, day=8),
+        date(year=YEAR, month=MONTH, day=15),
+        date(year=YEAR, month=MONTH, day=22),
+        date(year=YEAR, month=MONTH, day=29)
     ])
 
     assert test_function(MONTH, YEAR, 'mondays', 'wednesdays') == set([
-        date_type(year=YEAR, month=MONTH, day=1),
-        date_type(year=YEAR, month=MONTH, day=8),
-        date_type(year=YEAR, month=MONTH, day=15),
-        date_type(year=YEAR, month=MONTH, day=22),
-        date_type(year=YEAR, month=MONTH, day=29),
-        date_type(year=YEAR, month=MONTH, day=3),
-        date_type(year=YEAR, month=MONTH, day=10),
-        date_type(year=YEAR, month=MONTH, day=17),
-        date_type(year=YEAR, month=MONTH, day=24),
-        date_type(year=YEAR, month=MONTH, day=31)
+        date(year=YEAR, month=MONTH, day=1),
+        date(year=YEAR, month=MONTH, day=8),
+        date(year=YEAR, month=MONTH, day=15),
+        date(year=YEAR, month=MONTH, day=22),
+        date(year=YEAR, month=MONTH, day=29),
+        date(year=YEAR, month=MONTH, day=3),
+        date(year=YEAR, month=MONTH, day=10),
+        date(year=YEAR, month=MONTH, day=17),
+        date(year=YEAR, month=MONTH, day=24),
+        date(year=YEAR, month=MONTH, day=31)
     ])
 
     assert test_function(MONTH, YEAR, '2-monday') == set([
-        date_type(year=YEAR, month=MONTH, day=8)
+        date(year=YEAR, month=MONTH, day=8)
     ])
 
     assert test_function(MONTH, YEAR, '2-monday', '3-wednesday') == set([
-        date_type(year=YEAR, month=MONTH, day=8),
-        date_type(year=YEAR, month=MONTH, day=17)
+        date(year=YEAR, month=MONTH, day=8),
+        date(year=YEAR, month=MONTH, day=17)
     ])
 
 
@@ -210,7 +210,7 @@ def test_calculating_cost_of_one_paper():
     assert test_function(
         DAYS_PER_WEEK,
         set([
-            date_type(year=2022, month=1, day=8)
+            date(year=2022, month=1, day=8)
         ]),
         *COST_AND_DELIVERY_DATA
     ) == 41
@@ -218,8 +218,8 @@ def test_calculating_cost_of_one_paper():
     assert test_function(
         DAYS_PER_WEEK,
         set([
-            date_type(year=2022, month=1, day=8),
-            date_type(year=2022, month=1, day=8)
+            date(year=2022, month=1, day=8),
+            date(year=2022, month=1, day=8)
         ]),
         *COST_AND_DELIVERY_DATA
     ) == 41
@@ -227,8 +227,8 @@ def test_calculating_cost_of_one_paper():
     assert test_function(
         DAYS_PER_WEEK,
         set([
-            date_type(year=2022, month=1, day=8),
-            date_type(year=2022, month=1, day=17)
+            date(year=2022, month=1, day=8),
+            date(year=2022, month=1, day=17)
         ]),
         *COST_AND_DELIVERY_DATA
     ) == 41
@@ -236,7 +236,7 @@ def test_calculating_cost_of_one_paper():
     assert test_function(
         DAYS_PER_WEEK,
         set([
-            date_type(year=2022, month=1, day=2)
+            date(year=2022, month=1, day=2)
         ]),
         *COST_AND_DELIVERY_DATA
     ) == 40
@@ -244,8 +244,8 @@ def test_calculating_cost_of_one_paper():
     assert test_function(
         DAYS_PER_WEEK,
         set([
-            date_type(year=2022, month=1, day=2),
-            date_type(year=2022, month=1, day=2)
+            date(year=2022, month=1, day=2),
+            date(year=2022, month=1, day=2)
         ]),
         *COST_AND_DELIVERY_DATA
     ) == 40
@@ -253,8 +253,8 @@ def test_calculating_cost_of_one_paper():
     assert test_function(
         DAYS_PER_WEEK,
         set([
-            date_type(year=2022, month=1, day=6),
-            date_type(year=2022, month=1, day=7)
+            date(year=2022, month=1, day=6),
+            date(year=2022, month=1, day=7)
         ]),
         *COST_AND_DELIVERY_DATA
     ) == 34
@@ -262,9 +262,9 @@ def test_calculating_cost_of_one_paper():
     assert test_function(
         DAYS_PER_WEEK,
         set([
-            date_type(year=2022, month=1, day=6),
-            date_type(year=2022, month=1, day=7),
-            date_type(year=2022, month=1, day=8)
+            date(year=2022, month=1, day=6),
+            date(year=2022, month=1, day=7),
+            date(year=2022, month=1, day=8)
         ]),
         *COST_AND_DELIVERY_DATA
     ) == 34
@@ -272,13 +272,13 @@ def test_calculating_cost_of_one_paper():
     assert test_function(
         DAYS_PER_WEEK,
         set([
-            date_type(year=2022, month=1, day=6),
-            date_type(year=2022, month=1, day=7),
-            date_type(year=2022, month=1, day=7),
-            date_type(year=2022, month=1, day=7),
-            date_type(year=2022, month=1, day=8),
-            date_type(year=2022, month=1, day=8),
-            date_type(year=2022, month=1, day=8)
+            date(year=2022, month=1, day=6),
+            date(year=2022, month=1, day=7),
+            date(year=2022, month=1, day=7),
+            date(year=2022, month=1, day=7),
+            date(year=2022, month=1, day=8),
+            date(year=2022, month=1, day=8),
+            date(year=2022, month=1, day=8)
         ]),
         *COST_AND_DELIVERY_DATA
     ) == 34
