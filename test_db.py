@@ -19,7 +19,7 @@ import npbc_core
 import npbc_exceptions
 
 ACTIVE_DIRECTORY = Path("data")
-DATABASE_PATH = ACTIVE_DIRECTORY / "npbc.db"
+DATABASE_PATH = ACTIVE_DIRECTORY / "npbc.sqlite"
 SCHEMA_PATH = ACTIVE_DIRECTORY / "schema.sql"
 TEST_SQL = ACTIVE_DIRECTORY / "test.sql"
 

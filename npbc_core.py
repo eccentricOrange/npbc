@@ -33,7 +33,7 @@ if environ.get('NPBC_DEVELOPMENT') or environ.get('CI'):
     DATABASE_DIR = Path('data')
     SCHEMA_PATH = Path('data') / 'schema.sql'
 
-DATABASE_PATH = DATABASE_DIR / 'npbc.db'
+DATABASE_PATH = DATABASE_DIR / 'npbc.sqlite'
 
 ## constant for names of weekdays
 WEEKDAY_NAMES = tuple(weekday_names_iterable)
