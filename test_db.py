@@ -49,7 +49,7 @@ def test_db_creation():
 def test_get_papers():
     connection = setup_db()
 
-    known_data = [
+    known_data = (
         (1, 'paper1', 0, 0, 0),
         (1, 'paper1', 1, 1, 6.4),
         (1, 'paper1', 2, 0, 0),
@@ -71,7 +71,7 @@ def test_get_papers():
         (3, 'paper3', 4, 1, 3.4),
         (3, 'paper3', 5, 1, 4.6),
         (3, 'paper3', 6, 1, 6)
-    ]
+    )
 
     assert Counter(npbc_core.get_papers(connection)) == Counter(known_data)
     connection.close()
@@ -80,13 +80,13 @@ def test_get_papers():
 def test_get_undelivered_strings():
     connection = setup_db()
 
-    known_data = [
+    known_data = (
         (1, 1, 2020, 11, '5'),
         (2, 1, 2020, 11, '6-12'),
         (3, 2, 2020, 11, 'sundays'),
         (4, 3, 2020, 11, '2-tuesday'),
         (5, 3, 2020, 10, 'all')
-    ]
+    )
 
     assert Counter(npbc_core.get_undelivered_strings(connection)) == Counter(known_data)
     assert Counter(npbc_core.get_undelivered_strings(connection, string_id=3)) == Counter([known_data[2]])
@@ -105,7 +105,7 @@ def test_delete_paper():
 
     npbc_core.delete_existing_paper(connection, 2)
 
-    known_data = [
+    known_data = (
         (1, 'paper1', 0, 0, 0),
         (1, 'paper1', 1, 1, 6.4),
         (1, 'paper1', 2, 0, 0),
@@ -120,7 +120,7 @@ def test_delete_paper():
         (3, 'paper3', 4, 1, 3.4),
         (3, 'paper3', 5, 1, 4.6),
         (3, 'paper3', 6, 1, 6)
-    ]
+    )
 
     assert Counter(npbc_core.get_papers(connection)) == Counter(known_data)
 
@@ -134,7 +134,7 @@ def test_delete_paper():
 def test_add_paper():
     connection = setup_db()
 
-    known_data = [
+    known_data = (
         (1, 'paper1', 0, 0, 0),
         (1, 'paper1', 1, 1, 6.4),
         (1, 'paper1', 2, 0, 0),
@@ -163,7 +163,7 @@ def test_add_paper():
         (4, 'paper4', 4, 0, 0),
         (4, 'paper4', 5, 1, 1),
         (4, 'paper4', 6, 1, 7)
-    ]
+    )
 
     npbc_core.add_new_paper(
         connection,
@@ -252,13 +252,13 @@ def test_edit_paper():
 
 
 def test_delete_string():
-    known_data = [
+    known_data = (
         (1, 1, 2020, 11, '5'),
         (2, 1, 2020, 11, '6-12'),
         (3, 2, 2020, 11, 'sundays'),
         (4, 3, 2020, 11, '2-tuesday'),
         (5, 3, 2020, 10, 'all')
-    ]
+    )
 
     connection = setup_db()
     npbc_core.delete_undelivered_string(connection, string='all')
@@ -312,7 +312,7 @@ def test_add_string():
 def test_save_results():
     connection = setup_db()
 
-    known_data = [
+    known_data = (
         (1, 1, 2020, '04/01/2022 01:05:42 AM', '2020-01-01'),
         (1, 1, 2020, '04/01/2022 01:05:42 AM', '2020-01-02'),
         (2, 1, 2020, '04/01/2022 01:05:42 AM', '2020-01-01'),
@@ -321,14 +321,14 @@ def test_save_results():
         (1, 1, 2020, '04/01/2022 01:05:42 AM', 105.0),
         (2, 1, 2020, '04/01/2022 01:05:42 AM', 51.0),
         (3, 1, 2020, '04/01/2022 01:05:42 AM', 647.0)
-    ]
+    )
 
     npbc_core.save_results(
         connection,
         {1: 105, 2: 51, 3: 647},
         {
-            1: set([date(month=1, day=1, year=2020), date(month=1, day=2, year=2020)]),
-            2: set([date(month=1, day=1, year=2020), date(month=1, day=5, year=2020), date(month=1, day=3, year=2020)]),
+            1: set((date(month=1, day=1, year=2020), date(month=1, day=2, year=2020))),
+            2: set((date(month=1, day=1, year=2020), date(month=1, day=5, year=2020), date(month=1, day=3, year=2020))),
             3: set()
         },
         1,
