@@ -12,7 +12,15 @@
 	"settings": {},
 	
 	// Add the IDs of extensions you want installed when the container is created.
-	"extensions": [],
+	"extensions": [
+		"GitHub.codespaces",
+		"GitHub.remotehub",
+		"ms-vscode-remote.remote-ssh",
+		"ms-vscode-remote.remote-ssh-edit",
+		"ms-vscode-remote.remote-wsl",
+		"ms-vscode-remote.vscode-remote-extensionpack",
+		"ms-vscode.remote-repositories"
+	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
@@ -27,7 +35,7 @@
 	// "mounts": [ "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind" ],
 
 	// Uncomment to connect as a non-root user if you've added one. See https://aka.ms/vscode-remote/containers/non-root.
-	"remoteUser": "vscode",
+	"remoteUser": "dev",
 	"remoteEnv": {
 		"NPBC_DATABASE_DIR": "data"
 	}

@@ -14,7 +14,7 @@ ADD requirements.txt requirements.txt
 RUN pip install -r requirements.txt pytest
 
 # create a new user who will actually run stuff
-ARG USERNAME=vscode
+ARG USERNAME=dev
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 RUN groupadd --gid $USER_GID $USERNAME \
