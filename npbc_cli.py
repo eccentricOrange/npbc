@@ -691,7 +691,7 @@ def getlogs(parsed_arguments: ArgNamespace, connection: Connection) -> None:
         print(', '.join(str(item) for item in row))
 
 
-def update(parsed_arguments: ArgNamespace) -> None:
+def update(parsed_arguments: ArgNamespace, _: Connection) -> None:
     """update the application
     - under normal operation, this function should never run
     - if the update CLI argument is provided, this script will never run and the updater will be run instead"""
@@ -701,9 +701,12 @@ def update(parsed_arguments: ArgNamespace) -> None:
 
 def main(arguments: list[str]) -> None:
     """main function
-    - initialize the database
     - parses the command line arguments
+    - initialize the database
     - calls the appropriate function based on the arguments"""
+    
+    # parse the command line arguments
+    parsed_namespace = define_and_read_args(arguments)
 
     # attempt to initialize the database
     try:
@@ -713,13 +716,10 @@ def main(arguments: list[str]) -> None:
     except DatabaseError as e:
         status_print(False, f"Database error: {e}\nPlease report this to the developer.")
         return
-    
-    # parse the command line arguments
-    parsed_namespace = define_and_read_args(arguments)
 
     try:
-
         with connect(database_path) as connection:
+            
             # execute the appropriate function
             parsed_namespace.func(parsed_namespace, connection)
 

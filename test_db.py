@@ -40,8 +40,7 @@ def test_db_creation():
     DATABASE_PATH.unlink(missing_ok=True)
     assert not DATABASE_PATH.exists()
 
-    with raises(SystemExit):
-        npbc_cli.main([])
+    npbc_cli.main(['update'])
 
     assert DATABASE_PATH.exists()
 
