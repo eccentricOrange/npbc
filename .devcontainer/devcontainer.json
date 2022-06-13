@@ -48,7 +48,8 @@
 				"cschleiden.vscode-github-actions",
 				"github.vscode-pull-request-github",
 				"GitHub.copilot",
-				"visualstudioexptteam.vscodeintellicode"
+				"visualstudioexptteam.vscodeintellicode",
+				"mutantdino.resourcemonitor"
 			]
 		}
 	},
