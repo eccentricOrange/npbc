@@ -64,5 +64,8 @@
 		"git": "os-provided",
 		"github-cli": "latest",
 		"jupyterlab": "latest"
+	},
+	"remoteEnv": {
+		"NPBC_DATABASE_DIR": "data"
 	}
 }
