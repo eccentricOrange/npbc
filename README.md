@@ -69,7 +69,7 @@ The other important goal was to be a testbed for learning a bunch of new tools: 
 ### What files exist?
 (ignoring conventional ones like `README` and `requirements.txt`)
 
-| File | Purpose/Description | Review |
+| File | Purpose/Description |
 | -- | -- | -- |
 | [`npbc_core.py`](/npbc_core.py) | Provide the core functionality: the calculation, parsing and validation of user input, interaction with the DB etc. Later on, some functionality from this will be extracted to create server-side code that can service more users, but I have to learn a lot more before getting there. |
 | [`npbc_regex.py`](/npbc_regex.py) | Contains all the regex statements used to validate and parse user input. |
