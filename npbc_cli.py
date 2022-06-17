@@ -158,6 +158,15 @@ def define_and_read_args(arguments: list[str]) -> ArgNamespace:
     update_parser.set_defaults(func=update)
 
 
+    # initialize the application subparser
+    init_parser = functions.add_parser(
+        'init',
+        help="Initialize the application."
+    )
+
+    init_parser.set_defaults(func=init)
+
+
     return main_parser.parse_args(arguments)
 
 
@@ -697,6 +706,13 @@ def update(parsed_arguments: ArgNamespace, _: Connection) -> None:
     - if the update CLI argument is provided, this script will never run and the updater will be run instead"""
 
     status_print(False, "Update failed.")
+
+
+def init(parsed_arguments: ArgNamespace, _: Connection) -> None:
+    """initialize the application
+    - this function should run only once, when the application is first installed"""
+
+    status_print(True, "Initialized successfully.")
 
 
 def main(arguments: list[str]) -> None:
