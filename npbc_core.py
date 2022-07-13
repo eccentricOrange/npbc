@@ -65,17 +65,17 @@ def get_number_of_each_weekday(month: int, year: int) -> Generator[int, None, No
     number_of_weeks = len(main_calendar)
 
     # iterate over each possible weekday
-    for i in range(len(WEEKDAY_NAMES)):
+    for weekday_index in range(len(WEEKDAY_NAMES)):
 
         # assume that the weekday occurs once per week in the month
         number_of_weekday: int = number_of_weeks
 
         # if the first week doesn't have the weekday, decrement its count
-        if main_calendar[0][i] == 0:
+        if main_calendar[0][weekday_index] == 0:
             number_of_weekday -= 1
         
         # if the last week doesn't have the weekday, decrement its count
-        if main_calendar[-1][i] == 0:
+        if main_calendar[-1][weekday_index] == 0:
             number_of_weekday -= 1
 
         yield number_of_weekday
@@ -101,6 +101,7 @@ def validate_undelivered_string(*strings: str) -> None:
             raise npbc_exceptions.InvalidUndeliveredString(f'{string} is not a valid undelivered string.')
 
     # if we get here, all strings passed the regex check
+    return
 
 def extract_number(string: str, month: int, year: int) -> date:
     """if the date is simply a number, it's a single day. so we just identify that date"""
@@ -220,18 +221,18 @@ def parse_undelivered_strings(month: int, year: int, *strings: str) -> set[date]
     # check for each of the patterns
     for string in strings:
         if string:
-        try:
-            dates.update(parse_undelivered_string(month, year, string))
+            try:
+                dates.update(parse_undelivered_string(month, year, string))
 
             except npbc_exceptions.InvalidUndeliveredString as e:
-            print(
-                f"""Congratulations! You broke the program!
-                You managed to write a string that the program considers valid, but isn't actually.
-                Please report it to the developer.
-                \nThe string you wrote was: {string}
+                print(
+                    f"""Congratulations! You broke the program!
+                    You managed to write a string that the program considers valid, but isn't actually.
+                    Please report it to the developer.
+                    \nThe string you wrote was: {string}
                     This data has not been counted.\n
                     Exact error message: {e}"""
-            )
+                )
 
     return dates
 
@@ -375,6 +376,8 @@ def save_results(
                 (log_ids[paper_id], day.strftime("%Y-%m-%d"))
             )
 
+    return
+
 
 def format_output(connection: Connection, costs: dict[int, float], total: float, month: int, year: int) -> Generator[str, None, None]:
     """format the output of calculating the cost of all papers"""
@@ -415,6 +418,8 @@ def add_new_paper(connection: Connection, name: str, days_delivered: list[bool],
             "INSERT INTO cost_and_delivery_data (paper_id, day_id, delivered, cost) VALUES (?, ?, ?, ?);",
             (paper_id, day_id, delivered, cost)
         )
+
+    return
 
 
 def edit_existing_paper(
@@ -457,6 +462,8 @@ def edit_existing_paper(
                 (delivered, paper_id, day_id)
             )
 
+    return
+
 
 def delete_existing_paper(connection: Connection, paper_id: int) -> None:
     """delete an existing paper
@@ -480,6 +487,8 @@ def delete_existing_paper(connection: Connection, paper_id: int) -> None:
         "DELETE FROM cost_and_delivery_data WHERE paper_id = ?;",
         (paper_id,)
     )
+
+    return
 
 
 def add_undelivered_string(connection: Connection, month: int, year: int, paper_id: int | None = None, *undelivered_strings: str) -> None:
@@ -525,6 +534,8 @@ def add_undelivered_string(connection: Connection, month: int, year: int, paper_
         ]
 
         connection.executemany("INSERT INTO undelivered_strings (month, year, paper_id, string) VALUES (?, ?, ?, ?);", params)
+
+    return
 
 
 def delete_undelivered_string(
@@ -583,6 +594,8 @@ def delete_undelivered_string(
 
     connection.execute(f"{delete_query} WHERE {conditions};", values)
 
+    return
+
 
 def get_papers(connection: Connection) -> tuple[Papers]:
     """get all papers
@@ -617,7 +630,7 @@ def get_undelivered_strings(
     """get undelivered strings
     - the user may specify as many as they want parameters
     - available parameters: string_id, month, year, paper_id, string
-    - returns a list of tuples containing the following fields:
+    - returns a tuple of tuples containing the following fields:
       string_id, paper_id, year, month, string"""
 
     # initialize parameters for the WHERE clause of the SQL query
@@ -764,3 +777,6 @@ def validate_month_and_year(month: int | None = None, year: int | None = None) -
 
     if isinstance(year, int) and (year <= 0):
         raise npbc_exceptions.InvalidMonthYear("Year must be greater than 0.")
+
+    # if we get here, the month and year are valid
+    return
