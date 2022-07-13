@@ -102,7 +102,7 @@ def validate_undelivered_string(*strings: str) -> None:
 
     # if we get here, all strings passed the regex check
 
-def extract_number(string: str, month: int, year: int) -> date | None:
+def extract_number(string: str, month: int, year: int) -> date:
     """if the date is simply a number, it's a single day. so we just identify that date"""
 
     day = int(string)
@@ -125,6 +125,10 @@ def extract_range(string: str, month: int, year: int) -> Generator[date, None, N
         for day in range(start, end + 1):
             yield date(year, month, day)
 
+    else:
+        # if we reach here, the check failed and the month doesn't have that many days
+        raise npbc_exceptions.InvalidUndeliveredString(f'{datetime(year=year, month=month, day=1):%B %Y} does not have days between {start} and {end}.')
+
 
 def extract_weekday(string: str, month: int, year: int) -> Generator[date, None, None]:
     """if the date is the plural of a weekday name, we identify all dates in that month which are the given weekday"""
@@ -136,7 +140,7 @@ def extract_weekday(string: str, month: int, year: int) -> Generator[date, None,
             yield date(year, month, day)
 
 
-def extract_nth_weekday(string: str, month: int, year: int) -> date | None:
+def extract_nth_weekday(string: str, month: int, year: int) -> date:
     """if the date is a number and a weekday name (singular), we identify the date that is the nth occurrence of the given weekday in the month"""
 
     n, weekday_name = npbc_regex.HYPHEN_SPLIT_REGEX.split(string)
@@ -159,6 +163,8 @@ def extract_nth_weekday(string: str, month: int, year: int) -> date | None:
         # return the date that is the nth occurrence of the given weekday in the month
         return valid_dates[n - 1]
 
+    # if we reach here, the check failed and the weekday does not occur n times in the month
+    raise npbc_exceptions.InvalidUndeliveredString(f'{datetime(year=year, month=month, day=1):%B %Y} does not have {n} {weekday_name}s.')
 
 def extract_all(month: int, year: int) -> Generator[date, None, None]:
     """if the text is "all", we identify all the dates in the month"""
@@ -213,16 +219,18 @@ def parse_undelivered_strings(month: int, year: int, *strings: str) -> set[date]
 
     # check for each of the patterns
     for string in strings:
+        if string:
         try:
             dates.update(parse_undelivered_string(month, year, string))
 
-        except npbc_exceptions.InvalidUndeliveredString:
+            except npbc_exceptions.InvalidUndeliveredString as e:
             print(
                 f"""Congratulations! You broke the program!
                 You managed to write a string that the program considers valid, but isn't actually.
                 Please report it to the developer.
                 \nThe string you wrote was: {string}
-                This data has not been counted."""
+                    This data has not been counted.\n
+                    Exact error message: {e}"""
             )
 
     return dates
