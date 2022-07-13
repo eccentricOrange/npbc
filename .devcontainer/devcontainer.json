@@ -21,8 +21,8 @@
 			// Set *default* container specific settings.json values on container create.
 			"settings": {
 				"python.defaultInterpreterPath": "/usr/local/bin/python",
-				"python.linting.enabled": true,
-				"python.linting.pylintEnabled": true,
+				"python.linting.enabled": false,
+				"python.linting.pylintEnabled": false,
 				"python.formatting.autopep8Path": "/usr/local/py-utils/bin/autopep8",
 				"python.formatting.blackPath": "/usr/local/py-utils/bin/black",
 				"python.formatting.yapfPath": "/usr/local/py-utils/bin/yapf",
@@ -37,10 +37,6 @@
 			"extensions": [
 				"ms-python.python",
 				"ms-python.vscode-pylance",
-				"GitHub.codespaces",
-				"GitHub.remotehub",
-				"ms-vscode-remote.vscode-remote-extensionpack",
-				"ms-vscode.remote-repositories",
 				"redhat.vscode-yaml",
 				"mtxr.sqltools-driver-sqlite",
 				"streetsidesoftware.code-spell-checker",
@@ -62,8 +58,7 @@
 	"features": {
 		"docker-in-docker": "latest",
 		"git": "os-provided",
-		"github-cli": "latest",
-		"jupyterlab": "latest"
+		"github-cli": "latest"
 	},
 	"remoteEnv": {
 		"NPBC_DATABASE_DIR": "data"

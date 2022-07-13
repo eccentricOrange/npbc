@@ -111,6 +111,9 @@ def extract_number(string: str, month: int, year: int) -> date | None:
     if 0 < day <= monthrange(year, month)[1]:
         return date(year, month, day)
 
+    # if we reach here, the check failed and it's not a valid date
+    raise npbc_exceptions.InvalidUndeliveredString(f'{string} is not a valid date for {datetime(year=year, month=month, day=1):%B %Y}.')
+
 
 def extract_range(string: str, month: int, year: int) -> Generator[date, None, None]:
     """if the date is a range of numbers, it's a range of days. we identify all the dates in that range, bounds inclusive"""
@@ -262,9 +265,9 @@ def calculate_cost_of_one_paper(
     for day in undelivered_dates:
         number_of_days_per_weekday_not_received[day.weekday()] += 1
 
-    return numpy.sum(
+    return float(numpy.sum(
         delivery_data * cost_data * (number_of_each_weekday - number_of_days_per_weekday_not_received)
-    )
+    ))
 
 
 def calculate_cost_of_all_papers(connection: Connection, undelivered_strings: dict[int, list[str]], month: int, year: int) -> tuple[
