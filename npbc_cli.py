@@ -180,6 +180,8 @@ def status_print(success: bool, message: str) -> None:
     colour = Fore.GREEN if success else Fore.RED
     print(f"{colour}{Style.BRIGHT}{message}{Style.RESET_ALL}\n")
 
+    return
+
 
 def calculate(parsed_arguments: ArgNamespace, connection: Connection) -> None:
     """calculate the cost for a given month and year
@@ -267,6 +269,7 @@ def calculate(parsed_arguments: ArgNamespace, connection: Connection) -> None:
     # print the results
     status_print(True, "Success!")
     print(f"SUMMARY:\n\n{formatted}")
+    return
 
 
 def addudl(parsed_arguments: ArgNamespace, connection: Connection) -> None:
@@ -315,6 +318,7 @@ def addudl(parsed_arguments: ArgNamespace, connection: Connection) -> None:
         return
 
     status_print(True, "Success!")
+    return
 
 
 def deludl(parsed_arguments: ArgNamespace, connection: Connection) -> None:
@@ -356,6 +360,7 @@ def deludl(parsed_arguments: ArgNamespace, connection: Connection) -> None:
         return
         
     status_print(True, "Success!")
+    return
 
 
 def getudl(parsed_arguments: ArgNamespace, connection: Connection) -> None:
@@ -398,6 +403,8 @@ def getudl(parsed_arguments: ArgNamespace, connection: Connection) -> None:
     # print the strings
     for items in undelivered_strings:
         print(', '.join([str(item) for item in items]))
+
+    return
 
 
 def extract_delivery_from_user_input(input_delivery: str) -> list[bool]:
@@ -499,6 +506,7 @@ def editpaper(parsed_arguments: ArgNamespace, connection: Connection) -> None:
         return
 
     status_print(True, "Success!")
+    return
 
 
 def addpaper(parsed_arguments: ArgNamespace, connection: Connection) -> None:
@@ -532,6 +540,7 @@ def addpaper(parsed_arguments: ArgNamespace, connection: Connection) -> None:
         return
 
     status_print(True, "Success!")
+    return
 
 
 def delpaper(parsed_arguments: ArgNamespace, connection: Connection) -> None:
@@ -552,6 +561,7 @@ def delpaper(parsed_arguments: ArgNamespace, connection: Connection) -> None:
         return
 
     status_print(True, "Success!")
+    return
 
 
 def getpapers(parsed_arguments: ArgNamespace, connection: Connection) -> None:
@@ -661,6 +671,8 @@ def getpapers(parsed_arguments: ArgNamespace, connection: Connection) -> None:
 
         print()
 
+    return
+
 
 def getlogs(parsed_arguments: ArgNamespace, connection: Connection) -> None:
     """get a list of all logs in the database
@@ -699,6 +711,8 @@ def getlogs(parsed_arguments: ArgNamespace, connection: Connection) -> None:
     for row in data:
         print(', '.join(str(item) for item in row))
 
+    return
+
 
 def update(parsed_arguments: ArgNamespace, _: Connection) -> None:
     """update the application
@@ -706,6 +720,7 @@ def update(parsed_arguments: ArgNamespace, _: Connection) -> None:
     - if the update CLI argument is provided, this script will never run and the updater will be run instead"""
 
     status_print(False, "Update failed.")
+    return
 
 
 def init(parsed_arguments: ArgNamespace, _: Connection) -> None:
@@ -713,6 +728,7 @@ def init(parsed_arguments: ArgNamespace, _: Connection) -> None:
     - this function should run only once, when the application is first installed"""
 
     status_print(True, "Initialized successfully.")
+    return
 
 
 def main(arguments: list[str]) -> None:
@@ -742,6 +758,8 @@ def main(arguments: list[str]) -> None:
     # close the database connection
     finally:
         connection.close()  # type: ignore
+
+    return
 
 
 if __name__ == "__main__":
