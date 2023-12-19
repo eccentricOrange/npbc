@@ -472,9 +472,9 @@ def delete_existing_paper(connection: Connection, paper_id: int) -> None:
     # check if the paper exists
     if not connection.execute(
         "SELECT EXISTS (SELECT 1 FROM papers WHERE paper_id = ?);",
-        (paper_id,)).fetchone()[0]:
-        raise npbc_exceptions.PaperNotExists(f"Paper with ID {paper_id} does not exist."
-    )
+        (paper_id,)
+    ).fetchone()[0]:
+        raise npbc_exceptions.PaperNotExists(f"Paper with ID {paper_id} does not exist.")
 
     # delete the paper
     connection.execute(

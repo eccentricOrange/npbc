@@ -8,11 +8,12 @@ wraps a CLI around the core functionality (using argparse)
 """
 
 
-from sqlite3 import DatabaseError, connect, Connection
 from argparse import ArgumentParser
 from argparse import Namespace as ArgNamespace
 from collections.abc import Generator
 from datetime import datetime
+from json import dumps
+from sqlite3 import Connection, DatabaseError, connect
 from sys import argv
 
 from colorama import Fore, Style
