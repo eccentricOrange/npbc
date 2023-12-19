@@ -8,11 +8,12 @@ wraps a CLI around the core functionality (using argparse)
 """
 
 
-from sqlite3 import DatabaseError, connect, Connection
 from argparse import ArgumentParser
 from argparse import Namespace as ArgNamespace
 from collections.abc import Generator
 from datetime import datetime
+from json import dumps
+from sqlite3 import Connection, DatabaseError, connect
 from sys import argv
 
 from colorama import Fore, Style
@@ -134,6 +135,8 @@ def define_and_read_args(arguments: list[str]) -> ArgNamespace:
     getpapers_parser.add_argument('-n', '--names', help="Get the names of the newspapers.", action='store_true')
     getpapers_parser.add_argument('-d', '--delivered', help="Get the days the newspapers are delivered. All seven weekdays are required. A 'Y' means it is delivered, and an 'N' means it isn't.", action='store_true')
     getpapers_parser.add_argument('-c', '--cost', help="Get the daywise prices of the newspapers. Values must be separated by semicolons.", action='store_true')
+    getpapers_parser.add_argument('-j', '--json', help="Get the papers as JSON.", action='store_true')
+    
 
     # get undelivered logs subparser
     getlogs_parser = functions.add_parser(
@@ -622,6 +625,26 @@ def getpapers(parsed_arguments: ArgNamespace, connection: Connection) -> None:
         for paper_data in raw_data:
             days[paper_data.paper_id][paper_data.day_id]['delivery'] = paper_data.delivered
             days[paper_data.paper_id][paper_data.day_id]['cost'] = paper_data.cost
+
+        # if the user wants the data as json, print it and return. include all the data
+        if parsed_arguments.json:
+            json_data = {
+                paper_id: {
+                    'name': name,
+                    'days': [
+                        {
+                            'delivery': days[paper_id][day_id]['delivery'],
+                            'cost': days[paper_id][day_id]['cost']
+                        }
+                        for day_id in range(len(npbc_core.WEEKDAY_NAMES))
+                    ]
+                }
+                for paper_id, name in zip(ids, names)
+            }
+
+            print(dumps(json_data))
+
+            return
 
         # if the user wants the delivery data, add it to the headers and the data to the list
         if parsed_arguments.delivered:
